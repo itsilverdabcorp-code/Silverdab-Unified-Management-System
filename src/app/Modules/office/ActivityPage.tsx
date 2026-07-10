@@ -21,6 +21,12 @@ const ACTION_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; border: string }
 > = {
+  item_created: {
+    label: "Item Added",
+    bg: "#ede9fe",
+    text: "#5b21b6",
+    border: "#ddd6fe",
+  },
   delivery: {
     label: "Delivery",
     bg: "#dcfce7",
@@ -66,6 +72,7 @@ function getActionConfig(type: string) {
 
 const ACTION_FILTER_OPTIONS = [
   { label: "All actions", value: "all" },
+  { label: "Item Added", value: "item_created" },
   { label: "Delivery", value: "delivery" },
   { label: "Manual adjustment", value: "manual_adjustment" },
   { label: "Supply request approved", value: "supply_request_fulfilled" },

@@ -202,6 +202,7 @@ export async function createInventoryItem(
 ): Promise<OfficeInventoryItem> {
   const lowStockThreshold = input.lowStockThreshold ?? 5;
   const inStockThreshold = input.inStockThreshold ?? 10;
+  const user = await getCurrentUser();
 
   const res = await fetch(`${BACKEND_URL}/office-inventory`, {
     method: "POST",
@@ -220,6 +221,7 @@ export async function createInventoryItem(
       ),
       lowStockThreshold,
       inStockThreshold,
+      performedByName: user.name,
     }),
   });
 
@@ -230,7 +232,6 @@ export async function createInventoryItem(
   }>(res);
 
   if (!res.ok || !data?.success || !data.item) {
-    // Surfaces backend validation errors, e.g. duplicate item code
     throw new Error(data?.message || "Unable to create item.");
   }
 
