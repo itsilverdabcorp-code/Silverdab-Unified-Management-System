@@ -1121,57 +1121,10 @@ function SupplyDetailContent({
                   ×{item.quantityRequested}
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontFamily: "Outfit",
-                  fontSize: 11,
-                  color: theme.subtext,
-                  marginTop: 3,
-                }}
-              >
-                ₱{(item.pricePerUnit ?? 0).toFixed(2)} each
-              </Text>
             </View>
           </View>
         ))}
-        {/* ── Total ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 15,
-            paddingVertical: 12,
-            backgroundColor: theme.surfaceRaised ?? theme.background,
-            borderTopWidth: 1,
-            borderTopColor: theme.border,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Outfit-medium",
-              fontSize: 13,
-              color: theme.textActive ?? theme.text,
-            }}
-          >
-            Estimated total
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Outfit-medium",
-              fontSize: 15,
-              color: primary,
-            }}
-          >
-            ₱
-            {(request.items ?? [])
-              .reduce(
-                (sum, i) => sum + (i.pricePerUnit ?? 0) * i.quantityRequested,
-                0,
-              )
-              .toFixed(2)}
-          </Text>
-        </View>
+        
       </View>
 
       {request.notes ? (
