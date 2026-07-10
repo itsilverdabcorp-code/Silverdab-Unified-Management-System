@@ -205,22 +205,20 @@ function KpiCard({
       style={{
         backgroundColor: theme.surface,
         borderColor: theme.border,
-        flex: 1,
-        minWidth: 160,
       }}
-      className="rounded-xl border p-4"
+      className="rounded-xl border p-3 lg:p-4 lg:flex-1 lg:min-w-[160px]"
     >
-      <p style={{ color: theme.subtext }} className="text-[10px] font-semibold uppercase tracking-wide mb-1">
+      <p style={{ color: theme.subtext }} className="text-[10px] font-semibold uppercase tracking-wide mb-1 truncate">
         {label}
       </p>
       <p
         style={{ color: valueColor ?? theme.text }}
-        className="text-2xl font-bold leading-none mb-1"
+        className="text-lg lg:text-2xl font-bold leading-none mb-1"
       >
         {value}
       </p>
       {sub && (
-        <p style={{ color: theme.subtext }} className="text-xs mt-1">
+        <p style={{ color: theme.subtext }} className="text-[10px] lg:text-xs mt-1 truncate">
           {sub}
         </p>
       )}
@@ -393,6 +391,56 @@ function MonthSelector({
       >
         ›
       </button>
+    </div>
+  );
+}
+
+// ─── Mobile item card ────────────────────────────────────────────────────────
+
+function MonthlyItemCard({ row, theme }: { row: MonthlyItemRow; theme: any }) {
+  return (
+    <div
+      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      className="rounded-lg border px-3 py-2.5 mb-2"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p style={{ color: theme.text }} className="text-sm font-medium truncate">
+            {row.name}
+          </p>
+          <p style={{ color: theme.subtext }} className="text-[11px]">
+            {formatPeso(row.pricePerUnit)} per unit
+          </p>
+        </div>
+        <span
+          style={{
+            color:
+              row.endingInventory === 0
+                ? "#dc2626"
+                : row.endingInventory <= 5
+                  ? "#d97706"
+                  : theme.text,
+          }}
+          className="text-base font-bold flex-shrink-0"
+        >
+          {row.endingInventory}
+        </span>
+      </div>
+
+      <div
+        style={{ borderColor: theme.border }}
+        className="flex items-center justify-between gap-2 mt-2 pt-2 border-t text-[11px]"
+      >
+        <span style={{ color: theme.subtext }}>Beg. {row.beginningInventory}</span>
+        <span style={{ color: row.totalConsumed > 0 ? "#dc2626" : theme.subtext }}>
+          {row.totalConsumed > 0
+            ? `-${row.totalConsumed} (${formatPeso(row.consumptionAmount)})`
+            : "No consumption"}
+        </span>
+        <span style={{ color: row.totalDelivered > 0 ? "#16a34a" : theme.subtext }}>
+          {row.totalDelivered > 0 ? `+${row.totalDelivered}` : "Delivered 0"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -574,9 +622,9 @@ export default function MonthlyReportPage({ user }: Props) {
     >
       {/* ── Header ── */}
       <div className="flex-shrink-0 px-4 pt-4 pb-0">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 lg:gap-4 mb-4">
           <div>
-            <h1 style={{ color: theme.text }} className="text-2xl font-bold leading-tight">
+            <h1 style={{ color: theme.text }} className="text-xl lg:text-2xl font-bold leading-tight">
               Monthly consumables report
             </h1>
             <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
@@ -586,7 +634,7 @@ export default function MonthlyReportPage({ user }: Props) {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto">
             <MonthSelector value={selectedMonth} onChange={setSelectedMonth} theme={theme} />
 
             {/* Manual refresh — MySQL has no live push, so give users a way
@@ -668,7 +716,7 @@ export default function MonthlyReportPage({ user }: Props) {
 
         {/* ── KPI Cards ── */}
         {!loading && (
-          <div className="flex gap-3 mb-4 flex-wrap">
+          <div className="grid grid-cols-2 lg:flex gap-2 lg:gap-3 mb-4">
             <KpiCard
               label="Total Consumption Value"
               value={formatPeso(kpi.totalConsumptionValue)}
@@ -757,7 +805,9 @@ export default function MonthlyReportPage({ user }: Props) {
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
+        <>
+        {/* Desktop table */}
+        <div className="hidden lg:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
           <table
             className="min-w-full text-sm"
             style={{ borderCollapse: "separate", borderSpacing: 0 }}
@@ -938,6 +988,33 @@ export default function MonthlyReportPage({ user }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Mobile cards */}
+        <div className="lg:hidden flex-1 overflow-y-auto px-4 pb-4">
+          {filteredRows.map((row) => (
+            <MonthlyItemCard key={row.id} row={row} theme={theme} />
+          ))}
+
+          <div
+            style={{ backgroundColor: theme.surfaceRaised, borderColor: theme.border }}
+            className="rounded-lg border px-3 py-2.5 mt-1"
+          >
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span style={{ color: theme.text }}>Total</span>
+              <span style={{ color: "#dc2626" }}>
+                -{filteredRows.reduce((s, r) => s + r.totalConsumed, 0)} ({formatPeso(tabTotals.totalConsumedP)})
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs font-bold mt-1">
+              <span style={{ color: theme.text }}>Delivered</span>
+              <span style={{ color: "#16a34a" }}>
+                +{filteredRows.reduce((s, r) => s + r.totalDelivered, 0)}
+                {tabTotals.totalDeliveredP > 0 ? ` (${formatPeso(tabTotals.totalDeliveredP)})` : ""}
+              </span>
+            </div>
+          </div>
+        </div>
+        </>
       )}
 
       <style>{`

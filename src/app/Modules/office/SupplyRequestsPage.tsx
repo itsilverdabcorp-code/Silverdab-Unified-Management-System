@@ -389,17 +389,17 @@ function DetailDrawer({
   ].filter(Boolean) as { label: string; value: string; at?: string }[];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-end md:items-stretch justify-center md:justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div
         style={{ backgroundColor: theme.surface, borderColor: theme.border }}
-        className="relative w-full max-w-md h-full border-l overflow-y-auto"
+        className="relative w-full md:max-w-md max-h-[85vh] md:max-h-screen md:h-full rounded-t-2xl md:rounded-none md:border-l overflow-y-auto"
       >
         <div
-          className="flex items-center justify-between px-5 py-4 border-b sticky top-0"
+          className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b sticky top-0 z-10"
           style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         >
-          <div>
+          <div className="min-w-0">
             <p
               style={{ color: theme.subtext }}
               className="text-[11px] uppercase tracking-wide"
@@ -408,15 +408,15 @@ function DetailDrawer({
             </p>
             <h2
               style={{ color: theme.text }}
-              className="text-base font-semibold"
+              className="text-base font-semibold truncate"
             >
               {request.ticketNumber}
             </h2>
           </div>
           <button
             onClick={onClose}
-            style={{ color: theme.subtext }}
-            className="text-xl leading-none"
+            style={{ color: theme.subtext, backgroundColor: theme.background }}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-xl leading-none flex-shrink-0"
           >
             ×
           </button>
@@ -759,7 +759,7 @@ function RequestRow({
             style={{ borderColor: theme.border, color: theme.text }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg border"
           >
-            👁 View
+             View
           </button>
         )}
       </td>
@@ -888,11 +888,245 @@ function DeliveryRow({
             style={{ borderColor: theme.border, color: theme.text }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg border"
           >
-            👁 View
+             View
           </button>
         )}
       </td>
     </tr>
+  );
+}
+
+// ─── Mobile request card ──────────────────────────────────────────────────────
+
+function RequestCard({
+  request,
+  onApprove,
+  onView,
+  onDeliver,
+  onFail,
+  approvingId,
+  theme,
+}: {
+  request: SupplyRequest;
+  onApprove: (r: SupplyRequest) => void;
+  onView: (r: SupplyRequest) => void;
+  onDeliver: (r: SupplyRequest) => void;
+  onFail: (r: SupplyRequest) => void;
+  approvingId: string | null;
+  theme: any;
+}) {
+  const stock = worstStockStatus(request.items);
+  const status = effectiveStatus(request);
+  const { primaryLabel, extraCount, qtyLabel } = itemSummary(request.items);
+  const isPending =
+    request.status === "pending" || request.status === "awaiting_stock";
+  const isApproving = approvingId === request.id;
+
+  return (
+    <div
+      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      className="rounded-lg border px-2.5 py-2 mb-2"
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.primaryText,
+              width: 16,
+              height: 16,
+            }}
+            className="flex items-center justify-center rounded-full text-[8px] font-medium flex-shrink-0"
+          >
+            {getInitials(request.requestedByName)}
+          </span>
+          <button
+            onClick={() => onView(request)}
+            style={{ color: theme.text }}
+            className="text-xs font-semibold flex-shrink-0"
+          >
+            #{request.ticketNumber.replace(/^SR-\d+-/, "")}
+          </button>
+          <span style={{ color: theme.subtext }} className="text-[11px] truncate">
+            {request.requestedByName}
+          </span>
+        </div>
+        <span
+          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${statusBadgeClass(status)}`}
+        >
+          {statusLabel(status)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span style={{ color: theme.text }} className="text-xs font-medium truncate">
+          {primaryLabel}
+          {extraCount > 0 && (
+            <span style={{ color: theme.subtext }} className="font-normal">
+              {" "}+{extraCount}
+            </span>
+          )}
+        </span>
+        <span
+          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${stockBadgeClass(stock)}`}
+        >
+          {stockLabel(stock)}
+        </span>
+      </div>
+
+      <p style={{ color: theme.subtext }} className="text-[11px] mb-1.5">
+        {qtyLabel} · {formatDate(request.createdAt)}
+      </p>
+
+      {isPending ? (
+        <button
+          onClick={() => onApprove(request)}
+          disabled={isApproving}
+          style={{ backgroundColor: theme.primary, color: theme.primaryText }}
+          className="w-full py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
+        >
+          {isApproving ? "Reviewing…" : "Review"}
+        </button>
+      ) : request.status === "out_for_delivery" ? (
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => onDeliver(request)}
+            disabled={isApproving}
+            style={{ backgroundColor: "#16a34a", color: "#fff" }}
+            className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
+          >
+            {isApproving ? "Saving…" : "✓ Delivered"}
+          </button>
+          <button
+            onClick={() => onFail(request)}
+            disabled={isApproving}
+            style={{ backgroundColor: "#D97706", color: "#fff" }}
+            className="px-3 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onView(request)}
+          style={{ borderColor: theme.border, color: theme.text }}
+          className="w-full py-1.5 text-xs font-medium rounded-md border"
+        >
+          View
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Mobile delivery card ──────────────────────────────────────────────────────
+
+function DeliveryCard({
+  request,
+  onDeliver,
+  onFail,
+  onView,
+  actionId,
+  theme,
+}: {
+  request: SupplyRequest;
+  onDeliver: (r: SupplyRequest) => void;
+  onFail: (r: SupplyRequest) => void;
+  onView: (r: SupplyRequest) => void;
+  actionId: string | null;
+  theme: any;
+}) {
+  const { primaryLabel, extraCount, qtyLabel } = itemSummary(request.items);
+  const status = request.status;
+  const isActive = actionId === request.id;
+  const isForDelivery =
+    status === "out_for_delivery" || status === "failed_delivery";
+
+  return (
+    <div
+      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      className="rounded-lg border px-2.5 py-2 mb-2"
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.primaryText,
+              width: 16,
+              height: 16,
+            }}
+            className="flex items-center justify-center rounded-full text-[8px] font-medium flex-shrink-0"
+          >
+            {getInitials(request.requestedByName)}
+          </span>
+          <button
+            onClick={() => onView(request)}
+            style={{ color: theme.text }}
+            className="text-xs font-semibold flex-shrink-0"
+          >
+            #{request.ticketNumber.replace(/^SR-\d+-/, "")}
+          </button>
+          <span style={{ color: theme.subtext }} className="text-[11px] truncate">
+            {request.requestedByName}
+          </span>
+        </div>
+        <span
+          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${statusBadgeClass(status)}`}
+        >
+          {statusLabel(status)}
+        </span>
+      </div>
+
+      <div className="mb-1.5">
+        <span style={{ color: theme.text }} className="text-xs font-medium">
+          {primaryLabel}
+        </span>
+        {extraCount > 0 && (
+          <span style={{ color: theme.subtext }} className="text-[11px] ml-1">
+            +{extraCount} more
+          </span>
+        )}
+      </div>
+
+      <p style={{ color: theme.subtext }} className="text-[11px] mb-1.5">
+        {qtyLabel} · Approved {formatDate(request.approvedAt ?? "")}
+      </p>
+      {status === "failed_delivery" && request.failedReason && (
+        <p style={{ color: theme.subtext }} className="text-[11px] mb-1.5 truncate">
+          {request.failedReason}
+        </p>
+      )}
+
+      {isForDelivery ? (
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => onDeliver(request)}
+            disabled={isActive}
+            style={{ backgroundColor: "#16a34a", color: "#fff" }}
+            className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
+          >
+            {isActive ? "Saving…" : "✓ Delivered"}
+          </button>
+          <button
+            onClick={() => onFail(request)}
+            disabled={isActive}
+            style={{ backgroundColor: "#D97706", color: "#fff" }}
+            className="px-3 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onView(request)}
+          style={{ borderColor: theme.border, color: theme.text }}
+          className="w-full py-1.5 text-xs font-medium rounded-md border"
+        >
+          View
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1183,8 +1417,8 @@ const handleReject = (requestId: string) => {
         </div>
 
         {/* ── Search ── */}
-        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <div className="relative w-full max-w-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="relative w-full sm:max-w-md">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -1221,7 +1455,7 @@ const handleReject = (requestId: string) => {
               backgroundColor: theme.surfaceRaised,
               borderColor: theme.border,
             }}
-            className="inline-flex items-center gap-1 p-1 rounded-lg border flex-wrap"
+            className="flex items-center gap-1 p-1 rounded-lg border flex-wrap"
           >
             {(pageTab === "requests"
               ? REQUEST_STATUS_TABS
@@ -1247,7 +1481,7 @@ const handleReject = (requestId: string) => {
                     backgroundColor: active ? theme.primary : "transparent",
                     color: active ? theme.primaryText : theme.subtext,
                   }}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors"
+                  className="px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors"
                 >
                   {tab.label}
                   {count > 0 && (
@@ -1275,7 +1509,9 @@ const handleReject = (requestId: string) => {
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
+        <>
+        {/* Desktop table */}
+        <div className="hidden md:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
           <div
             style={{ borderColor: theme.border }}
             className="rounded-lg border"
@@ -1359,6 +1595,47 @@ const handleReject = (requestId: string) => {
             </table>
           </div>
         </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden flex-1 overflow-y-auto px-4 pb-4">
+          {pageTab === "requests" ? (
+            filteredRequests.length === 0 ? (
+              <p style={{ color: theme.subtext }} className="text-sm text-center py-10">
+                No requests found.
+              </p>
+            ) : (
+              filteredRequests.map((r) => (
+                <RequestCard
+                  key={r.id}
+                  request={r}
+                  onApprove={(x) => setApprovalTarget(x)}
+                  onView={(x) => setDetailRequest(x)}
+                  onDeliver={handleMarkDelivered}
+                  onFail={(x) => setFailTarget(x)}
+                  approvingId={approvingId}
+                  theme={theme}
+                />
+              ))
+            )
+          ) : filteredDeliveries.length === 0 ? (
+            <p style={{ color: theme.subtext }} className="text-sm text-center py-10">
+              No deliveries found.
+            </p>
+          ) : (
+            filteredDeliveries.map((r) => (
+              <DeliveryCard
+                key={r.id}
+                request={r}
+                onDeliver={handleMarkDelivered}
+                onFail={(x) => setFailTarget(x)}
+                onView={(x) => setDetailRequest(x)}
+                actionId={delivActionId}
+                theme={theme}
+              />
+            ))
+          )}
+        </div>
+        </>
       )}
 
       {/* ── Modals ── */}

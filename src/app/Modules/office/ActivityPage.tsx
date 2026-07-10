@@ -247,18 +247,11 @@ function DetailDrawer({ tx, unitMap, onClose, theme }: DetailDrawerProps) {
       {/* Panel */}
       <div
         style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 400,
           backgroundColor: theme.surface,
-          borderLeft: `1px solid ${theme.border}`,
           zIndex: 99999,
-          display: "flex",
-          flexDirection: "column",
           boxShadow: "-8px 0 32px rgba(0,0,0,0.15)",
         }}
+        className="fixed inset-x-0 bottom-0 md:inset-x-auto md:top-0 md:right-0 md:bottom-0 md:w-[400px] max-h-[85vh] md:max-h-none rounded-t-2xl md:rounded-none md:border-l flex flex-col overflow-y-auto"
       >
         {/* Header */}
         <div
@@ -750,6 +743,87 @@ function DetailDrawer({ tx, unitMap, onClose, theme }: DetailDrawerProps) {
   return ReactDOM.createPortal(drawer, document.body);
 }
 
+// ─── Mobile activity card ──────────────────────────────────────────────────────
+
+function ActivityCard({
+  tx,
+  unitMap,
+  isSelected,
+  onSelect,
+  theme,
+}: {
+  tx: StockTransaction;
+  unitMap: Record<string, string>;
+  isSelected: boolean;
+  onSelect: () => void;
+  theme: any;
+}) {
+  const action = getActionConfig(tx.type);
+  const colors = avatarColor(tx.performedByName);
+
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        backgroundColor: isSelected ? theme.bgActive : theme.surface,
+        borderColor: theme.border,
+      }}
+      className="w-full text-left rounded-lg border px-3 py-2.5 mb-2"
+    >
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span
+          style={{
+            backgroundColor: action.bg,
+            color: action.text,
+            border: `1px solid ${action.border}`,
+          }}
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
+        >
+          {action.label}
+        </span>
+        <span style={{ color: theme.subtext }} className="text-[11px] flex-shrink-0">
+          {formatDateTime(tx.createdAt)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span style={{ color: theme.text }} className="text-sm font-medium truncate">
+          {tx.itemName}
+        </span>
+        <span
+          style={{ color: tx.quantityChange < 0 ? "#dc2626" : "#15803d" }}
+          className="text-sm font-semibold flex-shrink-0"
+        >
+          {formatQty(tx, unitMap)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <div
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            backgroundColor: colors.bg,
+            color: colors.text,
+            fontSize: 8,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {getInitials(tx.performedByName)}
+        </div>
+        <span style={{ color: theme.subtext }} className="text-[11px] truncate">
+          {tx.performedByName}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Props = { user?: ADUser };
@@ -826,9 +900,9 @@ export default function ActivityPage({ user }: Props) {
         </div>
 
         {/* Search + filter + export */}
-        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           {/* Search */}
-          <div className="relative w-full max-w-md">
+          <div className="relative w-full sm:max-w-md">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="15"
@@ -869,7 +943,7 @@ export default function ActivityPage({ user }: Props) {
                 borderColor: theme.inputBorder,
                 color: theme.inputText,
               }}
-              className="px-3 py-2.5 text-sm border rounded-lg focus:outline-none"
+              className="flex-1 sm:flex-initial px-3 py-2.5 text-sm border rounded-lg focus:outline-none"
             >
               {ACTION_FILTER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -887,7 +961,7 @@ export default function ActivityPage({ user }: Props) {
                 color: theme.text,
                 borderColor: theme.border,
               }}
-              className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border whitespace-nowrap disabled:opacity-50"
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border whitespace-nowrap disabled:opacity-50"
               onMouseEnter={(e) =>
                 (e.currentTarget.style.backgroundColor = theme.bgHover)
               }
@@ -948,7 +1022,9 @@ export default function ActivityPage({ user }: Props) {
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
+        <>
+        {/* Desktop table */}
+        <div className="hidden md:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
           <div
             style={{ borderColor: theme.border }}
             className="rounded-lg border overflow-hidden"
@@ -1143,6 +1219,21 @@ export default function ActivityPage({ user }: Props) {
             </table>
           </div>
         </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden flex-1 overflow-y-auto px-4 pb-4">
+          {filtered.map((tx) => (
+            <ActivityCard
+              key={tx.id}
+              tx={tx}
+              unitMap={unitMap}
+              isSelected={selectedTx?.id === tx.id}
+              onSelect={() => setSelectedTx(selectedTx?.id === tx.id ? null : tx)}
+              theme={theme}
+            />
+          ))}
+        </div>
+        </>
       )}
 
       {/* ── Detail drawer ── */}

@@ -603,6 +603,80 @@ const OfficeInventoryPage: React.FC<Props> = ({
     [theme, handleArchive],
   );
 
+  const renderMobileCards = useCallback(
+    (rowItems: OfficeInventoryItem[]) =>
+      rowItems.map((item) => (
+        <div
+          key={item.id}
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          className="rounded-xl border p-3 mb-3"
+        >
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="min-w-0">
+              <p
+                style={{ color: theme.text }}
+                className="text-sm font-semibold truncate"
+              >
+                {item.name}
+              </p>
+              <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
+                <span style={{ color: theme.primary }}>{item.itemCode}</span>
+                {item.brand ? ` · ${item.brand}` : ""}
+              </p>
+            </div>
+            <StockStatusBadge status={item.stockStatus} />
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-baseline gap-1.5">
+              <span
+                style={{
+                  color:
+                    item.stockStatus === "out_of_stock"
+                      ? "#ef4444"
+                      : item.stockStatus === "low_stock"
+                        ? "#f59e0b"
+                        : theme.text,
+                }}
+                className="text-lg font-bold"
+              >
+                {item.currentStock}
+              </span>
+              <span style={{ color: theme.subtext }} className="text-xs">
+                {item.unit} · {formatPeso(item.pricePerUnit)}
+              </span>
+            </div>
+
+            <div className="flex gap-1.5">
+              <IconBtn
+                title="Adjust stock"
+                disabled={item.currentStock === 0}
+                onClick={() => {
+                  setAdjustTarget(item);
+                  setAdjustModalOpen(true);
+                }}
+              >
+                <MinusIcon />
+              </IconBtn>
+              <IconBtn
+                title="Add delivery"
+                onClick={() => {
+                  setDeliverTarget(item);
+                  setDeliverModalOpen(true);
+                }}
+              >
+                <PlusIcon />
+              </IconBtn>
+              <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
+                <EditIcon />
+              </IconBtn>
+            </div>
+          </div>
+        </div>
+      )),
+    [theme],
+  );
+
   return (
     <div
       style={{ backgroundColor: theme.background }}
@@ -610,7 +684,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
     >
       {/* ── Fixed top bar ── */}
       <div className="flex-shrink-0 px-4 pt-4 pb-0">
-        <div className="flex items-center justify-between gap-4 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
             <h1 style={{ color: theme.text }} className="text-2xl font-bold">
               Office Inventory
@@ -623,7 +697,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
                 setDeliverTarget(null);
@@ -634,7 +708,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
                 color: theme.text,
                 borderColor: theme.border,
               }}
-              className="px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
+              className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
               onMouseEnter={(e) =>
                 (e.currentTarget.style.backgroundColor = theme.bgHover)
               }
@@ -651,7 +725,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
                 backgroundColor: theme.primary,
                 color: theme.primaryText,
               }}
-              className="px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+              className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
               onMouseEnter={(e) =>
                 (e.currentTarget.style.backgroundColor = theme.primaryHover)
               }
@@ -742,7 +816,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
         {/* ── Category tabs ── */}
         <div
           style={{ borderBottom: `1px solid ${theme.border}` }}
-          className="flex items-end gap-0 -mb-px"
+          className="flex items-end gap-0 -mb-px overflow-x-auto office-inventory-scroll"
         >
           {CATEGORY_TABS.map((tab) => {
             const isActive = activeTab === tab.value;
@@ -758,7 +832,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
                     : "2px solid transparent",
                   backgroundColor: "transparent",
                 }}
-                className="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none"
+                className="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none flex-shrink-0"
                 onMouseEnter={(e) => {
                   if (!isActive) e.currentTarget.style.color = theme.text;
                 }}
@@ -803,22 +877,30 @@ const OfficeInventoryPage: React.FC<Props> = ({
           </p>
         </div>
       ) : (
-        <div
-          style={{ borderColor: theme.border }}
-          className="flex-1 overflow-y-auto overflow-x-auto px-4 pb-4 office-inventory-scroll"
-        >
-          <table
-            className="min-w-full text-sm border rounded-lg"
-            style={{
-              borderCollapse: "separate",
-              borderSpacing: 0,
-              borderColor: theme.border,
-            }}
+        <>
+          {/* Desktop table */}
+          <div
+            style={{ borderColor: theme.border }}
+            className="hidden md:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4 office-inventory-scroll"
           >
-            {renderTableHead()}
-            <tbody>{renderTableBody(sortedFiltered)}</tbody>
-          </table>
-        </div>
+            <table
+              className="min-w-full text-sm border rounded-lg"
+              style={{
+                borderCollapse: "separate",
+                borderSpacing: 0,
+                borderColor: theme.border,
+              }}
+            >
+              {renderTableHead()}
+              <tbody>{renderTableBody(sortedFiltered)}</tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden flex-1 overflow-y-auto px-4 pb-4 office-inventory-scroll">
+            {renderMobileCards(sortedFiltered)}
+          </div>
+        </>
       )}
 
       <TableFilterPanel
