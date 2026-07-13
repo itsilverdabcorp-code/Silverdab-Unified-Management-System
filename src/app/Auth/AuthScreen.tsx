@@ -956,7 +956,7 @@ export default function AuthScreen({
               ) : null}
 
               <FloatingInput
-                label="Email / Username"
+                label="Username"
                 value={username}
                 onChangeText={setUsername}
                 theme={theme}
