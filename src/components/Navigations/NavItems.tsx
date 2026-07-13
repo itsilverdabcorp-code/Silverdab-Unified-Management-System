@@ -633,24 +633,24 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
     {
       sectionLabel: "Employee",
       items: [
-        {
-          key: "submitticket",
-          label: "Submit Ticket",
-          icon: SubmitTicketIcon,
-          href: href("submitticket"),
-        },
+        // {
+        //   key: "submitticket",
+        //   label: "Submit Ticket",
+        //   icon: SubmitTicketIcon,
+        //   href: href("submitticket"),
+        // },
         {
           key: "mytickets",
           label: "My Tickets",
           icon: MyTicketsIcon,
           href: href("mytickets"),
         },
-        {
-          key: "supplyinventory",
-          label: "Supply Inventory",
-          icon: SuppliesIcon,
-          href: href("supplyinventory"),
-        },
+        // {
+        //   key: "supplyinventory",
+        //   label: "Supply Inventory",
+        //   icon: SuppliesIcon,
+        //   href: href("supplyinventory"),
+        // },
       ],
     },
   ],

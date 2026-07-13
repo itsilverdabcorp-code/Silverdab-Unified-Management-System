@@ -794,7 +794,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
               }}
             >
               <TrashIcon />
-              {viewMode === "archived" ? "Back to active" : "View archive"}
+              {viewMode === "archived" ? "Back to active" : "Archive"}
             </button>
 
             {viewMode === "active" && (

@@ -63,6 +63,7 @@ type UnifiedTicket = {
   ticketNumber: string;
   title: string;
   status: string;
+  displayStatus?: string;
   dateCreated: any;
   category: string;
   itTicket?: ConcernTicket;
@@ -94,10 +95,24 @@ const toReadableDate = (value: any): string => {
 const SUPPLY_STATUS_MAP: Record<string, string> = {
   pending: "Pending",
   awaiting_stock: "In Progress",
+  out_for_delivery: "In Progress",
   resolved: "Resolved",
   rejected: "Rejected",
 };
 const normaliseSupplyStatus = (raw: string) => SUPPLY_STATUS_MAP[raw] ?? raw;
+
+// Separate label used only for the badge text/color — keeps "Out for
+// Delivery" visually distinct while it still counts toward and filters
+// under the "In Progress" tab above.
+const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
+  pending: "Pending",
+  awaiting_stock: "In Progress",
+  out_for_delivery: "Out for Delivery",
+  resolved: "Resolved",
+  rejected: "Rejected",
+};
+const displaySupplyStatus = (raw: string) =>
+  SUPPLY_DISPLAY_STATUS_MAP[raw] ?? raw;
 
 // ─── Status / source config ───────────────────────────────────────────────────
 
@@ -107,6 +122,7 @@ const STATUS_CONFIG: Record<
 > = {
   Pending: { bg: "#FEF9C3", border: "#FDE047", text: "#A16207" },
   "In Progress": { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
+   "Out for Delivery": { bg: "#FFEDD5", border: "#FDBA74", text: "#C2410C" },
   Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
 };
@@ -156,6 +172,7 @@ function mergeTickets(
         : `${r.items[0].itemName} +${r.items.length - 1} more`
       : "Supply Request",
     status: normaliseSupplyStatus(r.status),
+    displayStatus: displaySupplyStatus(r.status),
     dateCreated: r.createdAt,
     category: "Supply",
     supplyRequest: r,
@@ -550,7 +567,7 @@ function LeftPanel({
 
 // ─── Column widths (matches HTML reference grid) ──────────────────────────────
 // grid-template-columns: 90px 1fr 100px 90px 32px
-const COL = { ticketNo: 90, status: 100, date: 90, chev: 32 } as const;
+const COL = { ticketNo: 90, status: 150, date: 90, chev: 32 } as const;
 
 // ─── Ticket list row ──────────────────────────────────────────────────────────
 
@@ -633,7 +650,7 @@ function TicketRow({
 
       {/* Col 3 — Status badge */}
       <View style={{ width: COL.status, alignItems: "flex-start" }}>
-        <StatusBadge status={ticket.status} />
+        <StatusBadge status={ticket.displayStatus ?? ticket.status} />
       </View>
 
       {/* Col 4 — Date filed */}
@@ -697,7 +714,7 @@ function TicketCard({
           </Text>
           <SourceTag source={ticket._source} />
         </View>
-        <StatusBadge status={ticket.status} />
+        <StatusBadge status={ticket.displayStatus ?? ticket.status} />
       </View>
 
       <Text
@@ -1263,55 +1280,45 @@ function DetailDrawer({
   theme: any;
   primary: string;
 }) {
+  const { width: winW, height: winH } = useWindowDimensions();
+  const isMobile = winW < 768;
   if (!ticket) return null;
-  const DRAWER_W = Math.min(SCREEN_W * 0.95, 480);
+  const DRAWER_W = isMobile ? winW - 24 : Math.min(winW * 0.9, 480);
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
       <TouchableOpacity
         activeOpacity={1}
         onPress={onClose}
         style={{
           flex: 1,
           backgroundColor: "rgba(0,0,0,0.45)",
-          justifyContent: "flex-end",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         <TouchableOpacity
           activeOpacity={1}
           style={{
             width: DRAWER_W,
-            maxHeight: SCREEN_H * 0.88,
+            maxHeight: winH * 0.85,
             backgroundColor: theme.surface,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            borderRadius: isMobile ? 16 : 24,
             overflow: "hidden",
             alignSelf: "center",
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 20,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 24,
             elevation: 20,
           }}
         >
-          <View
-            style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: theme.border,
-              }}
-            />
-          </View>
           <View
             style={{
               flexDirection: "row",
               alignItems: "flex-start",
               justifyContent: "space-between",
-              paddingHorizontal: 20,
-              paddingTop: 10,
+              paddingHorizontal: isMobile ? 16 : 20,
+              paddingTop: 18,
               paddingBottom: 16,
               borderBottomWidth: 1,
               borderBottomColor: theme.border,
@@ -1348,7 +1355,7 @@ function DetailDrawer({
                 {ticket.title}
               </Text>
               <View style={{ marginTop: 8 }}>
-                <StatusBadge status={ticket.status} />
+                <StatusBadge status={ticket.displayStatus ?? ticket.status} />
               </View>
             </View>
             <TouchableOpacity
@@ -1369,7 +1376,7 @@ function DetailDrawer({
           </View>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            contentContainerStyle={{ padding: isMobile ? 16 : 20, paddingBottom: 40 }}
           >
             {ticket._source === "it" && ticket.itTicket ? (
               <ITDetailContent

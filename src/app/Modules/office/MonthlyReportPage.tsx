@@ -86,6 +86,17 @@ const CATEGORY_MAP: Record<string, string> = {
 
 const POLL_INTERVAL_MS = 30_000;
 
+// Single source of truth for activity dot colors — used by both the
+// sparkline dots and the legend swatches, so they can never drift out of
+// sync. Consumed and no-activity are picked to stay visually distinct from
+// each other even at 5px dot size.
+const ACTIVITY_DOT_COLORS = {
+  delivered: "#3b82f6",
+  consumed: "#dc2626",
+  both: "#8b5cf6",
+  none: "#3f4a5c",
+} as const;
+
 function formatPeso(amount: number): string {
   return `₱${Math.abs(amount).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
@@ -210,13 +221,13 @@ function ActivitySparkline({
               display: "block",
               backgroundColor:
                 dot.type === "both"
-                  ? "#8b5cf6"
+                  ? ACTIVITY_DOT_COLORS.both
                   : dot.type === "delivered"
-                    ? "#3b82f6"
+                    ? ACTIVITY_DOT_COLORS.delivered
                     : dot.type === "consumed"
-                      ? "#94a3b8"
-                      : theme.border,
-              opacity: dot.type === "none" ? 0.4 : 1,
+                      ? ACTIVITY_DOT_COLORS.consumed
+                      : ACTIVITY_DOT_COLORS.none,
+              opacity: dot.type === "none" ? 0.6 : 1,
               cursor: dot.type === "none" ? "default" : "pointer",
             }}
           />
@@ -1190,7 +1201,73 @@ export default function MonthlyReportPage({ user }: Props) {
                     bottom: 0,
                   }}
                 >
-                  <td colSpan={3} className="px-3 py-2.5" />
+                  <td colSpan={3} className="px-3 py-2.5">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span
+                        style={{ color: theme.subtext }}
+                        className="text-[10px] font-semibold uppercase tracking-wide"
+                      >
+                        Activity legend:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: ACTIVITY_DOT_COLORS.delivered,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span style={{ color: theme.subtext }} className="text-[11px]">
+                          Delivery
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: ACTIVITY_DOT_COLORS.consumed,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span style={{ color: theme.subtext }} className="text-[11px]">
+                          Consumed
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: ACTIVITY_DOT_COLORS.both,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span style={{ color: theme.subtext }} className="text-[11px]">
+                          Delivered + Consumed
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: ACTIVITY_DOT_COLORS.none,
+                            display: "inline-block",
+                            opacity: 0.6,
+                          }}
+                        />
+                        <span style={{ color: theme.subtext }} className="text-[11px]">
+                          No activity
+                        </span>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-3 py-2.5 text-right">
                     <span
                       style={{ color: "#dc2626" }}
@@ -1229,72 +1306,6 @@ export default function MonthlyReportPage({ user }: Props) {
                 </tr>
               </tbody>
             </table>
-
-            {/* ── Legend ── */}
-            <div className="flex items-center gap-4 mt-3 px-1">
-              <span
-                style={{ color: theme.subtext }}
-                className="text-[11px] font-medium uppercase tracking-wide"
-              >
-                Activity legend:
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    backgroundColor: "#3b82f6",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ color: theme.subtext }} className="text-[11px]">
-                  Delivery
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    backgroundColor: "#94a3b8",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ color: theme.subtext }} className="text-[11px]">
-                  Consumed
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    backgroundColor: "#8b5cf6",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ color: theme.subtext }} className="text-[11px]">
-                  Delivered + Consumed
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    backgroundColor: "#e2e8f0",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ color: theme.subtext }} className="text-[11px]">
-                  No activity
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Mobile cards */}

@@ -9,6 +9,7 @@ import {
   markDelivered,
   markFailedDelivery,
 } from "../../../services/supplyRequest"; // ← new MySQL service
+import { getAllInventoryItems } from "../../../services/Officeinventory";
 import PartialApprovalModal from "./Modal/PartialApprovalModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -111,11 +112,35 @@ function stockLabel(status: StockStatus): string {
   }
 }
 
-function worstStockStatus(items: SupplyRequest["items"]): StockStatus {
-  if (items.some((i) => i.stockStatusAtRequest === "out_of_stock"))
-    return "out_of_stock";
-  if (items.some((i) => i.stockStatusAtRequest === "low")) return "low";
+function worstStockStatus(
+  items: SupplyRequest["items"],
+  liveStock?: Record<string, StockStatus>,
+): StockStatus {
+  // Prefer live inventory status when we have it for that item; fall back
+  // to the frozen snapshot (stockStatusAtRequest) for items we don't have
+  // live data for, so this degrades gracefully if the inventory fetch fails.
+  const effective = (i: SupplyRequest["items"][number]): StockStatus =>
+    (liveStock?.[i.itemId] as StockStatus) ??
+    (i.stockStatusAtRequest as StockStatus);
+
+  if (items.some((i) => effective(i) === "out_of_stock")) return "out_of_stock";
+  if (items.some((i) => effective(i) === "low")) return "low";
   return "available";
+}
+
+// office_inventory.stock_status uses in_stock/low_stock/out_of_stock;
+// supply_request_items.stock_status_at_request uses available/low/out_of_stock.
+function toRequestStockStatus(inventoryStockStatus: string): StockStatus {
+  switch (inventoryStockStatus) {
+    case "in_stock":
+      return "available";
+    case "low_stock":
+      return "low";
+    case "out_of_stock":
+      return "out_of_stock";
+    default:
+      return inventoryStockStatus as StockStatus;
+  }
 }
 
 function getInitials(name: string): string {
@@ -151,11 +176,30 @@ function itemSummary(items: SupplyRequest["items"]) {
   };
 }
 
-function effectiveStatus(r: SupplyRequest): string {
-  if (r.status === "pending" && worstStockStatus(r.items) === "out_of_stock")
-    return "awaiting_stock";
+function effectiveStatus(
+  r: SupplyRequest,
+  liveStock?: Record<string, StockStatus>,
+): string {
+  if (r.status === "pending" || r.status === "awaiting_stock") {
+    return worstStockStatus(r.items, liveStock) === "out_of_stock"
+      ? "awaiting_stock"
+      : "pending";
+  }
   return r.status;
 }
+
+// Lower number = shown first. Out for delivery leads because it's a
+// dangling action waiting on confirmation; failed delivery sits right
+// beside it since it also needs a re-action. Resolved/rejected trail
+// last since they're closed and mainly for reference.
+const STATUS_SORT_ORDER: Record<string, number> = {
+  pending: 0,
+  out_for_delivery: 1,
+  failed_delivery: 2,
+  awaiting_stock: 3,
+  resolved: 4,
+  rejected: 5,
+};
 
 // ─── Reject modal ─────────────────────────────────────────────────────────────
 
@@ -629,6 +673,7 @@ function RequestRow({
   onDeliver,
   onFail,
   approvingId,
+  liveStock,
   theme,
 }: {
   request: SupplyRequest;
@@ -639,10 +684,11 @@ function RequestRow({
   onDeliver: (r: SupplyRequest) => void;
   onFail: (r: SupplyRequest) => void;
   approvingId: string | null;
+  liveStock?: Record<string, StockStatus>;
   theme: any;
 }) {
-  const stock = worstStockStatus(request.items);
-  const status = effectiveStatus(request);
+  const stock = worstStockStatus(request.items, liveStock);
+  const status = effectiveStatus(request, liveStock);
   const { primaryLabel, extraCount, qtyLabel } = itemSummary(request.items);
   const isPending =
     request.status === "pending" || request.status === "awaiting_stock";
@@ -905,6 +951,7 @@ function RequestCard({
   onDeliver,
   onFail,
   approvingId,
+  liveStock,
   theme,
 }: {
   request: SupplyRequest;
@@ -913,10 +960,11 @@ function RequestCard({
   onDeliver: (r: SupplyRequest) => void;
   onFail: (r: SupplyRequest) => void;
   approvingId: string | null;
+  liveStock?: Record<string, StockStatus>;
   theme: any;
 }) {
-  const stock = worstStockStatus(request.items);
-  const status = effectiveStatus(request);
+  const stock = worstStockStatus(request.items, liveStock);
+  const status = effectiveStatus(request, liveStock);
   const { primaryLabel, extraCount, qtyLabel } = itemSummary(request.items);
   const isPending =
     request.status === "pending" || request.status === "awaiting_stock";
@@ -1183,14 +1231,26 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
   const [failing, setFailing] = useState(false);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [liveStock, setLiveStock] = useState<Record<string, StockStatus>>({});
   const isFirstLoad = useRef(true);
 
   const loadRequests = useCallback(async () => {
     if (isFirstLoad.current) setLoading(true);
     else setRefreshing(true);
     try {
-      const data = await getAllSupplyRequests();
+      const [data, items] = await Promise.all([
+        getAllSupplyRequests(),
+        getAllInventoryItems().catch((err) => {
+          console.warn("Could not fetch live inventory for status check:", err);
+          return [];
+        }),
+      ]);
       setRequests(data);
+      setLiveStock(
+        Object.fromEntries(
+          items.map((it) => [it.id, toRequestStockStatus(it.stockStatus)]),
+        ),
+      );
       setError("");
     } catch (err) {
       console.error(err);
@@ -1228,7 +1288,7 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
   const filteredRequests = useMemo(() => {
     let r = requests;
     if (statusFilter !== "all")
-      r = r.filter((x) => effectiveStatus(x) === statusFilter);
+      r = r.filter((x) => effectiveStatus(x, liveStock) === statusFilter);
     const q = search.trim().toLowerCase();
     if (q)
       r = r.filter((x) =>
@@ -1242,8 +1302,17 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
           .toLowerCase()
           .includes(q),
       );
-    return r;
-  }, [requests, statusFilter, search]);
+
+    return [...r].sort((a, b) => {
+      const pa = STATUS_SORT_ORDER[effectiveStatus(a, liveStock)] ?? 99;
+      const pb = STATUS_SORT_ORDER[effectiveStatus(b, liveStock)] ?? 99;
+      if (pa !== pb) return pa - pb;
+      // Same priority tier — newest first
+      return (
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
+  }, [requests, statusFilter, search, liveStock]);
 
   const filteredDeliveries = useMemo(() => {
     // filteredDeliveries
@@ -1267,11 +1336,11 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
   const requestCounts = useMemo(() => {
     const c: Record<string, number> = { all: requests.length };
     requests.forEach((r) => {
-      const s = effectiveStatus(r);
+      const s = effectiveStatus(r, liveStock);
       c[s] = (c[s] ?? 0) + 1;
     });
     return c;
-  }, [requests]);
+  }, [requests, liveStock]);
 
   const delivCounts = useMemo(() => {
     const base = requests.filter((x) =>
@@ -1396,7 +1465,7 @@ const handleReject = (requestId: string) => {
               {pageTab === "requests"
                 ? `${filteredRequests.length} of ${requests.length} requests`
                 : `${filteredDeliveries.length} deliveries`}
-              {refreshing ? " · Refreshing…" : ""}
+              {refreshing ? "" : ""}
             </p>
           </div>
         </div>
@@ -1582,6 +1651,7 @@ const handleReject = (requestId: string) => {
                         onDeliver={handleMarkDelivered}
                         onFail={(x) => setFailTarget(x)}
                         approvingId={approvingId}
+                        liveStock={liveStock}
                         theme={theme}
                       />
                     ))
@@ -1630,6 +1700,7 @@ const handleReject = (requestId: string) => {
                   onDeliver={handleMarkDelivered}
                   onFail={(x) => setFailTarget(x)}
                   approvingId={approvingId}
+                  liveStock={liveStock}
                   theme={theme}
                 />
               ))

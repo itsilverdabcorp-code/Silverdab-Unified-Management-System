@@ -57,6 +57,18 @@ const ACTION_CONFIG: Record<
     text: "#b91c1c",
     border: "#fecaca",
   },
+  item_archived: {
+    label: "Archived",
+    bg: "#f1f5f9",
+    text: "#475569",
+    border: "#cbd5e1",
+  },
+  item_restored: {
+    label: "Restored",
+    bg: "#dbeafe",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+  },
 };
 
 function getActionConfig(type: string) {
@@ -78,6 +90,8 @@ const ACTION_FILTER_OPTIONS = [
   { label: "Supply request approved", value: "supply_request_fulfilled" },
   { label: "Ticket deduction", value: "ticket_deduction" },
   { label: "Supply request rejected", value: "supply_request_rejected" },
+  { label: "Item archived", value: "item_archived" },
+  { label: "Item restored", value: "item_restored" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -134,7 +148,11 @@ function deriveRef(tx: StockTransaction): string {
         ? "ADJ"
         : tx.type === "supply_request_fulfilled"
           ? "SR"
-          : "TXN";
+          : tx.type === "item_archived"
+            ? "ARC"
+            : tx.type === "item_restored"
+              ? "RST"
+              : "TXN";
   return `${prefix}-${tx.id.slice(0, 6).toUpperCase()}`;
 }
 

@@ -179,11 +179,14 @@ export async function getAllInventoryItems(
 // ─── RESTORE (undo archive) ─────────────────────────────────────────────────
 
 export async function restoreInventoryItem(id: string): Promise<void> {
+  const user = await getCurrentUser();
+
   const res = await fetch(
     `${BACKEND_URL}/office-inventory/${encodeURIComponent(id)}/restore`,
     {
       method: "PATCH",
       headers: await authHeaders(),
+      body: JSON.stringify({ performedByName: user.name }),
     },
   );
 
@@ -202,7 +205,6 @@ export async function createInventoryItem(
 ): Promise<OfficeInventoryItem> {
   const lowStockThreshold = input.lowStockThreshold ?? 5;
   const inStockThreshold = input.inStockThreshold ?? 10;
-  const user = await getCurrentUser();
 
   const res = await fetch(`${BACKEND_URL}/office-inventory`, {
     method: "POST",
@@ -221,7 +223,6 @@ export async function createInventoryItem(
       ),
       lowStockThreshold,
       inStockThreshold,
-      performedByName: user.name,
     }),
   });
 
@@ -232,6 +233,7 @@ export async function createInventoryItem(
   }>(res);
 
   if (!res.ok || !data?.success || !data.item) {
+    // Surfaces backend validation errors, e.g. duplicate item code
     throw new Error(data?.message || "Unable to create item.");
   }
 
@@ -264,11 +266,14 @@ export async function updateInventoryItem(
 // ─── ARCHIVE ────────────────────────────────────────────────────────────────
 
 export async function archiveInventoryItem(id: string): Promise<void> {
+  const user = await getCurrentUser();
+
   const res = await fetch(
     `${BACKEND_URL}/office-inventory/${encodeURIComponent(id)}/archive`,
     {
       method: "PATCH",
       headers: await authHeaders(),
+      body: JSON.stringify({ performedByName: user.name }),
     },
   );
 

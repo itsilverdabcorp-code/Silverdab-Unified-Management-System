@@ -54,7 +54,7 @@ type Props = {
 
 type MobileTab = "attention" | "requests" | "activity";
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 5_000;
 const ATTENTION_DISPLAY_LIMIT = 10;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -91,7 +91,24 @@ function getInitials(name: string): string {
     (parts[0][0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")
   ).toUpperCase();
 }
-let _dismissedAlertSignature: string | null = null;
+const DISMISSED_ALERT_STORAGE_KEY = "officeDashboard.dismissedAlertSignature";
+
+function readDismissedAlertSignature(): string | null {
+  try {
+    return localStorage.getItem(DISMISSED_ALERT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeDismissedAlertSignature(signature: string): void {
+  try {
+    localStorage.setItem(DISMISSED_ALERT_STORAGE_KEY, signature);
+  } catch {
+    // localStorage unavailable (e.g. private browsing) — dismissal just
+    // won't persist across refresh in that case, banner still works in-session.
+  }
+}
 
 const AVATAR_COLORS = [
   { bg: "#dbeafe", text: "#1e40af" },
@@ -512,9 +529,9 @@ const [activeMobileTab, setActiveMobileTab] =
 
   const [dismissedAlertSignature, setDismissedAlertSignature] = useState<
     string | null
-  >(_dismissedAlertSignature);
+  >(() => readDismissedAlertSignature());
   const handleDismissAlert = useCallback((signature: string) => {
-    _dismissedAlertSignature = signature;
+    writeDismissedAlertSignature(signature);
     setDismissedAlertSignature(signature);
   }, []);
   const today = new Date().toLocaleDateString("en-US", {

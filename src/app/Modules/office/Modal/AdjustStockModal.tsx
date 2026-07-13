@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { OfficeInventoryItem } from "../../../../../types";
 import {
-    adjustStock,
-    getAllInventoryItems,
+  adjustStock,
+  getAllInventoryItems,
 } from "../../../../services/Officeinventory";
 import { useTheme } from "../../../../theme/ThemeContext";
 
@@ -237,8 +237,11 @@ const AdjustStockModal: React.FC<Props> = ({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                style={inputStyle}
-                className="px-2.5 py-2 text-sm border rounded-md focus:outline-none"
+                style={{
+                  ...inputStyle,
+                  colorScheme: theme.mode === "dark" ? "dark" : "light",
+                }}
+                className="date-input px-2.5 py-2 text-sm border rounded-md focus:outline-none"
               />
             </div>
           </div>

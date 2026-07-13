@@ -77,10 +77,14 @@ export interface StockTransaction {
   itemCode: string;
   itemName: string;
   type:
-    | "ticket_deduction"
-    | "manual_adjustment"
+    | "item_created"
     | "delivery"
-    | "supply_request_fulfilled"; // ← added
+    | "manual_adjustment"
+    | "supply_request_fulfilled"
+    | "ticket_deduction"
+    | "supply_request_rejected"
+    | "item_archived"
+    | "item_restored";
   quantityChange: number;
   stockBefore: number;
   stockAfter: number;

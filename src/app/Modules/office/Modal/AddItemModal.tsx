@@ -752,7 +752,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
                   >
                     Price per unit (₱)
                   </label>
-                  <input
+                 <input
                     type="number"
                     step="0.01"
                     value={form.pricePerUnit}
@@ -761,7 +761,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
                     }
                     placeholder="0.00"
                     style={inputStyle}
-                    className="px-2.5 py-2 text-sm border rounded-md focus:outline-none"
+                    className="px-2.5 py-2 text-sm border rounded-md focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
