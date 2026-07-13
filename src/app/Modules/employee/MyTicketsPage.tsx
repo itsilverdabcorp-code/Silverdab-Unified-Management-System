@@ -23,7 +23,6 @@ import {
   RefreshCw,
   Package,
   MonitorSmartphone,
-  Send,
 } from "lucide-react-native";
 import { useTheme } from "../../../theme/ThemeContext";
 import { ADUser, ConcernTicket, SupplyRequest } from "../../../../types";
@@ -263,40 +262,6 @@ function SourceTag({ source }: { source: TicketSource }) {
 
 // ─── Left panel: New Request + Stats ─────────────────────────────────────────
 
-type TicketTypeOption = {
-  key: TicketType;
-  icon: string;
-  name: string;
-  hint: string;
-  badge?: string;
-  accent: string;
-};
-
-const TICKET_TYPES: TicketTypeOption[] = [
-  // {
-  //   key: "it",
-  //   icon: "💻",
-  //   name: "IT concern",
-  //   hint: "Hardware, software, network, access issues",
-  //   accent: "#0EA5E9",
-  // },
-  // {
-  //   key: "hr",
-  //   icon: "📋",
-  //   name: "HR concern",
-  //   hint: "Overtime, attendance, schedule changes",
-  //   badge: "Draft",
-  //   accent: "#7C3AED",
-  // },
-  {
-    key: "supply",
-    icon: "📦",
-    name: "Office supply",
-    hint: "Request items from inventory stock",
-    accent: "#10B981",
-  },
-];
-
 type StatCardProps = {
   label: string;
   value: number;
@@ -357,9 +322,7 @@ function StatCard({ label, value, sub, dotColor, theme }: StatCardProps) {
 }
 
 type LeftPanelProps = {
-  ticketType: TicketType | null;
-  setTicketType: (t: TicketType) => void;
-  onContinue: () => void;
+  onNewRequest: () => void;
   counts: Record<TabKey, number>;
   theme: any;
   primary: string;
@@ -367,26 +330,15 @@ type LeftPanelProps = {
 };
 
 function LeftPanel({
-  ticketType,
-  setTicketType,
-  onContinue,
+  onNewRequest,
   counts,
   theme,
   primary,
   isMobile,
 }: LeftPanelProps) {
-  const continueLabel =
-    ticketType === "it"
-      ? "Continue with IT concern"
-      : ticketType === "hr"
-        ? "Continue with HR concern"
-        : ticketType === "supply"
-          ? "Continue with office supply"
-          : "Select a type to continue";
-
   return (
     <View style={isMobile ? { width: "100%" } : { width: 240, flexShrink: 0 }}>
-      {/* New request panel */}
+      {/* New request panel — single button, opens Supply Request modal directly */}
       <View
         style={{
           backgroundColor: theme.surface ?? theme.background,
@@ -423,106 +375,33 @@ function LeftPanel({
               color: theme.textActive ?? theme.text,
             }}
           >
-            What do you need help with?
+            Need office supplies?
           </Text>
         </View>
 
-        <View style={{ padding: 10, gap: 7 }}>
-          {TICKET_TYPES.map((t) => {
-            const sel = ticketType === t.key;
-            return (
-              <TouchableOpacity
-                key={t.key}
-                onPress={() => setTicketType(t.key)}
-                activeOpacity={0.75}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  padding: 10,
-                  borderRadius: 8,
-                  borderWidth: 1.5,
-                  borderColor: sel ? t.accent : theme.border,
-                  backgroundColor: sel ? t.accent + "14" : theme.background,
-                }}
-              >
-                <Text style={{ fontSize: 18, marginTop: 1 }}>{t.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: sel ? t.accent : (theme.textActive ?? theme.text),
-                      marginBottom: 2,
-                    }}
-                  >
-                    {t.name}
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Outfit",
-                      fontSize: 11,
-                      color: theme.subtext,
-                      lineHeight: 15,
-                    }}
-                  >
-                    {t.hint}
-                  </Text>
-                  {t.badge && (
-                    <View
-                      style={{
-                        alignSelf: "flex-start",
-                        marginTop: 4,
-                        backgroundColor: "#FFF7ED",
-                        borderRadius: 100,
-                        borderWidth: 1,
-                        borderColor: "#FED7AA",
-                        paddingHorizontal: 7,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit-medium",
-                          fontSize: 9,
-                          color: "#C2410C",
-                        }}
-                      >
-                        {t.badge}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={{ paddingHorizontal: 10, paddingBottom: 12 }}>
+        <View style={{ padding: 10 }}>
           <TouchableOpacity
-            onPress={onContinue}
-            disabled={!ticketType}
+            onPress={onNewRequest}
             activeOpacity={0.8}
             style={{
               backgroundColor: primary,
               borderRadius: 8,
-              paddingVertical: 10,
+              paddingVertical: 12,
               alignItems: "center",
               flexDirection: "row",
               justifyContent: "center",
-              gap: 6,
-              opacity: ticketType ? 1 : 0.4,
+              gap: 8,
             }}
           >
-            <Send size={12} color="#fff" />
+            <Package size={14} color="#fff" />
             <Text
               style={{
                 fontFamily: "Outfit-medium",
-                fontSize: 12,
+                fontSize: 13,
                 color: "#fff",
               }}
             >
-              {continueLabel}
+              New Supply Request
             </Text>
           </TouchableOpacity>
         </View>
@@ -1683,16 +1562,11 @@ export default function TicketHubPage({ user }: Props) {
     setSubmittedId("");
   };
 
-  const handleContinue = () => {
-    if (!ticketType) return;
-    // if (ticketType === "it") {
-    //   setItModalVisible(true);
-    // } else
-    if (ticketType === "supply") {
-      setSupplyModalVisible(true);
-    } else {
-      setStep(2);
-    }
+  // Single entry point — tapping the button opens the Supply Request
+  // modal directly. No intermediate "select a request type" step.
+  const handleNewSupplyRequest = () => {
+    setTicketType("supply");
+    setSupplyModalVisible(true);
   };
 
   const inputStyle = {
@@ -2337,36 +2211,7 @@ export default function TicketHubPage({ user }: Props) {
               </TouchableOpacity>
             )}
           </View>
-          {/* Filter button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-              paddingHorizontal: 12,
-              paddingVertical: Platform.OS === "ios" ? 9 : 7,
-              borderWidth: 1,
-              borderColor: theme.border,
-              borderRadius: 8,
-              backgroundColor: theme.surface ?? theme.background,
-            }}
-          >
-            <ChevronRight
-              size={13}
-              color={theme.subtext}
-              style={{ transform: [{ rotate: "90deg" }] }}
-            />
-            <Text
-              style={{
-                fontFamily: "Outfit-medium",
-                fontSize: 12,
-                color: theme.subtext ?? theme.text,
-              }}
-            >
-              Filter
-            </Text>
-          </TouchableOpacity>
+          
         </View>
 
         {/* ── Tabs — underline style matching HTML reference ── */}
@@ -2633,14 +2478,9 @@ export default function TicketHubPage({ user }: Props) {
             alignItems: isMobile ? "stretch" : "flex-start",
           }}
         >
-          {/* Left: new request panel + stats */}
+          {/* Left: new request button + stats */}
           <LeftPanel
-            ticketType={ticketType}
-            setTicketType={(t) => {
-              setTicketType(t);
-              if (step !== 1) setStep(1);
-            }}
-            onContinue={handleContinue}
+            onNewRequest={handleNewSupplyRequest}
             counts={counts}
             theme={theme}
             primary={primary}
