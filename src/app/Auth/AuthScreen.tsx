@@ -934,7 +934,7 @@ export default function AuthScreen({
                   textAlign: isMobile ? "center" : "left",
                 }}
               >
-                Sign in with your computer login
+                Sign in with your Desktop Credential Account
               </Text>
 
               {/* Error */}
