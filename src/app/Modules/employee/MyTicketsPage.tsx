@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Platform,
   Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import {
   Search,
@@ -262,14 +263,14 @@ const TICKET_TYPES: TicketTypeOption[] = [
   //   hint: "Hardware, software, network, access issues",
   //   accent: "#0EA5E9",
   // },
-  {
-    key: "hr",
-    icon: "📋",
-    name: "HR concern",
-    hint: "Overtime, attendance, schedule changes",
-    badge: "Draft",
-    accent: "#7C3AED",
-  },
+  // {
+  //   key: "hr",
+  //   icon: "📋",
+  //   name: "HR concern",
+  //   hint: "Overtime, attendance, schedule changes",
+  //   badge: "Draft",
+  //   accent: "#7C3AED",
+  // },
   {
     key: "supply",
     icon: "📦",
@@ -345,6 +346,7 @@ type LeftPanelProps = {
   counts: Record<TabKey, number>;
   theme: any;
   primary: string;
+  isMobile: boolean;
 };
 
 function LeftPanel({
@@ -354,6 +356,7 @@ function LeftPanel({
   counts,
   theme,
   primary,
+  isMobile,
 }: LeftPanelProps) {
   const continueLabel =
     ticketType === "it"
@@ -365,7 +368,7 @@ function LeftPanel({
           : "Select a type to continue";
 
   return (
-    <View style={{ width: 240, flexShrink: 0 }}>
+    <View style={isMobile ? { width: "100%" } : { width: 240, flexShrink: 0 }}>
       {/* New request panel */}
       <View
         style={{
@@ -536,7 +539,7 @@ function LeftPanel({
         <StatCard
           label="Total"
           value={counts["All"]}
-          sub="IT and supply"
+          sub="Supply"
           dotColor={theme.subtext}
           theme={theme}
         />
@@ -645,6 +648,88 @@ function TicketRow({
       {/* Col 5 — Chevron */}
       <View style={{ width: COL.chev, alignItems: "center" }}>
         <ChevronRight size={14} color={theme.subtext} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Mobile ticket card ────────────────────────────────────────────────────────
+
+function TicketCard({
+  ticket,
+  onPress,
+  theme,
+  primary,
+}: {
+  ticket: UnifiedTicket;
+  onPress: () => void;
+  theme: any;
+  primary: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 6,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 11,
+              color: primary,
+            }}
+          >
+            #{ticket.ticketNumber}
+          </Text>
+          <SourceTag source={ticket._source} />
+        </View>
+        <StatusBadge status={ticket.status} />
+      </View>
+
+      <Text
+        style={{
+          fontFamily: "Outfit-medium",
+          fontSize: 13,
+          color: theme.textActive ?? theme.text,
+          marginBottom: 3,
+        }}
+        numberOfLines={1}
+      >
+        {ticket.title}
+      </Text>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
+          numberOfLines={1}
+        >
+          {ticket.category}
+        </Text>
+        <Text
+          style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
+        >
+          {toReadableDate(ticket.dateCreated)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -1486,6 +1571,8 @@ type Props = { user: ADUser };
 export default function TicketHubPage({ user }: Props) {
   const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   // ── Ticket list state ──
   const [unified, setUnified] = useState<UnifiedTicket[]>([]);
@@ -2362,10 +2449,10 @@ export default function TicketHubPage({ user }: Props) {
             overflow: "hidden",
           }}
         >
-          {/* Table header */}
-          <TableHeader theme={theme} />
+          {/* Table header — desktop only */}
+          {!isMobile && <TableHeader theme={theme} />}
 
-          {/* Ticket rows */}
+          {/* Ticket rows / cards */}
           {loading ? (
             <View
               style={{
@@ -2394,15 +2481,25 @@ export default function TicketHubPage({ user }: Props) {
             />
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
-              {displayed.map((t) => (
-                <TicketRow
-                  key={`${t._source}-${t.id}`}
-                  ticket={t}
-                  onPress={() => setSelected(t)}
-                  theme={theme}
-                  primary={primary}
-                />
-              ))}
+              {displayed.map((t) =>
+                isMobile ? (
+                  <TicketCard
+                    key={`${t._source}-${t.id}`}
+                    ticket={t}
+                    onPress={() => setSelected(t)}
+                    theme={theme}
+                    primary={primary}
+                  />
+                ) : (
+                  <TicketRow
+                    key={`${t._source}-${t.id}`}
+                    ticket={t}
+                    onPress={() => setSelected(t)}
+                    theme={theme}
+                    primary={primary}
+                  />
+                ),
+              )}
             </ScrollView>
           )}
 
@@ -2521,9 +2618,13 @@ export default function TicketHubPage({ user }: Props) {
           <StepBar step={step} theme={theme} primary={primary} />
         )}
 
-        {/* Two-column layout */}
+        {/* Two-column layout — stacks on mobile */}
         <View
-          style={{ flexDirection: "row", gap: 18, alignItems: "flex-start" }}
+          style={{
+            flexDirection: isMobile ? "column" : "row",
+            gap: 18,
+            alignItems: isMobile ? "stretch" : "flex-start",
+          }}
         >
           {/* Left: new request panel + stats */}
           <LeftPanel
@@ -2536,6 +2637,7 @@ export default function TicketHubPage({ user }: Props) {
             counts={counts}
             theme={theme}
             primary={primary}
+            isMobile={isMobile}
           />
 
           {/* Right: ticket list or HR form */}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "../../../theme/ThemeContext";
 import { ADUser, SupplyRequest, SupplyRequestStatus } from "../../../../types";
 import {
@@ -1182,12 +1182,24 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
   const [rejecting, setRejecting] = useState(false);
   const [failing, setFailing] = useState(false);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const isFirstLoad = useRef(true);
 
-  
-  // REPLACE with:
   const loadRequests = useCallback(async () => {
-    const data = await getAllSupplyRequests();
-    setRequests(data);
+    if (isFirstLoad.current) setLoading(true);
+    else setRefreshing(true);
+    try {
+      const data = await getAllSupplyRequests();
+      setRequests(data);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load supply requests.");
+    } finally {
+      isFirstLoad.current = false;
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1198,14 +1210,18 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
   }, [initialApprovalRequest]);
 
   useEffect(() => {
-  setLoading(true);
-  loadRequests()
-    .catch((err) => {
-      console.error(err);
-      setError("Failed to load supply requests.");
-    })
-    .finally(() => setLoading(false));
-}, [loadRequests]);
+    loadRequests();
+
+    const POLL_INTERVAL_MS = 8_000;
+    const intervalId = setInterval(loadRequests, POLL_INTERVAL_MS);
+    const onFocus = () => loadRequests();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadRequests]);
 
   // ── Filtered lists ─────────────────────────────────────────────────────────
 
@@ -1380,6 +1396,7 @@ const handleReject = (requestId: string) => {
               {pageTab === "requests"
                 ? `${filteredRequests.length} of ${requests.length} requests`
                 : `${filteredDeliveries.length} deliveries`}
+              {refreshing ? " · Refreshing…" : ""}
             </p>
           </div>
         </div>

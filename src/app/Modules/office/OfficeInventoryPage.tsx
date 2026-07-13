@@ -6,6 +6,7 @@ import {
 } from "../../../../types";
 import {
   archiveInventoryItem,
+  restoreInventoryItem,
   getAllInventoryItems,
 } from "../../../services/Officeinventory";
 import { useTheme } from "../../../theme/ThemeContext";
@@ -290,6 +291,22 @@ const TrashIcon = () => (
     />
   </svg>
 );
+const RestoreIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"
+    />
+  </svg>
+);
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
@@ -321,7 +338,10 @@ const OfficeInventoryPage: React.FC<Props> = ({
   });
 
   const [data, setData] = useState<OfficeInventoryItem[]>([]);
+  const [archivedData, setArchivedData] = useState<OfficeInventoryItem[]>([]);
+  const [viewMode, setViewMode] = useState<"active" | "archived">("active");
   const [loading, setLoading] = useState(true);
+  const [archivedLoading, setArchivedLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] =
     useState<InventoryFilter>(initialFilter);
@@ -349,7 +369,6 @@ const OfficeInventoryPage: React.FC<Props> = ({
     setLoading(true);
     try {
       const result = await getAllInventoryItems();
-      // console.log("[fetchData] got", result.length, "items", result);
       setData(result);
     } catch (err) {
       console.error("Unable to load office inventory", err);
@@ -358,9 +377,27 @@ const OfficeInventoryPage: React.FC<Props> = ({
     }
   }, []);
 
+  const fetchArchivedData = useCallback(async () => {
+    setArchivedLoading(true);
+    try {
+      // includeArchived=true returns active + archived rows, so filter
+      // down to just the archived ones for this view.
+      const result = await getAllInventoryItems(true);
+      setArchivedData(result.filter((item) => !item.isActive));
+    } catch (err) {
+      console.error("Unable to load archived inventory", err);
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (viewMode === "archived") fetchArchivedData();
+  }, [viewMode, fetchArchivedData]);
 
   useEffect(() => {
     if (initialDeliverItem && !loading && data.length > 0) {
@@ -381,33 +418,48 @@ const OfficeInventoryPage: React.FC<Props> = ({
     [fetchData],
   );
 
+  const handleRestore = useCallback(
+    async (id: string) => {
+      try {
+        await restoreInventoryItem(id);
+        await fetchArchivedData();
+        await fetchData();
+      } catch (err) {
+        console.error("Unable to restore item", err);
+      }
+    },
+    [fetchArchivedData, fetchData],
+  );
+
   const dirFor = (key: InventorySortKey): SortDir =>
     sortKey === key ? sortDir : "default";
 
   // ─── Tab counts ───────────────────────────────────────────────────────────
+  const sourceData = viewMode === "archived" ? archivedData : data;
+
   const tabCounts = useMemo(() => {
     const counts: Record<CategoryTab, number> = {
-      all: data.length,
+      all: sourceData.length,
       office_supplies: 0,
       cleaning: 0,
       ppe: 0,
       medicine: 0,
     };
-    data.forEach((item) => {
+    sourceData.forEach((item) => {
       if (item.category in counts) counts[item.category as OfficeCategory]++;
     });
     return counts;
-  }, [data]);
+  }, [sourceData]);
 
   // ─── Filtered + sorted items ──────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
 
     let result = activeFilter
-      ? data.filter(
+      ? sourceData.filter(
           (item) => (item[activeFilter.field] ?? "") === activeFilter.value,
         )
-      : data;
+      : sourceData;
 
     // Apply category tab
     if (activeTab !== "all") {
@@ -424,7 +476,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
         .map((v) => (v ?? "").toString().toLowerCase())
         .some((v) => v.includes(q)),
     );
-  }, [data, activeFilter, activeTab, inventoryFilter.appliedFilters, search]);
+  }, [sourceData, activeFilter, activeTab, inventoryFilter.appliedFilters, search]);
 
   const sortedFiltered = useMemo(() => {
     if (!sortKey || sortDir === "default") return filtered;
@@ -574,33 +626,44 @@ const OfficeInventoryPage: React.FC<Props> = ({
 
           <td className="px-3 py-1.5 min-w-[170px]">
             <div className="flex gap-1.5">
-              <IconBtn
-                title="Adjust stock"
-                disabled={item.currentStock === 0}
-                onClick={() => {
-                  setAdjustTarget(item);
-                  setAdjustModalOpen(true);
-                }}
-              >
-                <MinusIcon />
-              </IconBtn>
-              <IconBtn
-                title="Add delivery"
-                onClick={() => {
-                  setDeliverTarget(item);
-                  setDeliverModalOpen(true);
-                }}
-              >
-                <PlusIcon />
-              </IconBtn>
-              <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
-                <EditIcon />
-              </IconBtn>
+              {viewMode === "archived" ? (
+                <IconBtn
+                  title="Restore item"
+                  onClick={() => handleRestore(item.id)}
+                >
+                  <RestoreIcon />
+                </IconBtn>
+              ) : (
+                <>
+                  <IconBtn
+                    title="Adjust stock"
+                    disabled={item.currentStock === 0}
+                    onClick={() => {
+                      setAdjustTarget(item);
+                      setAdjustModalOpen(true);
+                    }}
+                  >
+                    <MinusIcon />
+                  </IconBtn>
+                  <IconBtn
+                    title="Add delivery"
+                    onClick={() => {
+                      setDeliverTarget(item);
+                      setDeliverModalOpen(true);
+                    }}
+                  >
+                    <PlusIcon />
+                  </IconBtn>
+                  <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
+                    <EditIcon />
+                  </IconBtn>
+                </>
+              )}
             </div>
           </td>
         </tr>
       )),
-    [theme, handleArchive],
+    [theme, viewMode, handleArchive, handleRestore],
   );
 
   const renderMobileCards = useCallback(
@@ -648,33 +711,44 @@ const OfficeInventoryPage: React.FC<Props> = ({
             </div>
 
             <div className="flex gap-1.5">
-              <IconBtn
-                title="Adjust stock"
-                disabled={item.currentStock === 0}
-                onClick={() => {
-                  setAdjustTarget(item);
-                  setAdjustModalOpen(true);
-                }}
-              >
-                <MinusIcon />
-              </IconBtn>
-              <IconBtn
-                title="Add delivery"
-                onClick={() => {
-                  setDeliverTarget(item);
-                  setDeliverModalOpen(true);
-                }}
-              >
-                <PlusIcon />
-              </IconBtn>
-              <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
-                <EditIcon />
-              </IconBtn>
+              {viewMode === "archived" ? (
+                <IconBtn
+                  title="Restore item"
+                  onClick={() => handleRestore(item.id)}
+                >
+                  <RestoreIcon />
+                </IconBtn>
+              ) : (
+                <>
+                  <IconBtn
+                    title="Adjust stock"
+                    disabled={item.currentStock === 0}
+                    onClick={() => {
+                      setAdjustTarget(item);
+                      setAdjustModalOpen(true);
+                    }}
+                  >
+                    <MinusIcon />
+                  </IconBtn>
+                  <IconBtn
+                    title="Add delivery"
+                    onClick={() => {
+                      setDeliverTarget(item);
+                      setDeliverModalOpen(true);
+                    }}
+                  >
+                    <PlusIcon />
+                  </IconBtn>
+                  <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
+                    <EditIcon />
+                  </IconBtn>
+                </>
+              )}
             </div>
           </div>
         </div>
       )),
-    [theme],
+    [theme, viewMode, handleRestore],
   );
 
   return (
@@ -687,7 +761,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
             <h1 style={{ color: theme.text }} className="text-2xl font-bold">
-              Office Inventory
+              Office Inventory{viewMode === "archived" ? " · Archived" : ""}
             </h1>
             <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
               Track consumable stock — supplies, cleaning, PPE, and medicine
@@ -699,42 +773,71 @@ const OfficeInventoryPage: React.FC<Props> = ({
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() => {
-                setDeliverTarget(null);
-                setDeliverModalOpen(true);
-              }}
+              onClick={() =>
+                setViewMode((m) => (m === "archived" ? "active" : "archived"))
+              }
               style={{
-                backgroundColor: theme.surface,
-                color: theme.text,
+                backgroundColor:
+                  viewMode === "archived" ? theme.primary : theme.surface,
+                color:
+                  viewMode === "archived" ? theme.primaryText : theme.text,
                 borderColor: theme.border,
               }}
-              className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = theme.bgHover)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = theme.surface)
-              }
+              className="flex-1 sm:flex-initial flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
+              onMouseEnter={(e) => {
+                if (viewMode !== "archived")
+                  e.currentTarget.style.backgroundColor = theme.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                if (viewMode !== "archived")
+                  e.currentTarget.style.backgroundColor = theme.surface;
+              }}
             >
-              + Add Delivery
+              <TrashIcon />
+              {viewMode === "archived" ? "Back to active" : "View archive"}
             </button>
 
-            <button
-              onClick={() => setAddVisible(true)}
-              style={{
-                backgroundColor: theme.primary,
-                color: theme.primaryText,
-              }}
-              className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = theme.primaryHover)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = theme.primary)
-              }
-            >
-              + Add Item
-            </button>
+            {viewMode === "active" && (
+              <>
+                <button
+                  onClick={() => {
+                    setDeliverTarget(null);
+                    setDeliverModalOpen(true);
+                  }}
+                  style={{
+                    backgroundColor: theme.surface,
+                    color: theme.text,
+                    borderColor: theme.border,
+                  }}
+                  className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme.bgHover)
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme.surface)
+                  }
+                >
+                  + Add Delivery
+                </button>
+
+                <button
+                  onClick={() => setAddVisible(true)}
+                  style={{
+                    backgroundColor: theme.primary,
+                    color: theme.primaryText,
+                  }}
+                  className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme.primaryHover)
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme.primary)
+                  }
+                >
+                  + Add Item
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -863,7 +966,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
         .office-inventory-scroll::-webkit-scrollbar-thumb { background: ${theme.border}; border-radius: 99px; }
         .office-inventory-scroll::-webkit-scrollbar-thumb:hover { background: ${theme.subtext}; }
       `}</style>
-      {loading ? (
+      {(viewMode === "archived" ? archivedLoading : loading) ? (
         <div className="flex flex-1 items-center justify-center py-20">
           <div
             style={{ borderColor: theme.primary }}
@@ -873,7 +976,9 @@ const OfficeInventoryPage: React.FC<Props> = ({
       ) : sortedFiltered.length === 0 ? (
         <div className="flex flex-1 items-center justify-center py-20">
           <p style={{ color: theme.subtext }} className="text-sm">
-            No inventory items found.
+            {viewMode === "archived"
+              ? "No archived items."
+              : "No inventory items found."}
           </p>
         </div>
       ) : (

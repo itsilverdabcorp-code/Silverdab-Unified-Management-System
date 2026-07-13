@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import {
   X,
@@ -59,8 +60,7 @@ function resolveStockStatus(item: OfficeInventoryItem): StockStatus {
   return "available";
 }
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-const MODAL_W = Math.min(SCREEN_W * 0.92, 520);
+
 
 // ─── Stock Badge ──────────────────────────────────────────────────────────────
 
@@ -619,6 +619,12 @@ export default function SupplyRequestModal({
 }: Props) {
   const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
+  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
+  const isNarrow = SCREEN_W < 420;
+  const MODAL_W = isNarrow ? SCREEN_W : Math.min(SCREEN_W * 0.92, 520);
+  const MODAL_H = SCREEN_H * (isNarrow ? 0.94 : 0.88);
+  const headerPadH = isNarrow ? 14 : 20;
+  const bodyPadH = isNarrow ? 12 : 16;
 
   const [step, setStep] = useState<ModalStep>("cart");
   const [inventory, setInventory] = useState<OfficeInventoryItem[]>([]);
@@ -742,7 +748,6 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
   };
 
   const alreadyAddedIds = cart.map((r) => r.itemId);
-  const MODAL_H = SCREEN_H * 0.88;
 
   return (
     <Modal
@@ -762,7 +767,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
             backgroundColor: "rgba(0,0,0,0.5)",
             alignItems: "center",
             justifyContent: "center",
-            padding: 16,
+            padding: isNarrow ? 0 : 16,
           }}
         >
           {/* Modal card */}
@@ -771,7 +776,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
               width: MODAL_W,
               maxHeight: MODAL_H,
               backgroundColor: theme.surface,
-              borderRadius: 20,
+              borderRadius: isNarrow ? 0 : 20,
               overflow: "hidden",
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 8 },
@@ -803,7 +808,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    paddingHorizontal: 20,
+                    paddingHorizontal: headerPadH,
                     paddingTop: 18,
                     paddingBottom: 14,
                     borderBottomWidth: 1,
@@ -865,7 +870,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
 
                 <ScrollView
                   style={{ flex: 1 }}
-                  contentContainerStyle={{ padding: 20 }}
+                  contentContainerStyle={{ padding: bodyPadH }}
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Request info card */}
@@ -1124,7 +1129,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                 {/* Footer */}
                 <View
                   style={{
-                    padding: 16,
+                    padding: bodyPadH,
                     borderTopWidth: 1,
                     borderTopColor: theme.border,
                     flexDirection: "row",
@@ -1338,7 +1343,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
 
                 <ScrollView
                   style={{ flex: 1 }}
-                  contentContainerStyle={{ padding: 16 }}
+                  contentContainerStyle={{ padding: bodyPadH }}
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Loading */}
@@ -1556,7 +1561,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                 {cart.length > 0 && (
                   <View
                     style={{
-                      paddingHorizontal: 16,
+                      paddingHorizontal: bodyPadH,
                       paddingVertical: 14,
                       borderTopWidth: 1,
                       borderTopColor: theme.border,

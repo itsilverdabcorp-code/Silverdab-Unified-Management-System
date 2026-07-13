@@ -14,7 +14,13 @@
 // All the aggregation math, KPIs, table, and exports are unchanged from
 // the original component.
 
-import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { useTheme } from "../../../theme/ThemeContext";
 import { ADUser } from "../../../../types";
 import {
@@ -31,6 +37,14 @@ import { OfficeInventoryItem, StockTransaction } from "../../../../types";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CategoryTab = "office_supplies" | "cleaning" | "ppe" | "medicine";
+type ActivityDot = {
+  type: "consumed" | "delivered" | "both" | "none";
+  date: string;
+  deliveredQty: number;
+  deliveredAmount: number;
+  consumedQty: number;
+  consumedAmount: number;
+};
 
 type MonthlyItemRow = {
   id: string;
@@ -46,12 +60,16 @@ type MonthlyItemRow = {
   totalDelivered: number;
   deliveryAmount: number;
   endingInventory: number;
-  activityDots: { type: "consumed" | "delivered" | "none"; date: string }[];
+  activityDots: ActivityDot[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const CATEGORY_TABS: { label: string; value: CategoryTab | "all"; count?: number }[] = [
+const CATEGORY_TABS: {
+  label: string;
+  value: CategoryTab | "all";
+  count?: number;
+}[] = [
   { label: "All", value: "all" },
   { label: "Office supplies", value: "office_supplies" },
   { label: "Cleaning", value: "cleaning" },
@@ -124,29 +142,46 @@ function normalizeDateString(value: string | undefined): string {
   return value.slice(0, 10);
 }
 
-function buildActivityDots(
-  txs: StockTransaction[],
-  yyyymm: string,
-): { type: "consumed" | "delivered" | "none"; date: string }[] {
+function formatDotDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function buildActivityDots(txs: StockTransaction[], yyyymm: string): ActivityDot[] {
   const { year, month } = parseYYYYMM(yyyymm);
   const numDays = new Date(year, month, 0).getDate();
-  const dots: { type: "consumed" | "delivered" | "none"; date: string }[] = [];
+  const dots: ActivityDot[] = [];
 
   for (let d = 1; d <= numDays; d++) {
     const dayStr = `${yyyymm}-${String(d).padStart(2, "0")}`;
     const dayTxs = txs.filter(
       (tx) => normalizeDateString(tx.transactionDate ?? tx.createdAt) === dayStr,
     );
-    const hasDelivery = dayTxs.some((tx) => tx.type === "delivery");
-    const hasConsumed = dayTxs.some(
+
+    const deliveries = dayTxs.filter((tx) => tx.type === "delivery");
+    const consumptions = dayTxs.filter(
       (tx) =>
         tx.type === "manual_adjustment" ||
         tx.type === "supply_request_fulfilled" ||
         tx.type === "ticket_deduction",
     );
-    if (hasDelivery) dots.push({ type: "delivered", date: dayStr });
-    else if (hasConsumed) dots.push({ type: "consumed", date: dayStr });
-    else dots.push({ type: "none", date: dayStr });
+
+    const deliveredQty = deliveries.reduce((s, tx) => s + tx.quantityChange, 0);
+    const deliveredAmount = deliveries.reduce((s, tx) => s + tx.totalAmount, 0);
+    const consumedQty = consumptions.reduce((s, tx) => s + Math.abs(tx.quantityChange), 0);
+    const consumedAmount = consumptions.reduce((s, tx) => s + tx.totalAmount, 0);
+
+    // Classify off the actual computed quantities, not row presence,
+    // so the dot color always matches what the tooltip can show.
+    let type: ActivityDot["type"] = "none";
+    if (deliveredQty > 0 && consumedQty > 0) type = "both";
+    else if (deliveredQty > 0) type = "delivered";
+    else if (consumedQty > 0) type = "consumed";
+
+    dots.push({ type, date: dayStr, deliveredQty, deliveredAmount, consumedQty, consumedAmount });
   }
   return dots;
 }
@@ -157,34 +192,106 @@ function ActivitySparkline({
   dots,
   theme,
 }: {
-  dots: { type: "consumed" | "delivered" | "none"; date: string }[];
+  dots: ActivityDot[];
   theme: any;
 }) {
   return (
-    <div className="flex items-center gap-[2px] flex-wrap" style={{ maxWidth: 220 }}>
+    <div
+      className="flex items-center gap-[2px] flex-wrap"
+      style={{ maxWidth: 220 }}
+    >
       {dots.map((dot, i) => (
-        <span
-          key={i}
-          title={dot.date}
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: "50%",
-            flexShrink: 0,
-            backgroundColor:
-              dot.type === "delivered"
-                ? "#3b82f6"
-                : dot.type === "consumed"
-                  ? "#94a3b8"
-                  : theme.border,
-            opacity: dot.type === "none" ? 0.4 : 1,
-          }}
-        />
+        <div key={i} className="relative group" style={{ width: 5, height: 5 }}>
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: "50%",
+              display: "block",
+              backgroundColor:
+                dot.type === "both"
+                  ? "#8b5cf6"
+                  : dot.type === "delivered"
+                    ? "#3b82f6"
+                    : dot.type === "consumed"
+                      ? "#94a3b8"
+                      : theme.border,
+              opacity: dot.type === "none" ? 0.4 : 1,
+              cursor: dot.type === "none" ? "default" : "pointer",
+            }}
+          />
+
+          {dot.type !== "none" && (
+            <div
+              className="absolute z-20 hidden group-hover:block"
+              style={{
+                bottom: "calc(100% + 6px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: theme.surfaceRaised ?? theme.surface,
+                color: theme.text,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 6,
+                padding: "6px 8px",
+                fontSize: 11,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{ fontWeight: 700, marginBottom: 2, color: theme.text }}
+              >
+                {formatDotDate(dot.date)}
+              </div>
+              {dot.deliveredQty > 0 && (
+                <div style={{ color: "#3b82f6" }}>
+                  +{dot.deliveredQty} delivered ·{" "}
+                  {formatPeso(dot.deliveredAmount)}
+                </div>
+              )}
+              {dot.consumedQty > 0 && (
+                <div style={{ color: "#dc2626" }}>
+                  -{dot.consumedQty} consumed · {formatPeso(dot.consumedAmount)}
+                </div>
+              )}
+              {/* arrow */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 0,
+                  height: 0,
+                  borderLeft: "4px solid transparent",
+                  borderRight: "4px solid transparent",
+                  borderTop: `5px solid ${theme.surfaceRaised ?? theme.surface}`,
+                }}
+              />
+              {/* arrow border (renders slightly behind/below the fill arrow to fake a border edge) */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 1px)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 0,
+                  height: 0,
+                  borderLeft: "4px solid transparent",
+                  borderRight: "4px solid transparent",
+                  borderTop: `4px solid ${theme.border}`,
+                  zIndex: -1,
+                }}
+              />
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
 }
-
 // ─── Summary KPI cards ────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -208,7 +315,10 @@ function KpiCard({
       }}
       className="rounded-xl border p-3 lg:p-4 lg:flex-1 lg:min-w-[160px]"
     >
-      <p style={{ color: theme.subtext }} className="text-[10px] font-semibold uppercase tracking-wide mb-1 truncate">
+      <p
+        style={{ color: theme.subtext }}
+        className="text-[10px] font-semibold uppercase tracking-wide mb-1 truncate"
+      >
         {label}
       </p>
       <p
@@ -218,7 +328,10 @@ function KpiCard({
         {value}
       </p>
       {sub && (
-        <p style={{ color: theme.subtext }} className="text-[10px] lg:text-xs mt-1 truncate">
+        <p
+          style={{ color: theme.subtext }}
+          className="text-[10px] lg:text-xs mt-1 truncate"
+        >
           {sub}
         </p>
       )}
@@ -230,16 +343,36 @@ function KpiCard({
 
 function exportCsv(rows: MonthlyItemRow[], month: string) {
   const headers = [
-    "Item Code", "Item Name", "Brand", "Category", "Unit",
-    "Price/Unit", "Beg. Inventory", "Consumed", "Consumption Value",
-    "Delivered", "Delivery Value", "Ending Inventory",
+    "Item Code",
+    "Item Name",
+    "Brand",
+    "Category",
+    "Unit",
+    "Price/Unit",
+    "Beg. Inventory",
+    "Consumed",
+    "Consumption Value",
+    "Delivered",
+    "Delivery Value",
+    "Ending Inventory",
   ];
   const lines = rows.map((r) =>
     [
-      r.itemCode, r.name, r.brand, CATEGORY_MAP[r.category] ?? r.category,
-      r.unit, r.pricePerUnit, r.beginningInventory, r.totalConsumed,
-      r.consumptionAmount, r.totalDelivered, r.deliveryAmount, r.endingInventory,
-    ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","),
+      r.itemCode,
+      r.name,
+      r.brand,
+      CATEGORY_MAP[r.category] ?? r.category,
+      r.unit,
+      r.pricePerUnit,
+      r.beginningInventory,
+      r.totalConsumed,
+      r.consumptionAmount,
+      r.totalDelivered,
+      r.deliveryAmount,
+      r.endingInventory,
+    ]
+      .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+      .join(","),
   );
   const csv = [headers.join(","), ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -405,7 +538,10 @@ function MonthlyItemCard({ row, theme }: { row: MonthlyItemRow; theme: any }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p style={{ color: theme.text }} className="text-sm font-medium truncate">
+          <p
+            style={{ color: theme.text }}
+            className="text-sm font-medium truncate"
+          >
             {row.name}
           </p>
           <p style={{ color: theme.subtext }} className="text-[11px]">
@@ -431,13 +567,19 @@ function MonthlyItemCard({ row, theme }: { row: MonthlyItemRow; theme: any }) {
         style={{ borderColor: theme.border }}
         className="flex items-center justify-between gap-2 mt-2 pt-2 border-t text-[11px]"
       >
-        <span style={{ color: theme.subtext }}>Beg. {row.beginningInventory}</span>
-        <span style={{ color: row.totalConsumed > 0 ? "#dc2626" : theme.subtext }}>
+        <span style={{ color: theme.subtext }}>
+          Beg. {row.beginningInventory}
+        </span>
+        <span
+          style={{ color: row.totalConsumed > 0 ? "#dc2626" : theme.subtext }}
+        >
           {row.totalConsumed > 0
             ? `-${row.totalConsumed} (${formatPeso(row.consumptionAmount)})`
             : "No consumption"}
         </span>
-        <span style={{ color: row.totalDelivered > 0 ? "#16a34a" : theme.subtext }}>
+        <span
+          style={{ color: row.totalDelivered > 0 ? "#16a34a" : theme.subtext }}
+        >
           {row.totalDelivered > 0 ? `+${row.totalDelivered}` : "Delivered 0"}
         </span>
       </div>
@@ -452,7 +594,9 @@ type Props = { user?: ADUser };
 export default function MonthlyReportPage({ user }: Props) {
   const { theme } = useTheme();
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(getYYYYMM(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    getYYYYMM(new Date()),
+  );
   const [activeTab, setActiveTab] = useState<CategoryTab | "all">("all");
   const [items, setItems] = useState<OfficeInventoryItem[]>([]);
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
@@ -508,7 +652,11 @@ export default function MonthlyReportPage({ user }: Props) {
   const monthlyRows = useMemo((): MonthlyItemRow[] => {
     const { year, month } = parseYYYYMM(selectedMonth);
     const startISO = formatYearMonthDay(year, month, 1);
-    const endISO = formatYearMonthDay(year, month, new Date(year, month, 0).getDate());
+    const endISO = formatYearMonthDay(
+      year,
+      month,
+      new Date(year, month, 0).getDate(),
+    );
 
     const normalizedTransactions = transactions.map((tx) => ({
       ...tx,
@@ -529,10 +677,15 @@ export default function MonthlyReportPage({ user }: Props) {
         // Beginning inventory = current stock minus net of all changes from
         // the start of this month onward (i.e. roll back to month start).
         const sumFromStart = normalizedTransactions
-          .filter((tx) => tx.transactionDate >= startISO && tx.itemId === item.id)
+          .filter(
+            (tx) => tx.transactionDate >= startISO && tx.itemId === item.id,
+          )
           .reduce((acc, tx) => acc + tx.quantityChange, 0);
 
-        const beginningInventory = Math.max(0, item.currentStock - sumFromStart);
+        const beginningInventory = Math.max(
+          0,
+          item.currentStock - sumFromStart,
+        );
 
         const totalConsumed = monthForItem
           .filter(
@@ -560,7 +713,8 @@ export default function MonthlyReportPage({ user }: Props) {
           .filter((tx) => tx.type === "delivery")
           .reduce((acc, tx) => acc + tx.totalAmount, 0);
 
-        const endingInventory = beginningInventory - totalConsumed + totalDelivered;
+        const endingInventory =
+          beginningInventory - totalConsumed + totalDelivered;
 
         const activityDots = buildActivityDots(monthForItem, selectedMonth);
 
@@ -601,17 +755,34 @@ export default function MonthlyReportPage({ user }: Props) {
 
   // ── KPI summary ───────────────────────────────────────────────────────────────
   const kpi = useMemo(() => {
-    const totalConsumptionValue = monthlyRows.reduce((s, r) => s + r.consumptionAmount, 0);
-    const totalDeliveryValue = monthlyRows.reduce((s, r) => s + r.deliveryAmount, 0);
+    const totalConsumptionValue = monthlyRows.reduce(
+      (s, r) => s + r.consumptionAmount,
+      0,
+    );
+    const totalDeliveryValue = monthlyRows.reduce(
+      (s, r) => s + r.deliveryAmount,
+      0,
+    );
     const itemsConsumed = monthlyRows.filter((r) => r.totalConsumed > 0).length;
     const netStockChange = totalDeliveryValue - totalConsumptionValue;
-    return { totalConsumptionValue, totalDeliveryValue, itemsConsumed, netStockChange };
+    return {
+      totalConsumptionValue,
+      totalDeliveryValue,
+      itemsConsumed,
+      netStockChange,
+    };
   }, [monthlyRows]);
 
   // ── Tab totals (consumed + delivered) for footer ──────────────────────────────
   const tabTotals = useMemo(() => {
-    const totalConsumedP = filteredRows.reduce((s, r) => s + r.consumptionAmount, 0);
-    const totalDeliveredP = filteredRows.reduce((s, r) => s + r.deliveryAmount, 0);
+    const totalConsumedP = filteredRows.reduce(
+      (s, r) => s + r.consumptionAmount,
+      0,
+    );
+    const totalDeliveredP = filteredRows.reduce(
+      (s, r) => s + r.deliveryAmount,
+      0,
+    );
     return { totalConsumedP, totalDeliveredP };
   }, [filteredRows]);
 
@@ -624,18 +795,30 @@ export default function MonthlyReportPage({ user }: Props) {
       <div className="flex-shrink-0 px-4 pt-4 pb-0">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 lg:gap-4 mb-4">
           <div>
-            <h1 style={{ color: theme.text }} className="text-xl lg:text-2xl font-bold leading-tight">
+            <h1
+              style={{ color: theme.text }}
+              className="text-xl lg:text-2xl font-bold leading-tight"
+            >
               Monthly consumables report
             </h1>
             <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
-              Generated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              Generated{" "}
+              {new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
               {user ? ` · ${user.displayName}` : ""}
               {refreshing ? " · Refreshing…" : ""}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto">
-            <MonthSelector value={selectedMonth} onChange={setSelectedMonth} theme={theme} />
+            <MonthSelector
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              theme={theme}
+            />
 
             {/* Manual refresh — MySQL has no live push, so give users a way
                 to pull the latest data on demand (e.g. right after logging
@@ -650,8 +833,12 @@ export default function MonthlyReportPage({ user }: Props) {
                 borderColor: theme.border,
               }}
               className="flex items-center justify-center w-9 h-9 rounded-lg border disabled:opacity-50"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.surface)}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.bgHover)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.surface)
+              }
             >
               <svg
                 width="14"
@@ -663,7 +850,9 @@ export default function MonthlyReportPage({ user }: Props) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 style={{
-                  animation: refreshing ? "spin 0.8s linear infinite" : undefined,
+                  animation: refreshing
+                    ? "spin 0.8s linear infinite"
+                    : undefined,
                 }}
               >
                 <polyline points="23 4 23 10 17 10" />
@@ -673,7 +862,13 @@ export default function MonthlyReportPage({ user }: Props) {
             </button>
 
             <button
-              onClick={() => void exportExcelReport(filteredRows, transactions, selectedMonth)}
+              onClick={() =>
+                void exportExcelReport(
+                  filteredRows,
+                  transactions,
+                  selectedMonth,
+                )
+              }
               disabled={filteredRows.length === 0}
               style={{
                 backgroundColor: theme.surface,
@@ -681,10 +876,23 @@ export default function MonthlyReportPage({ user }: Props) {
                 borderColor: theme.border,
               }}
               className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium rounded-lg border disabled:opacity-50 whitespace-nowrap"
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.surface)}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.bgHover)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.surface)
+              }
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -766,13 +974,19 @@ export default function MonthlyReportPage({ user }: Props) {
                 onClick={() => setActiveTab(tab.value)}
                 style={{
                   color: isActive ? theme.primary : theme.subtext,
-                  borderBottom: isActive ? `2px solid ${theme.primary}` : "2px solid transparent",
+                  borderBottom: isActive
+                    ? `2px solid ${theme.primary}`
+                    : "2px solid transparent",
                   backgroundColor: "transparent",
                   flexShrink: 0,
                 }}
                 className="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none"
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = theme.text; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = theme.subtext; }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.color = theme.text;
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.color = theme.subtext;
+                }}
               >
                 {tab.label}
                 <span
@@ -806,214 +1020,314 @@ export default function MonthlyReportPage({ user }: Props) {
         </div>
       ) : (
         <>
-        {/* Desktop table */}
-        <div className="hidden lg:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
-          <table
-            className="min-w-full text-sm"
-            style={{ borderCollapse: "separate", borderSpacing: 0 }}
-          >
-            <thead>
-              <tr>
-                {[
-                  { label: "ITEM", align: "left" },
-                  { label: "BEG. INVTY", align: "right" },
-                  { label: "ACTIVITY", align: "left" },
-                  { label: "CONSUMED", align: "right" },
-                  { label: "CONSUMED ₱", align: "right" },
-                  { label: "DELIVERED", align: "right" },
-                  { label: "DELIVERY ₱", align: "right" },
-                  { label: "END INVTY", align: "right" },
-                ].map(({ label, align }) => (
-                  <th
-                    key={label}
+          {/* Desktop table */}
+          <div className="hidden lg:block flex-1 overflow-y-auto overflow-x-auto px-4 pb-4">
+            <table
+              className="min-w-full text-sm"
+              style={{ borderCollapse: "separate", borderSpacing: 0 }}
+            >
+              <thead>
+                <tr>
+                  {[
+                    { label: "ITEM", align: "left" },
+                    { label: "BEG. INVTY", align: "right" },
+                    { label: "ACTIVITY", align: "left" },
+                    { label: "CONSUMED", align: "right" },
+                    { label: "CONSUMED ₱", align: "right" },
+                    { label: "DELIVERED", align: "right" },
+                    { label: "DELIVERY ₱", align: "right" },
+                    { label: "END INVTY", align: "right" },
+                  ].map(({ label, align }) => (
+                    <th
+                      key={label}
+                      style={{
+                        color: theme.subtext,
+                        borderBottom: `1px solid ${theme.border}`,
+                        backgroundColor: theme.surfaceRaised,
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 10,
+                        textAlign: align as any,
+                      }}
+                      className="px-3 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.map((row, index) => (
+                  <tr
+                    key={row.id}
                     style={{
-                      color: theme.subtext,
+                      backgroundColor:
+                        index % 2 === 0 ? theme.surface : theme.background,
                       borderBottom: `1px solid ${theme.border}`,
-                      backgroundColor: theme.surfaceRaised,
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 10,
-                      textAlign: align as any,
                     }}
-                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
                   >
-                    {label}
-                  </th>
+                    {/* Item */}
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div>
+                        <p
+                          style={{ color: theme.text }}
+                          className="text-sm font-medium"
+                        >
+                          {row.name}
+                        </p>
+                        <p
+                          style={{ color: theme.subtext }}
+                          className="text-[11px]"
+                        >
+                          {formatPeso(row.pricePerUnit)}
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* Beginning inventory */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{ color: theme.text }}
+                        className="text-sm font-medium"
+                      >
+                        {row.beginningInventory}
+                      </span>
+                    </td>
+
+                    {/* Activity dots */}
+                    <td className="px-3 py-2.5" style={{ minWidth: 220 }}>
+                      <ActivitySparkline
+                        dots={row.activityDots}
+                        theme={theme}
+                      />
+                    </td>
+
+                    {/* Consumed qty */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{
+                          color:
+                            row.totalConsumed > 0 ? "#dc2626" : theme.subtext,
+                        }}
+                        className="text-sm font-semibold"
+                      >
+                        {row.totalConsumed > 0 ? `-${row.totalConsumed}` : "0"}
+                      </span>
+                    </td>
+
+                    {/* Consumed ₱ */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{
+                          color:
+                            row.consumptionAmount > 0
+                              ? "#dc2626"
+                              : theme.subtext,
+                        }}
+                        className="text-sm"
+                      >
+                        {row.consumptionAmount > 0
+                          ? formatPeso(row.consumptionAmount)
+                          : "—"}
+                      </span>
+                    </td>
+
+                    {/* Delivered qty */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{
+                          color:
+                            row.totalDelivered > 0 ? "#16a34a" : theme.subtext,
+                        }}
+                        className="text-sm font-semibold"
+                      >
+                        {row.totalDelivered > 0
+                          ? `+${row.totalDelivered}`
+                          : "0"}
+                      </span>
+                    </td>
+
+                    {/* Delivery ₱ */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{
+                          color:
+                            row.deliveryAmount > 0 ? "#16a34a" : theme.subtext,
+                        }}
+                        className="text-sm"
+                      >
+                        {row.deliveryAmount > 0
+                          ? formatPeso(row.deliveryAmount)
+                          : "—"}
+                      </span>
+                    </td>
+
+                    {/* Ending inventory */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span
+                        style={{
+                          color:
+                            row.endingInventory === 0
+                              ? "#dc2626"
+                              : row.endingInventory <= 5
+                                ? "#d97706"
+                                : theme.text,
+                        }}
+                        className="text-sm font-semibold"
+                      >
+                        {row.endingInventory}
+                      </span>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((row, index) => (
+
+                {/* ── Footer totals row ── */}
                 <tr
-                  key={row.id}
                   style={{
-                    backgroundColor: index % 2 === 0 ? theme.surface : theme.background,
-                    borderBottom: `1px solid ${theme.border}`,
+                    backgroundColor: theme.surfaceRaised,
+                    borderTop: `2px solid ${theme.border}`,
+                    position: "sticky",
+                    bottom: 0,
                   }}
                 >
-                  {/* Item */}
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <div>
-                      <p style={{ color: theme.text }} className="text-sm font-medium">
-                        {row.name}
-                      </p>
-                      <p style={{ color: theme.subtext }} className="text-[11px]">
-                        {formatPeso(row.pricePerUnit)}
-                      </p>
-                    </div>
-                  </td>
-
-                  {/* Beginning inventory */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
-                    <span style={{ color: theme.text }} className="text-sm font-medium">
-                      {row.beginningInventory}
-                    </span>
-                  </td>
-
-                  {/* Activity dots */}
-                  <td className="px-3 py-2.5" style={{ minWidth: 220 }}>
-                    <ActivitySparkline dots={row.activityDots} theme={theme} />
-                  </td>
-
-                  {/* Consumed qty */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                  <td colSpan={3} className="px-3 py-2.5" />
+                  <td className="px-3 py-2.5 text-right">
                     <span
-                      style={{ color: row.totalConsumed > 0 ? "#dc2626" : theme.subtext }}
-                      className="text-sm font-semibold"
+                      style={{ color: "#dc2626" }}
+                      className="text-sm font-bold"
                     >
-                      {row.totalConsumed > 0 ? `-${row.totalConsumed}` : "0"}
+                      -{filteredRows.reduce((s, r) => s + r.totalConsumed, 0)}
                     </span>
                   </td>
-
-                  {/* Consumed ₱ */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                  <td className="px-3 py-2.5 text-right">
                     <span
-                      style={{ color: row.consumptionAmount > 0 ? "#dc2626" : theme.subtext }}
-                      className="text-sm"
+                      style={{ color: "#dc2626" }}
+                      className="text-sm font-bold"
                     >
-                      {row.consumptionAmount > 0 ? formatPeso(row.consumptionAmount) : "—"}
+                      {formatPeso(tabTotals.totalConsumedP)}
                     </span>
                   </td>
-
-                  {/* Delivered qty */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                  <td className="px-3 py-2.5 text-right">
                     <span
-                      style={{ color: row.totalDelivered > 0 ? "#16a34a" : theme.subtext }}
-                      className="text-sm font-semibold"
+                      style={{ color: "#16a34a" }}
+                      className="text-sm font-bold"
                     >
-                      {row.totalDelivered > 0 ? `+${row.totalDelivered}` : "0"}
+                      +{filteredRows.reduce((s, r) => s + r.totalDelivered, 0)}
                     </span>
                   </td>
-
-                  {/* Delivery ₱ */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                  <td className="px-3 py-2.5 text-right">
                     <span
-                      style={{ color: row.deliveryAmount > 0 ? "#16a34a" : theme.subtext }}
-                      className="text-sm"
+                      style={{ color: "#16a34a" }}
+                      className="text-sm font-bold"
                     >
-                      {row.deliveryAmount > 0 ? formatPeso(row.deliveryAmount) : "—"}
+                      {tabTotals.totalDeliveredP > 0
+                        ? formatPeso(tabTotals.totalDeliveredP)
+                        : "—"}
                     </span>
                   </td>
-
-                  {/* Ending inventory */}
-                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
-                    <span
-                      style={{
-                        color:
-                          row.endingInventory === 0
-                            ? "#dc2626"
-                            : row.endingInventory <= 5
-                              ? "#d97706"
-                              : theme.text,
-                      }}
-                      className="text-sm font-semibold"
-                    >
-                      {row.endingInventory}
-                    </span>
-                  </td>
+                  <td className="px-3 py-2.5 text-right" />
                 </tr>
-              ))}
+              </tbody>
+            </table>
 
-              {/* ── Footer totals row ── */}
-              <tr
-                style={{
-                  backgroundColor: theme.surfaceRaised,
-                  borderTop: `2px solid ${theme.border}`,
-                  position: "sticky",
-                  bottom: 0,
-                }}
+            {/* ── Legend ── */}
+            <div className="flex items-center gap-4 mt-3 px-1">
+              <span
+                style={{ color: theme.subtext }}
+                className="text-[11px] font-medium uppercase tracking-wide"
               >
-                <td colSpan={3} className="px-3 py-2.5" />
-                <td className="px-3 py-2.5 text-right">
-                  <span style={{ color: "#dc2626" }} className="text-sm font-bold">
-                    -{filteredRows.reduce((s, r) => s + r.totalConsumed, 0)}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <span style={{ color: "#dc2626" }} className="text-sm font-bold">
-                    {formatPeso(tabTotals.totalConsumedP)}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <span style={{ color: "#16a34a" }} className="text-sm font-bold">
-                    +{filteredRows.reduce((s, r) => s + r.totalDelivered, 0)}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right">
-                  <span style={{ color: "#16a34a" }} className="text-sm font-bold">
-                    {tabTotals.totalDeliveredP > 0 ? formatPeso(tabTotals.totalDeliveredP) : "—"}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right" />
-              </tr>
-            </tbody>
-          </table>
-
-          {/* ── Legend ── */}
-          <div className="flex items-center gap-4 mt-3 px-1">
-            <span style={{ color: theme.subtext }} className="text-[11px] font-medium uppercase tracking-wide">
-              Activity legend:
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#3b82f6", display: "inline-block" }} />
-              <span style={{ color: theme.subtext }} className="text-[11px]">Delivery</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#94a3b8", display: "inline-block" }} />
-              <span style={{ color: theme.subtext }} className="text-[11px]">Consumed</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#e2e8f0", display: "inline-block" }} />
-              <span style={{ color: theme.subtext }} className="text-[11px]">No activity</span>
+                Activity legend:
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: "#3b82f6",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ color: theme.subtext }} className="text-[11px]">
+                  Delivery
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: "#94a3b8",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ color: theme.subtext }} className="text-[11px]">
+                  Consumed
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: "#8b5cf6",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ color: theme.subtext }} className="text-[11px]">
+                  Delivered + Consumed
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: "#e2e8f0",
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ color: theme.subtext }} className="text-[11px]">
+                  No activity
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Mobile cards */}
-        <div className="lg:hidden flex-1 overflow-y-auto px-4 pb-4">
-          {filteredRows.map((row) => (
-            <MonthlyItemCard key={row.id} row={row} theme={theme} />
-          ))}
+          {/* Mobile cards */}
+          <div className="lg:hidden flex-1 overflow-y-auto px-4 pb-4">
+            {filteredRows.map((row) => (
+              <MonthlyItemCard key={row.id} row={row} theme={theme} />
+            ))}
 
-          <div
-            style={{ backgroundColor: theme.surfaceRaised, borderColor: theme.border }}
-            className="rounded-lg border px-3 py-2.5 mt-1"
-          >
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span style={{ color: theme.text }}>Total</span>
-              <span style={{ color: "#dc2626" }}>
-                -{filteredRows.reduce((s, r) => s + r.totalConsumed, 0)} ({formatPeso(tabTotals.totalConsumedP)})
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs font-bold mt-1">
-              <span style={{ color: theme.text }}>Delivered</span>
-              <span style={{ color: "#16a34a" }}>
-                +{filteredRows.reduce((s, r) => s + r.totalDelivered, 0)}
-                {tabTotals.totalDeliveredP > 0 ? ` (${formatPeso(tabTotals.totalDeliveredP)})` : ""}
-              </span>
+            <div
+              style={{
+                backgroundColor: theme.surfaceRaised,
+                borderColor: theme.border,
+              }}
+              className="rounded-lg border px-3 py-2.5 mt-1"
+            >
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span style={{ color: theme.text }}>Total</span>
+                <span style={{ color: "#dc2626" }}>
+                  -{filteredRows.reduce((s, r) => s + r.totalConsumed, 0)} (
+                  {formatPeso(tabTotals.totalConsumedP)})
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-bold mt-1">
+                <span style={{ color: theme.text }}>Delivered</span>
+                <span style={{ color: "#16a34a" }}>
+                  +{filteredRows.reduce((s, r) => s + r.totalDelivered, 0)}
+                  {tabTotals.totalDeliveredP > 0
+                    ? ` (${formatPeso(tabTotals.totalDeliveredP)})`
+                    : ""}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
         </>
       )}
 

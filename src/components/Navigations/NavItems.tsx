@@ -255,27 +255,33 @@ export const MyTicketsIcon: React.FC<{ color: string; size?: number }> = ({
 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
-      d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"
+      d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"
       stroke={color}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <Path
-      d="M14 2v5a1 1 0 0 0 1 1h5"
+      d="M13 5v2"
       stroke={color}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <Path
-      d="M16 22a4 4 0 0 0-8 0"
+      d="M13 17v2"
       stroke={color}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <Circle cx="12" cy="15" r="3" stroke={color} strokeWidth="2" />
+    <Path
+      d="M13 11v2"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </Svg>
 );
 
@@ -780,7 +786,7 @@ export function getNavSectionsForUser(user: {
       items: [
         // { key: "dashboard",       label: "Dashboard",        icon: DashboardIcon,    href: href("dashboard")       },
         // { key: "submitticket",    label: "Submit Ticket",    icon: SubmitTicketIcon, href: href("submitticket")    },
-        // { key: "mytickets",       label: "My Tickets",       icon: MyTicketsIcon,    href: href("mytickets")       },
+         { key: "mytickets",       label: "My Tickets",       icon: MyTicketsIcon,    href: href("mytickets")       },
         // { key: "supplyinventory", label: "Supply Inventory", icon: SuppliesIcon,     href: href("supplyinventory") },
       ],
     };
