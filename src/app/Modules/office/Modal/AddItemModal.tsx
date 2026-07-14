@@ -24,13 +24,22 @@ const CATEGORY_LABEL_MAP: Record<string, OfficeCategory> = {
   medicine: "medicine",
 };
 const UNIT_CHOICES: OfficeUnit[] = [
+  "bottle",
+  "box",
+  "bundle",
+  "can",
+  "dozen",
+  "gallon",
+  "liter",
+  "pack",
+  "pad",
+  "pair",
   "piece",
   "ream",
-  "box",
+  "refill",
   "roll",
-  "pack",
-  "bottle",
-  "gallon",
+  "set",
+  "unit",
 ];
 
 const HEADER_MAP: Record<string, string> = {

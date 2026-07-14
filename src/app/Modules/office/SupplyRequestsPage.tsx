@@ -162,17 +162,33 @@ function formatDate(iso: string): string {
   );
 }
 
+// Once a request has been reviewed (approved/partial), items with
+// quantityApproved === 0 were skipped — exclude them so counts/qty reflect
+// what's actually being fulfilled/delivered, not the original ask.
+function effectiveItems(items: SupplyRequest["items"]) {
+  const anyReviewed = items.some(
+    (i) => i.quantityApproved !== null && i.quantityApproved !== undefined,
+  );
+  if (!anyReviewed) return items;
+  return items.filter((i) => (i.quantityApproved ?? 0) > 0);
+}
+
+function displayQty(item: SupplyRequest["items"][number]): number {
+  return item.quantityApproved ?? item.quantityRequested;
+}
+
 function itemSummary(items: SupplyRequest["items"]) {
-  if (items.length === 0)
+  const active = effectiveItems(items);
+  if (active.length === 0)
     return { primaryLabel: "—", extraCount: 0, qtyLabel: "—" };
-  const first = items[0];
+  const first = active[0];
   return {
     primaryLabel: first.itemName,
-    extraCount: items.length - 1,
+    extraCount: active.length - 1,
     qtyLabel:
-      items.length === 1
-        ? String(first.quantityRequested)
-        : `${items.length} items`,
+      active.length === 1
+        ? String(displayQty(first))
+        : `${active.length} items`,
   };
 }
 
@@ -400,7 +416,10 @@ function DetailDrawer({
   theme: any;
 }) {
   if (!request) return null;
-  const totalQty = request.items.reduce((s, i) => s + i.quantityRequested, 0);
+  const totalQty = effectiveItems(request.items).reduce(
+    (s, i) => s + displayQty(i),
+    0,
+  );
   const status = effectiveStatus(request);
 
   const trail = [
@@ -506,16 +525,16 @@ function DetailDrawer({
             ))}
           </div>
 
-          {/* Items */}
+          {/* Items — only show items that survived approval once reviewed */}
           <div>
             <h3
               style={{ color: theme.text }}
               className="text-sm font-semibold mb-2"
             >
-              Items ({request.items.length})
+              Items ({effectiveItems(request.items).length})
             </h3>
             <div className="space-y-2">
-              {request.items.map((item, i) => (
+              {effectiveItems(request.items).map((item, i) => (
                 <div
                   key={`${item.itemId}-${i}`}
                   style={{
@@ -555,7 +574,7 @@ function DetailDrawer({
                     style={{ color: theme.primary }}
                     className="text-sm font-semibold"
                   >
-                    ×{item.quantityRequested}
+                    ×{displayQty(item)}
                   </span>
                 </div>
               ))}
@@ -788,7 +807,7 @@ function RequestRow({
               style={{ backgroundColor: "#16a34a", color: "#fff" }}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
             >
-              {isApproving ? "Saving…" : "✓ Delivered"}
+              {isApproving ? "Saving…" : "✓ Deliver"}
             </button>
             <button
               onClick={() => onFail(request)}
@@ -917,7 +936,7 @@ function DeliveryRow({
               style={{ backgroundColor: "#16a34a", color: "#fff" }}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
             >
-              {isActive ? "Saving…" : "✓ Delivered"}
+              {isActive ? "Saving…" : "✓ Deliver"}
             </button>
             <button
               onClick={() => onFail(request)}
@@ -1043,7 +1062,7 @@ function RequestCard({
             style={{ backgroundColor: "#16a34a", color: "#fff" }}
             className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
           >
-            {isApproving ? "Saving…" : "✓ Delivered"}
+            {isApproving ? "Saving…" : "✓ Deliver"}
           </button>
           <button
             onClick={() => onFail(request)}
@@ -1154,7 +1173,7 @@ function DeliveryCard({
             style={{ backgroundColor: "#16a34a", color: "#fff" }}
             className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
           >
-            {isActive ? "Saving…" : "✓ Delivered"}
+            {isActive ? "Saving…" : "✓ Deliver"}
           </button>
           <button
             onClick={() => onFail(request)}

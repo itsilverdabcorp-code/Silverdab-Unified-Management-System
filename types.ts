@@ -45,12 +45,21 @@ export type OfficeCategory =
 
 export type OfficeUnit =
   | "piece"
-  | "ream"
   | "box"
-  | "roll"
+  | "dozen"
+  | "ream"
   | "pack"
+  | "roll"
+  | "set"
+  | "pad"
   | "bottle"
-  | "gallon";
+  | "can"
+  | "unit"
+  | "liter"
+  | "pair"
+  | "bundle"
+  | "gallon"
+  | "refill";
 
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 
@@ -135,6 +144,7 @@ export type SupplyRequestItem = {
   itemCode: string;
   category: string;
   quantityRequested: number;
+  quantityApproved?: number | null; // null = not yet reviewed, 0 = skipped
   stockStatusAtRequest: string; // "available" | "low" | "out_of_stock"
   pricePerUnit: number;
 };

@@ -18,13 +18,22 @@ const CATEGORY_CHOICES: { value: OfficeCategory; label: string }[] = [
 ];
 
 const UNIT_CHOICES: OfficeUnit[] = [
+  "bottle",
+  "box",
+  "bundle",
+  "can",
+  "dozen",
+  "gallon",
+  "liter",
+  "pack",
+  "pad",
+  "pair",
   "piece",
   "ream",
-  "box",
+  "refill",
   "roll",
-  "pack",
-  "bottle",
-  "gallon",
+  "set",
+  "unit",
 ];
 
 type Props = {

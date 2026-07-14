@@ -111,12 +111,17 @@ async function getCurrentUser(): Promise<{ name: string; id: string }> {
 // already expects.
 
 function mapItemRow(item: any) {
+  const rawApproved = item.quantity_approved ?? item.quantityApproved;
   return {
     itemId: item.item_id ?? item.itemId,
     itemName: item.item_name ?? item.itemName,
     itemCode: item.item_code ?? item.itemCode,
     category: item.category,
     quantityRequested: Number(item.quantity_requested ?? item.quantityRequested),
+    quantityApproved:
+      rawApproved === null || rawApproved === undefined
+        ? null
+        : Number(rawApproved),
     stockStatusAtRequest: item.stock_status_at_request ?? item.stockStatusAtRequest,
   };
 }
