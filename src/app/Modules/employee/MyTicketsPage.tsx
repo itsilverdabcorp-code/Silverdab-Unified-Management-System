@@ -95,6 +95,7 @@ const SUPPLY_STATUS_MAP: Record<string, string> = {
   pending: "Pending",
   awaiting_stock: "In Progress",
   out_for_delivery: "In Progress",
+  failed_delivery: "Rejected",
   resolved: "Resolved",
   rejected: "Rejected",
 };
@@ -107,6 +108,7 @@ const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
   pending: "Pending",
   awaiting_stock: "In Progress",
   out_for_delivery: "Out for Delivery",
+  failed_delivery: "Failed Delivery",
   resolved: "Resolved",
   rejected: "Rejected",
 };
@@ -122,6 +124,7 @@ const STATUS_CONFIG: Record<
   Pending: { bg: "#FEF9C3", border: "#FDE047", text: "#A16207" },
   "In Progress": { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
    "Out for Delivery": { bg: "#FFEDD5", border: "#FDBA74", text: "#C2410C" },
+  "Failed Delivery": { bg: "#FFE4E6", border: "#FDA4AF", text: "#BE123C" },
   Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
 };

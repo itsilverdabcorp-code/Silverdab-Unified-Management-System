@@ -18,6 +18,23 @@ import Svg, { Path, Circle } from "react-native-svg";
 
 const STORAGE_KEY = "AD_USER_DATA";
 
+// Edge (and some Chromium builds) auto-inject a native password "reveal"
+// eye icon on <input type="password">, which stacks on top of our own
+// custom eye toggle. There's no RN style prop for this — it only goes
+// away via the ::-ms-reveal / ::-ms-clear pseudo-element rule, so we
+// inject a tiny global stylesheet once on web.
+if (Platform.OS === "web" && typeof document !== "undefined") {
+  const STYLE_ID = "hide-native-password-reveal";
+  if (!document.getElementById(STYLE_ID)) {
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+      input::-ms-reveal, input::-ms-clear { display: none; }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
 // ─── Responsive breakpoints ─────────────────────────────────────────────────
 const MOBILE_BREAKPOINT = 768; // below this: stack, hide right panel
 const SMALL_MOBILE_BREAKPOINT = 380; // below this: tighten paddings/fonts further

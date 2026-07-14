@@ -162,9 +162,10 @@ function renderPage(
 
 export default function AppShell({ user, onLogout }: Props) {
   const sections = getNavSectionsForUser(user);
-  const [activeKey, setActiveKey] = useState<string>(
-    user.role === "superadmin" ? "dashboard" : "users",
-  );
+  const allowedKeys = sections.flatMap((s) => s.items.map((i) => i.key));
+  const defaultKeyForUser = allowedKeys[0] ?? "dashboard";
+
+  const [activeKey, setActiveKey] = useState<string>(defaultKeyForUser);
   const [restored, setRestored] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -184,31 +185,56 @@ export default function AppShell({ user, onLogout }: Props) {
   // on the right page), falling back to the last page cached in
   // AsyncStorage, matching how the rest of the app persists nav state.
   useEffect(() => {
+    setRestored(false);
+
     const restore = async () => {
+      const perUserKey = `${LAST_PAGE_KEY}_${user.username}`;
+
       let keyFromUrl: string | null = null;
       if (typeof window !== "undefined" && window.location) {
         keyFromUrl = getKeyFromHref(sections, window.location.pathname);
       }
 
-      if (keyFromUrl) {
-        setActiveKey(keyFromUrl);
-      } else {
+      let candidateKey = keyFromUrl;
+      if (!candidateKey) {
         try {
-          const saved = await AsyncStorage.getItem(LAST_PAGE_KEY);
-          if (saved) setActiveKey(saved);
+          candidateKey = await AsyncStorage.getItem(perUserKey);
         } catch (err) {
           console.error("Failed to restore last page:", err);
         }
       }
+
+      // Only trust the restored/URL key if this user's menu actually
+      // contains it — otherwise fall back to their default page. This is
+      // what stops one user's last page from leaking into another user's
+      // session when the page/role first loads.
+      const resolvedKey =
+        candidateKey && allowedKeys.includes(candidateKey)
+          ? candidateKey
+          : defaultKeyForUser;
+
+      setActiveKey(resolvedKey);
+      updateBrowserUrl(resolvedKey);
       setRestored(true);
     };
     restore();
-  }, []);
+  }, [user.username]);
+
+  const updateBrowserUrl = (key: string) => {
+    if (typeof window === "undefined" || !window.location) return;
+    const item = sections
+      .flatMap((s) => s.items)
+      .find((i) => i.key === key);
+    if (item && window.location.pathname !== item.href) {
+      window.history.pushState({}, "", item.href);
+    }
+  };
 
   const handleNavigate = (key: string) => {
     setActiveKey(key);
-    AsyncStorage.setItem(LAST_PAGE_KEY, key).catch((err) =>
-      console.error("Failed to persist last page:", err),
+    updateBrowserUrl(key);
+    AsyncStorage.setItem(`${LAST_PAGE_KEY}_${user.username}`, key).catch(
+      (err) => console.error("Failed to persist last page:", err),
     );
   };
 

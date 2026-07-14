@@ -54,6 +54,22 @@ type ModalStep = "cart" | "picker" | "confirm" | "done";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
+// Special-cases a few category values that shouldn't be title-cased word
+// by word (e.g. "ppe" → "PPE" not "Ppe").
+const CATEGORY_LABEL_OVERRIDES: Record<string, string> = {
+  ppe: "PPE",
+};
+
+function formatCategoryLabel(cat: string): string {
+  if (cat === "All") return cat;
+  const override = CATEGORY_LABEL_OVERRIDES[cat.toLowerCase()];
+  if (override) return override;
+  return cat
+    .split("_")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
+}
+
 function resolveStockStatus(item: OfficeInventoryItem): StockStatus {
   if (item.stockStatus === "out_of_stock") return "out_of_stock";
   if (item.stockStatus === "low_stock") return "low";
@@ -282,7 +298,7 @@ function ItemPickerSheet({
                 color: activeCategory === cat ? "#fff" : theme.subtext,
               }}
             >
-              {cat}
+              {formatCategoryLabel(cat)}
             </Text>
           </TouchableOpacity>
         ))}
