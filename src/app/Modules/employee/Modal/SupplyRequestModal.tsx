@@ -529,18 +529,7 @@ function CartRow({
             <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
             <StockBadge status={row.stockStatusAtRequest} />
           </View>
-          <Text
-            style={{
-              fontFamily: "Outfit-SemiBold",
-              fontSize: 12,
-              color: primary,
-              marginTop: 4,
-            }}
-          >
-            ₱{row.pricePerUnit.toFixed(2)} × {row.quantityRequested} = ₱
-            {(row.pricePerUnit * row.quantityRequested).toFixed(2)}
-          </Text>
-        </View>
+          </View>
 
         {/* Qty stepper */}
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1573,39 +1562,6 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                       borderTopColor: theme.border,
                     }}
                   >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: 10,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit",
-                          fontSize: 12,
-                          color: theme.subtext,
-                        }}
-                      >
-                        Estimated total
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: "Outfit-SemiBold",
-                          fontSize: 15,
-                          color: primary,
-                        }}
-                      >
-                        ₱
-                        {cart
-                          .reduce(
-                            (sum, r) => sum + r.pricePerUnit * r.quantityRequested,
-                            0,
-                          )
-                          .toFixed(2)}
-                      </Text>
-                    </View>
                     <TouchableOpacity
                       onPress={handleReview}
                       activeOpacity={0.8}
