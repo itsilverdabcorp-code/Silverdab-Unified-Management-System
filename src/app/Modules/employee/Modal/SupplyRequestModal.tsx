@@ -413,17 +413,7 @@ function ItemPickerSheet({
                       {item.currentStock} {item.unit}
                     </Text>
                   </View>
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-SemiBold",
-                      fontSize: 12,
-                      color: primary,
-                      marginTop: 3,
-                    }}
-                  >
-                    ₱{item.pricePerUnit.toFixed(2)}
-                  </Text>
-                </View>
+                  </View>
                 <View style={{ alignItems: "flex-end", gap: 5 }}>
                   <StockBadge status={status} />
                   <ChevronRight size={13} color={theme.subtext} />
