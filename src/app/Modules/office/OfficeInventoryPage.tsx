@@ -772,31 +772,6 @@ const OfficeInventoryPage: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() =>
-                setViewMode((m) => (m === "archived" ? "active" : "archived"))
-              }
-              style={{
-                backgroundColor:
-                  viewMode === "archived" ? theme.primary : theme.surface,
-                color:
-                  viewMode === "archived" ? theme.primaryText : theme.text,
-                borderColor: theme.border,
-              }}
-              className="flex-1 sm:flex-initial flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
-              onMouseEnter={(e) => {
-                if (viewMode !== "archived")
-                  e.currentTarget.style.backgroundColor = theme.bgHover;
-              }}
-              onMouseLeave={(e) => {
-                if (viewMode !== "archived")
-                  e.currentTarget.style.backgroundColor = theme.surface;
-              }}
-            >
-              <TrashIcon />
-              {viewMode === "archived" ? "Back to active" : "Archive"}
-            </button>
-
             {viewMode === "active" && (
               <>
                 <button
@@ -919,43 +894,71 @@ const OfficeInventoryPage: React.FC<Props> = ({
         {/* ── Category tabs ── */}
         <div
           style={{ borderBottom: `1px solid ${theme.border}` }}
-          className="flex items-end gap-0 -mb-px overflow-x-auto office-inventory-scroll"
+          className="flex items-end justify-between gap-2 -mb-px overflow-x-auto office-inventory-scroll"
         >
-          {CATEGORY_TABS.map((tab) => {
-            const isActive = activeTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setActiveTab(tab.value)}
-                style={{
-                  color: isActive ? theme.primary : theme.subtext,
-                  borderBottom: isActive
-                    ? `2px solid ${theme.primary}`
-                    : "2px solid transparent",
-                  backgroundColor: "transparent",
-                }}
-                className="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none flex-shrink-0"
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.color = theme.text;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.color = theme.subtext;
-                }}
-              >
-                {tab.label}
-                <span
-                  style={{
-                    backgroundColor: isActive ? theme.primary : theme.inputBg,
-                    color: isActive ? theme.primaryText : theme.subtext,
+          <div className="flex items-end gap-0 flex-shrink-0">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = viewMode === "active" && activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => {
+                    setViewMode("active");
+                    setActiveTab(tab.value);
                   }}
-                  className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    color: isActive ? theme.primary : theme.subtext,
+                    borderBottom: isActive
+                      ? `2px solid ${theme.primary}`
+                      : "2px solid transparent",
+                    backgroundColor: "transparent",
+                  }}
+                  className="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none flex-shrink-0"
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.color = theme.text;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.color = theme.subtext;
+                  }}
                 >
-                  {tabCounts[tab.value]}
-                </span>
-              </button>
-            );
-          })}
+                  {tab.label}
+                  <span
+                    style={{
+                      backgroundColor: isActive ? theme.primary : theme.inputBg,
+                      color: isActive ? theme.primaryText : theme.subtext,
+                    }}
+                    className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  >
+                    {tabCounts[tab.value]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setViewMode("archived")}
+            style={{
+              color: viewMode === "archived" ? theme.primary : theme.subtext,
+              borderBottom:
+                viewMode === "archived"
+                  ? `2px solid ${theme.primary}`
+                  : "2px solid transparent",
+              backgroundColor: "transparent",
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none flex-shrink-0"
+            onMouseEnter={(e) => {
+              if (viewMode !== "archived") e.currentTarget.style.color = theme.text;
+            }}
+            onMouseLeave={(e) => {
+              if (viewMode !== "archived") e.currentTarget.style.color = theme.subtext;
+            }}
+          >
+            <TrashIcon />
+            Archive
+          </button>
         </div>
       </div>
 

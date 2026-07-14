@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -39,29 +39,35 @@ function getRoleStyle(role: UserRole): {
 }
 
 // ─── Floating label input ──────────────────────────────────────────────────────
-function FloatingInput({
-  label,
-  value,
-  onChangeText,
-  secureTextEntry,
-  showToggle,
-  passwordVisible,
-  onTogglePassword,
-  onSubmitEditing,
-  theme,
-  compact,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  secureTextEntry?: boolean;
-  showToggle?: boolean;
-  passwordVisible?: boolean;
-  onTogglePassword?: () => void;
-  onSubmitEditing?: () => void;
-  theme: any;
-  compact?: boolean;
-}) {
+const FloatingInput = forwardRef<
+  TextInput,
+  {
+    label: string;
+    value: string;
+    onChangeText: (t: string) => void;
+    secureTextEntry?: boolean;
+    showToggle?: boolean;
+    passwordVisible?: boolean;
+    onTogglePassword?: () => void;
+    onSubmitEditing?: () => void;
+    theme: any;
+    compact?: boolean;
+  }
+>(function FloatingInput(
+  {
+    label,
+    value,
+    onChangeText,
+    secureTextEntry,
+    showToggle,
+    passwordVisible,
+    onTogglePassword,
+    onSubmitEditing,
+    theme,
+    compact,
+  },
+  ref,
+) {
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
   const [focused, setFocused] = useState(false);
 
@@ -119,6 +125,7 @@ function FloatingInput({
 
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <TextInput
+          ref={ref}
           style={{
             flex: 1,
             color: theme.text,
@@ -133,6 +140,7 @@ function FloatingInput({
           secureTextEntry={secureTextEntry && !passwordVisible}
           autoCapitalize="none"
           autoCorrect={false}
+          returnKeyType={showToggle ? "done" : "next"}
           onFocus={() => {
             setFocused(true);
             animate(1);
@@ -191,8 +199,7 @@ function FloatingInput({
       </View>
     </View>
   );
-}
-
+});
 
 function IllustrationGraphic({ color }: { color: string }) {
   const line = (
@@ -580,6 +587,7 @@ export default function AuthScreen({
   const [error, setError] = useState("");
   const [user, setUser] = useState<ADUser | null>(null);
   const [pwVisible, setPwVisible] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleToggleTheme = () => {
     setThemeMode(theme.mode === "dark" ? "light" : "dark");
@@ -959,11 +967,13 @@ export default function AuthScreen({
                 label="Username"
                 value={username}
                 onChangeText={setUsername}
+                onSubmitEditing={handleLogin}
                 theme={theme}
                 compact={isSmallMobile}
               />
 
               <FloatingInput
+                ref={passwordRef}
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
