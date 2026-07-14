@@ -715,19 +715,17 @@ function RequestRow({
 
   return (
     <tr
+      onClick={() => onView(request)}
       style={{
         backgroundColor: index % 2 === 0 ? theme.surface : theme.background,
         borderBottom: `1px solid ${theme.border}`,
+        cursor: "pointer",
       }}
     >
       <td className="px-3 py-3 whitespace-nowrap">
-        <button
-          onClick={() => onView(request)}
-          style={{ color: theme.text }}
-          className="text-sm font-medium hover:opacity-70 transition-opacity"
-        >
+        <span style={{ color: theme.text }} className="text-sm font-medium">
           #{request.ticketNumber.replace(/^SR-\d+-/, "")}
-        </button>
+        </span>
       </td>
       <td className="px-3 py-3 min-w-[150px]">
         <div className="flex items-center gap-2">
@@ -784,9 +782,11 @@ function RequestRow({
       <td className="px-3 py-3 whitespace-nowrap text-right">
         {isPending ? (
           <div className="inline-flex items-center gap-1.5">
-            <div className="inline-flex items-center gap-1.5">
             <button
-              onClick={() => onApprove(request)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApprove(request);
+              }}
               disabled={isApproving}
               style={{
                 backgroundColor: theme.primary,
@@ -797,12 +797,13 @@ function RequestRow({
               {isApproving ? "Reviewing…" : "Review"}
             </button>
           </div>
-           
-          </div>
         ) : request.status === "out_for_delivery" ? (
           <div className="inline-flex items-center gap-1.5">
             <button
-              onClick={() => onDeliver(request)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeliver(request);
+              }}
               disabled={isApproving}
               style={{ backgroundColor: "#16a34a", color: "#fff" }}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
@@ -810,7 +811,10 @@ function RequestRow({
               {isApproving ? "Saving…" : "✓ Deliver"}
             </button>
             <button
-              onClick={() => onFail(request)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFail(request);
+              }}
               disabled={isApproving}
               style={{ backgroundColor: "#D97706", color: "#fff" }}
               className="px-2.5 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
@@ -820,7 +824,10 @@ function RequestRow({
           </div>
         ) : (
           <button
-            onClick={() => onView(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(request);
+            }}
             style={{ borderColor: theme.border, color: theme.text }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg border"
           >
@@ -859,19 +866,17 @@ function DeliveryRow({
 
   return (
     <tr
+      onClick={() => onView(request)}
       style={{
         backgroundColor: index % 2 === 0 ? theme.surface : theme.background,
         borderBottom: `1px solid ${theme.border}`,
+        cursor: "pointer",
       }}
     >
       <td className="px-3 py-3 whitespace-nowrap">
-        <button
-          onClick={() => onView(request)}
-          style={{ color: theme.text }}
-          className="text-sm font-medium hover:opacity-70 transition-opacity"
-        >
+        <span style={{ color: theme.text }} className="text-sm font-medium">
           #{request.ticketNumber.replace(/^SR-\d+-/, "")}
-        </button>
+        </span>
       </td>
       <td className="px-3 py-3 min-w-[150px]">
         <div className="flex items-center gap-2">
@@ -931,7 +936,10 @@ function DeliveryRow({
         {isForDelivery ? (
           <div className="inline-flex items-center gap-1.5">
             <button
-              onClick={() => onDeliver(request)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeliver(request);
+              }}
               disabled={isActive}
               style={{ backgroundColor: "#16a34a", color: "#fff" }}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
@@ -939,7 +947,10 @@ function DeliveryRow({
               {isActive ? "Saving…" : "✓ Deliver"}
             </button>
             <button
-              onClick={() => onFail(request)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFail(request);
+              }}
               disabled={isActive}
               style={{ backgroundColor: "#D97706", color: "#fff" }}
               className="px-2.5 py-1.5 text-xs font-medium rounded-lg disabled:opacity-60"
@@ -949,7 +960,10 @@ function DeliveryRow({
           </div>
         ) : (
           <button
-            onClick={() => onView(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(request);
+            }}
             style={{ borderColor: theme.border, color: theme.text }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg border"
           >
@@ -991,7 +1005,8 @@ function RequestCard({
 
   return (
     <div
-      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      onClick={() => onView(request)}
+      style={{ backgroundColor: theme.surface, borderColor: theme.border, cursor: "pointer" }}
       className="rounded-lg border px-2.5 py-2 mb-2"
     >
       <div className="flex items-center justify-between gap-2 mb-1">
@@ -1007,13 +1022,9 @@ function RequestCard({
           >
             {getInitials(request.requestedByName)}
           </span>
-          <button
-            onClick={() => onView(request)}
-            style={{ color: theme.text }}
-            className="text-xs font-semibold flex-shrink-0"
-          >
+          <span style={{ color: theme.text }} className="text-xs font-semibold flex-shrink-0">
             #{request.ticketNumber.replace(/^SR-\d+-/, "")}
-          </button>
+          </span>
           <span style={{ color: theme.subtext }} className="text-[11px] truncate">
             {request.requestedByName}
           </span>
@@ -1047,7 +1058,10 @@ function RequestCard({
 
       {isPending ? (
         <button
-          onClick={() => onApprove(request)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onApprove(request);
+          }}
           disabled={isApproving}
           style={{ backgroundColor: theme.primary, color: theme.primaryText }}
           className="w-full py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
@@ -1057,7 +1071,10 @@ function RequestCard({
       ) : request.status === "out_for_delivery" ? (
         <div className="flex gap-1.5">
           <button
-            onClick={() => onDeliver(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeliver(request);
+            }}
             disabled={isApproving}
             style={{ backgroundColor: "#16a34a", color: "#fff" }}
             className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
@@ -1065,7 +1082,10 @@ function RequestCard({
             {isApproving ? "Saving…" : "✓ Deliver"}
           </button>
           <button
-            onClick={() => onFail(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFail(request);
+            }}
             disabled={isApproving}
             style={{ backgroundColor: "#D97706", color: "#fff" }}
             className="px-3 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
@@ -1075,7 +1095,10 @@ function RequestCard({
         </div>
       ) : (
         <button
-          onClick={() => onView(request)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onView(request);
+          }}
           style={{ borderColor: theme.border, color: theme.text }}
           className="w-full py-1.5 text-xs font-medium rounded-md border"
         >
@@ -1111,7 +1134,8 @@ function DeliveryCard({
 
   return (
     <div
-      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      onClick={() => onView(request)}
+      style={{ backgroundColor: theme.surface, borderColor: theme.border, cursor: "pointer" }}
       className="rounded-lg border px-2.5 py-2 mb-2"
     >
       <div className="flex items-center justify-between gap-2 mb-1">
@@ -1127,13 +1151,9 @@ function DeliveryCard({
           >
             {getInitials(request.requestedByName)}
           </span>
-          <button
-            onClick={() => onView(request)}
-            style={{ color: theme.text }}
-            className="text-xs font-semibold flex-shrink-0"
-          >
+          <span style={{ color: theme.text }} className="text-xs font-semibold flex-shrink-0">
             #{request.ticketNumber.replace(/^SR-\d+-/, "")}
-          </button>
+          </span>
           <span style={{ color: theme.subtext }} className="text-[11px] truncate">
             {request.requestedByName}
           </span>
@@ -1168,7 +1188,10 @@ function DeliveryCard({
       {isForDelivery ? (
         <div className="flex gap-1.5">
           <button
-            onClick={() => onDeliver(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeliver(request);
+            }}
             disabled={isActive}
             style={{ backgroundColor: "#16a34a", color: "#fff" }}
             className="flex-1 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
@@ -1176,7 +1199,10 @@ function DeliveryCard({
             {isActive ? "Saving…" : "✓ Deliver"}
           </button>
           <button
-            onClick={() => onFail(request)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFail(request);
+            }}
             disabled={isActive}
             style={{ backgroundColor: "#D97706", color: "#fff" }}
             className="px-3 py-1.5 text-xs font-medium rounded-md disabled:opacity-60"
@@ -1186,7 +1212,10 @@ function DeliveryCard({
         </div>
       ) : (
         <button
-          onClick={() => onView(request)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onView(request);
+          }}
           style={{ borderColor: theme.border, color: theme.text }}
           className="w-full py-1.5 text-xs font-medium rounded-md border"
         >
