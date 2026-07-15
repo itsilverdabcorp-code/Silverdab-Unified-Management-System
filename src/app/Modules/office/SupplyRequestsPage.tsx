@@ -32,7 +32,7 @@ const REQUEST_STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: "Pending", value: "pending" },
   { label: "Awaiting stock", value: "awaiting_stock" },
   { label: "Out for delivery", value: "out_for_delivery" },
-  { label: "Resolved", value: "resolved" }, // ← changed from "Delivered"
+  { label: "Issued", value: "resolved" }, // ← changed from "Delivered"
   { label: "Failed", value: "failed_delivery" },
   { label: "Rejected", value: "rejected" },
 ];
@@ -43,7 +43,7 @@ const DELIVERY_STATUS_TABS: {
 }[] = [
   { label: "All", value: "all" },
   { label: "For delivery", value: "out_for_delivery" },
-  { label: "Delivered", value: "resolved" },
+  { label: "Issued", value: "resolved" },
   { label: "Failed", value: "failed_delivery" },
 ];
 
@@ -75,8 +75,8 @@ function statusLabel(status: string): string {
       return "Awaiting stock";
     case "out_for_delivery":
       return "Out for delivery";
-    case "delivered":
-      return "Delivered";
+    case "resolved":
+      return "Issued"; 
     case "failed_delivery":
       return "Failed delivery";
     case "rejected":
