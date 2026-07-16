@@ -391,7 +391,6 @@ const OfficeInventoryPage: React.FC<Props> = ({
     recordId?: string;
     recordLabel?: string;
   } | null>(null);
-  const [bulkUnrestricting, setBulkUnrestricting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -487,47 +486,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
     [],
   );
 
-  const restrictedCount = useMemo(
-    () => data.filter((item) => item.isRestricted).length,
-    [data],
-  );
-
-  const handleBulkUnrestrict = useCallback(async () => {
-    const restrictedItems = data.filter((item) => item.isRestricted);
-    if (restrictedItems.length === 0) return;
-
-    setBulkUnrestricting(true);
-
-    // Optimistic update — flip everything locally right away.
-    setData((prev) =>
-      prev.map((row) => (row.isRestricted ? { ...row, isRestricted: false } : row)),
-    );
-
-    const failedIds: string[] = [];
-    try {
-      // Sequential, not Promise.all — avoids the ER_LOCK_DEADLOCK issue
-      // seen with concurrent writes on consumables.
-      for (const item of restrictedItems) {
-        try {
-          await toggleItemRestriction(item.id, false);
-        } catch (err) {
-          console.error(`Unable to unrestrict item ${item.id}`, err);
-          failedIds.push(item.id);
-        }
-      }
-
-      // Roll back only the ones that actually failed.
-      if (failedIds.length > 0) {
-        setData((prev) =>
-          prev.map((row) =>
-            failedIds.includes(row.id) ? { ...row, isRestricted: true } : row,
-          ),
-        );
-      }
-    } finally {
-      setBulkUnrestricting(false);
-    }
-  }, [data]);
+  
 
   const dirFor = (key: InventorySortKey): SortDir =>
     sortKey === key ? sortDir : "default";
@@ -902,31 +861,6 @@ const OfficeInventoryPage: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {viewMode === "active" && isSuperAdmin && restrictedCount > 0 && (
-              <button
-                onClick={handleBulkUnrestrict}
-                disabled={bulkUnrestricting}
-                title="Unrestrict all items — makes them visible to employees"
-                style={{
-                  backgroundColor: theme.surface,
-                  color: theme.text,
-                  borderColor: theme.border,
-                  opacity: bulkUnrestricting ? 0.6 : 1,
-                }}
-                className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
-                onMouseEnter={(e) =>
-                  !bulkUnrestricting &&
-                  (e.currentTarget.style.backgroundColor = theme.bgHover)
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = theme.surface)
-                }
-              >
-                {bulkUnrestricting
-                  ? "Unrestricting…"
-                  : `🔓 Unrestrict All (${restrictedCount})`}
-              </button>
-            )}
             {viewMode === "active" && (
               <>
                 <button
