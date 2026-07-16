@@ -914,15 +914,7 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                           cart.reduce((s, r) => s + r.quantityRequested, 0),
                         ),
                       },
-                      {
-                        label: "Estimated total",
-                        value: `₱${cart
-                          .reduce(
-                            (s, r) => s + r.pricePerUnit * r.quantityRequested,
-                            0,
-                          )
-                          .toFixed(2)}`,
-                      },
+                      
                     ].map((row, i, arr) => (
                       <View
                         key={row.label}
@@ -1055,17 +1047,6 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
                             </Text>
                             <StockBadge status={row.stockStatusAtRequest} />
                           </View>
-                          <Text
-                            style={{
-                              fontFamily: "Outfit-SemiBold",
-                              fontSize: 12,
-                              color: primary,
-                              marginTop: 5,
-                            }}
-                          >
-                            ₱{row.pricePerUnit.toFixed(2)} × {row.quantityRequested} = ₱
-                            {(row.pricePerUnit * row.quantityRequested).toFixed(2)}
-                          </Text>
                         </View>
                       </View>
                     </View>
