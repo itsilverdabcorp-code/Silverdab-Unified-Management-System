@@ -284,6 +284,12 @@ export default function UsersPage({ currentUser }: Props) {
   );
   const [savingPermissions, setSavingPermissions] = useState(false);
 
+  const [addAdminVisible, setAddAdminVisible] = useState(false);
+  const [addAdminSearch, setAddAdminSearch] = useState("");
+  const [promotingUsername, setPromotingUsername] = useState<string | null>(
+    null,
+  );
+
   const PERMISSION_LABELS: {
     key: keyof EnrichedUser["permissions"];
     label: string;
@@ -361,6 +367,22 @@ export default function UsersPage({ currentUser }: Props) {
       console.error("Failed to save user changes:", err);
     } finally {
       setSavingPermissions(false);
+    }
+  }
+
+  async function handlePromoteToAdmin(user: EnrichedUser) {
+    setPromotingUsername(user.username);
+    try {
+      await updateUserRole(user.username, "admin");
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === user.username ? { ...u, role: "admin" } : u,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to promote user to admin:", err);
+    } finally {
+      setPromotingUsername(null);
     }
   }
 
@@ -464,25 +486,46 @@ export default function UsersPage({ currentUser }: Props) {
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => fetchUsers(true)}
-          disabled={syncing}
-          className="flex-row items-center gap-1.5 rounded-xl px-3 py-1.5"
-          style={{
-            backgroundColor: theme.bgActive,
-            borderWidth: 1,
-            borderColor: theme.border,
-          }}
-        >
-          {syncing ? (
-            <ActivityIndicator size="small" color={theme.iconActive} />
-          ) : (
-            <Text style={{ fontSize: 14 }}>🔄</Text>
-          )}
-          <Text className="text-xs font-semibold" style={{ color: theme.text }}>
-            {syncing ? "Syncing..." : "Sync AD"}
-          </Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            onPress={() => {
+              setAddAdminSearch("");
+              setAddAdminVisible(true);
+            }}
+            className="flex-row items-center gap-1.5 rounded-xl px-3 py-1.5"
+            style={{
+              backgroundColor: theme.iconActive,
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>➕</Text>
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: theme.primaryText }}
+            >
+              Add Admin
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => fetchUsers(true)}
+            disabled={syncing}
+            className="flex-row items-center gap-1.5 rounded-xl px-3 py-1.5"
+            style={{
+              backgroundColor: theme.bgActive,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+          >
+            {syncing ? (
+              <ActivityIndicator size="small" color={theme.iconActive} />
+            ) : (
+              <Text style={{ fontSize: 14 }}>🔄</Text>
+            )}
+            <Text className="text-xs font-semibold" style={{ color: theme.text }}>
+              {syncing ? "Syncing..." : "Sync AD"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stat cards */}
@@ -703,6 +746,143 @@ export default function UsersPage({ currentUser }: Props) {
             );
           }}
         />
+      )}
+
+      {/* Add Admin modal — search employees, tap to promote */}
+      {addAdminVisible && (
+        <View
+          className="absolute inset-0 items-center justify-center p-6"
+          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+        >
+          <View
+            className="rounded-2xl p-6 w-full max-w-[420px]"
+            style={{
+              backgroundColor: theme.background,
+              borderWidth: 1,
+              borderColor: theme.border,
+              maxHeight: "80%",
+            }}
+          >
+            <Text
+              className="text-base font-bold mb-1"
+              style={{ color: theme.text }}
+            >
+              Add Admin
+            </Text>
+            <Text className="text-xs mb-4" style={{ color: theme.subtext }}>
+              Search for a user and tap to make them an admin
+            </Text>
+
+            <TextInput
+              value={addAdminSearch}
+              onChangeText={setAddAdminSearch}
+              placeholder="Search name, username, department…"
+              placeholderTextColor={theme.subtext}
+              autoFocus
+              className="rounded-xl px-3.5 py-2.5 text-sm mb-3"
+              style={{
+                backgroundColor: theme.bgActive,
+                borderWidth: 1,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            />
+
+            <FlatList
+              data={users.filter((u) => {
+                if (u.role !== "employee") return false;
+                const q = addAdminSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  u.displayName?.toLowerCase().includes(q) ||
+                  u.username?.toLowerCase().includes(q) ||
+                  u.department?.toLowerCase().includes(q)
+                );
+              })}
+              keyExtractor={(item) => item.username}
+              style={{ maxHeight: 320 }}
+              ListEmptyComponent={
+                <Text
+                  className="text-sm text-center py-6"
+                  style={{ color: theme.subtext }}
+                >
+                  No matching employees found.
+                </Text>
+              }
+              renderItem={({ item }) => {
+                const role = getRoleStyle(item.role);
+                const isPromoting = promotingUsername === item.username;
+                return (
+                  <TouchableOpacity
+                    onPress={() => handlePromoteToAdmin(item)}
+                    disabled={isPromoting}
+                    activeOpacity={0.75}
+                    className="flex-row items-center gap-3 rounded-xl p-3 mb-2"
+                    style={{
+                      backgroundColor: theme.bgActive,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      opacity: isPromoting ? 0.6 : 1,
+                    }}
+                  >
+                    <View
+                      className="w-9 h-9 rounded-full items-center justify-center"
+                      style={{ backgroundColor: role.bg }}
+                    >
+                      <Text
+                        className="text-xs font-bold"
+                        style={{ color: role.text }}
+                      >
+                        {getInitials(item.displayName || item.username)}
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: theme.text }}
+                      >
+                        {item.displayName || item.username}
+                      </Text>
+                      <Text
+                        className="text-xs mt-0.5"
+                        style={{ color: theme.subtext }}
+                      >
+                        {item.username} · {item.department || "No department"}
+                      </Text>
+                    </View>
+                    {isPromoting ? (
+                      <ActivityIndicator size="small" color={theme.iconActive} />
+                    ) : (
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: theme.iconActive }}
+                      >
+                        Make Admin
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={() => setAddAdminVisible(false)}
+              className="rounded-xl py-3 items-center mt-3"
+              style={{
+                backgroundColor: theme.bgActive,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}
+            >
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: theme.text }}
+              >
+                Close
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       {/* Permission modal */}
