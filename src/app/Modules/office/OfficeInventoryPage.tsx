@@ -722,25 +722,23 @@ const OfficeInventoryPage: React.FC<Props> = ({
                   <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
                     <EditIcon />
                   </IconBtn>
-                  {isSuperAdmin && (
-                    <IconBtn
-                      title={
-                        item.isRestricted
-                          ? "Unrestrict — visible to employees"
-                          : "Restrict — admin/superadmin only"
-                      }
-                      onClick={() => handleToggleRestriction(item)}
-                    >
-                      {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
-                    </IconBtn>
-                  )}
+                  <IconBtn
+                    title={
+                      item.isRestricted
+                        ? "Unrestrict — visible to employees"
+                        : "Restrict — admin/superadmin only"
+                    }
+                    onClick={() => handleToggleRestriction(item)}
+                  >
+                    {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
+                  </IconBtn>
                 </>
               )}
             </div>
           </td>
         </tr>
       )),
-    [theme, viewMode, handleArchive, handleRestore, isSuperAdmin, handleToggleRestriction],
+    [theme, viewMode, handleArchive, handleRestore, handleToggleRestriction],
   );
 
   const renderMobileCards = useCallback(
@@ -819,25 +817,23 @@ const OfficeInventoryPage: React.FC<Props> = ({
                   <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
                     <EditIcon />
                   </IconBtn>
-                  {isSuperAdmin && (
-                    <IconBtn
-                      title={
-                        item.isRestricted
-                          ? "Unrestrict — visible to employees"
-                          : "Restrict — admin/superadmin only"
-                      }
-                      onClick={() => handleToggleRestriction(item)}
-                    >
-                      {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
-                    </IconBtn>
-                  )}
+                  <IconBtn
+                    title={
+                      item.isRestricted
+                        ? "Unrestrict — visible to employees"
+                        : "Restrict — admin/superadmin only"
+                    }
+                    onClick={() => handleToggleRestriction(item)}
+                  >
+                    {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
+                  </IconBtn>
                 </>
               )}
             </div>
           </div>
         </div>
       )),
-    [theme, viewMode, handleRestore, isSuperAdmin, handleToggleRestriction],
+    [theme, viewMode, handleRestore, handleToggleRestriction],
   );
 
   return (
