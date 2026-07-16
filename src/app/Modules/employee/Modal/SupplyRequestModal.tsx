@@ -636,10 +636,18 @@ export default function SupplyRequestModal({
     if (!visible) return;
     setLoadingInventory(true);
     getAllInventoryItems()
-      .then(setInventory)
+      .then((items) => {
+        // Employees never see items flagged isRestricted — those stay
+        // admin/superadmin-only, same rule as OfficeInventoryPage's lock icon.
+        const visibleItems =
+          user.role === "employee"
+            ? items.filter((item) => !item.isRestricted)
+            : items;
+        setInventory(visibleItems);
+      })
       .catch(() => setError("Failed to load inventory."))
       .finally(() => setLoadingInventory(false));
-  }, [visible]);
+  }, [visible, user.role]);
 
   useEffect(() => {
     if (!visible) {

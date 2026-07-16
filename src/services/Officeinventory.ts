@@ -118,6 +118,7 @@ function mapRow(row: any): OfficeInventoryItem {
     lowStockThreshold: Number(row.low_stock_threshold),
     inStockThreshold: Number(row.in_stock_threshold),
     isActive: !!row.is_active,
+    isRestricted: !!row.is_restricted,
     createdAt: row.created_at ?? "",
     updatedAt: row.updated_at ?? "",
   };
@@ -195,6 +196,31 @@ export async function restoreInventoryItem(id: string): Promise<void> {
   );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to restore item");
+  }
+}
+
+// ─── TOGGLE RESTRICTION (employee visibility) ───────────────────────────────
+
+export async function toggleItemRestriction(
+  id: string,
+  isRestricted: boolean,
+): Promise<void> {
+  const user = await getCurrentUser();
+
+  const res = await fetch(
+    `${BACKEND_URL}/office-inventory/${encodeURIComponent(id)}/restrict`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify({ isRestricted, performedByName: user.name }),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Unable to update item restriction.");
   }
 }
 

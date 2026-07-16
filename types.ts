@@ -76,6 +76,7 @@ export interface OfficeInventoryItem {
   lowStockThreshold: number; // default 5
   inStockThreshold: number; // default 10
   isActive: boolean;
+  isRestricted: boolean; // admin/superadmin-only visibility
   createdAt: string;
   updatedAt: string;
 }
@@ -93,7 +94,9 @@ export interface StockTransaction {
     | "ticket_deduction"
     | "supply_request_rejected"
     | "item_archived"
-    | "item_restored";
+    | "item_restored"
+    | "item_restricted"
+    | "item_unrestricted";
   quantityChange: number;
   stockBefore: number;
   stockAfter: number;

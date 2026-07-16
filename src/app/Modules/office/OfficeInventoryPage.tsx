@@ -8,6 +8,7 @@ import {
   archiveInventoryItem,
   restoreInventoryItem,
   getAllInventoryItems,
+  toggleItemRestriction,
 } from "../../../services/Officeinventory";
 import { useTheme } from "../../../theme/ThemeContext";
 // import BadgeSelect from "../../../components/common/BadgeSelect";
@@ -307,6 +308,32 @@ const RestoreIcon = () => (
     />
   </svg>
 );
+const LockIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+  >
+    <rect x="4" y="10" width="16" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+const UnlockIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+  >
+    <rect x="4" y="10" width="16" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 0 1 7.5-2" />
+  </svg>
+);
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
@@ -364,6 +391,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
     recordId?: string;
     recordLabel?: string;
   } | null>(null);
+  const [bulkUnrestricting, setBulkUnrestricting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -430,6 +458,76 @@ const OfficeInventoryPage: React.FC<Props> = ({
     },
     [fetchArchivedData, fetchData],
   );
+
+  const handleToggleRestriction = useCallback(
+    async (item: OfficeInventoryItem) => {
+      const nextRestricted = !item.isRestricted;
+
+      // Optimistic update — no loading flash, no full refetch.
+      setData((prev) =>
+        prev.map((row) =>
+          row.id === item.id ? { ...row, isRestricted: nextRestricted } : row,
+        ),
+      );
+
+      try {
+        await toggleItemRestriction(item.id, nextRestricted);
+      } catch (err) {
+        console.error("Unable to update item restriction", err);
+        // Roll back on failure since the server never applied it.
+        setData((prev) =>
+          prev.map((row) =>
+            row.id === item.id
+              ? { ...row, isRestricted: item.isRestricted }
+              : row,
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  const restrictedCount = useMemo(
+    () => data.filter((item) => item.isRestricted).length,
+    [data],
+  );
+
+  const handleBulkUnrestrict = useCallback(async () => {
+    const restrictedItems = data.filter((item) => item.isRestricted);
+    if (restrictedItems.length === 0) return;
+
+    setBulkUnrestricting(true);
+
+    // Optimistic update — flip everything locally right away.
+    setData((prev) =>
+      prev.map((row) => (row.isRestricted ? { ...row, isRestricted: false } : row)),
+    );
+
+    const failedIds: string[] = [];
+    try {
+      // Sequential, not Promise.all — avoids the ER_LOCK_DEADLOCK issue
+      // seen with concurrent writes on consumables.
+      for (const item of restrictedItems) {
+        try {
+          await toggleItemRestriction(item.id, false);
+        } catch (err) {
+          console.error(`Unable to unrestrict item ${item.id}`, err);
+          failedIds.push(item.id);
+        }
+      }
+
+      // Roll back only the ones that actually failed.
+      if (failedIds.length > 0) {
+        setData((prev) =>
+          prev.map((row) =>
+            failedIds.includes(row.id) ? { ...row, isRestricted: true } : row,
+          ),
+        );
+      }
+    } finally {
+      setBulkUnrestricting(false);
+    }
+  }, [data]);
 
   const dirFor = (key: InventorySortKey): SortDir =>
     sortKey === key ? sortDir : "default";
@@ -584,6 +682,14 @@ const OfficeInventoryPage: React.FC<Props> = ({
             <span style={{ color: theme.text }} className="text-sm font-medium">
               {item.name}
             </span>
+            {item.isRestricted && (
+              <span
+                title="Restricted to admin/superadmin"
+                style={{ color: theme.subtext, marginLeft: 6 }}
+              >
+                <LockIcon />
+              </span>
+            )}
           </td>
 
           <td className="px-3 py-1.5 min-w-[110px]">
@@ -657,13 +763,25 @@ const OfficeInventoryPage: React.FC<Props> = ({
                   <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
                     <EditIcon />
                   </IconBtn>
+                  {isSuperAdmin && (
+                    <IconBtn
+                      title={
+                        item.isRestricted
+                          ? "Unrestrict — visible to employees"
+                          : "Restrict — admin/superadmin only"
+                      }
+                      onClick={() => handleToggleRestriction(item)}
+                    >
+                      {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
+                    </IconBtn>
+                  )}
                 </>
               )}
             </div>
           </td>
         </tr>
       )),
-    [theme, viewMode, handleArchive, handleRestore],
+    [theme, viewMode, handleArchive, handleRestore, isSuperAdmin, handleToggleRestriction],
   );
 
   const renderMobileCards = useCallback(
@@ -742,13 +860,25 @@ const OfficeInventoryPage: React.FC<Props> = ({
                   <IconBtn title="Edit item" onClick={() => setEditTarget(item)}>
                     <EditIcon />
                   </IconBtn>
+                  {isSuperAdmin && (
+                    <IconBtn
+                      title={
+                        item.isRestricted
+                          ? "Unrestrict — visible to employees"
+                          : "Restrict — admin/superadmin only"
+                      }
+                      onClick={() => handleToggleRestriction(item)}
+                    >
+                      {item.isRestricted ? <UnlockIcon /> : <LockIcon />}
+                    </IconBtn>
+                  )}
                 </>
               )}
             </div>
           </div>
         </div>
       )),
-    [theme, viewMode, handleRestore],
+    [theme, viewMode, handleRestore, isSuperAdmin, handleToggleRestriction],
   );
 
   return (
@@ -772,6 +902,31 @@ const OfficeInventoryPage: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {viewMode === "active" && isSuperAdmin && restrictedCount > 0 && (
+              <button
+                onClick={handleBulkUnrestrict}
+                disabled={bulkUnrestricting}
+                title="Unrestrict all items — makes them visible to employees"
+                style={{
+                  backgroundColor: theme.surface,
+                  color: theme.text,
+                  borderColor: theme.border,
+                  opacity: bulkUnrestricting ? 0.6 : 1,
+                }}
+                className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium rounded-lg border whitespace-nowrap"
+                onMouseEnter={(e) =>
+                  !bulkUnrestricting &&
+                  (e.currentTarget.style.backgroundColor = theme.bgHover)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = theme.surface)
+                }
+              >
+                {bulkUnrestricting
+                  ? "Unrestricting…"
+                  : `🔓 Unrestrict All (${restrictedCount})`}
+              </button>
+            )}
             {viewMode === "active" && (
               <>
                 <button

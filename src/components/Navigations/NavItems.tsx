@@ -779,9 +779,8 @@ export function getNavSectionsForUser(user: {
   const normalizedRole = normalizeRole(user.role);
 
   if (normalizedRole === "superadmin") return MENU_BY_ROLE.superadmin;
-  if (normalizedRole === "admin") return MENU_BY_ROLE.admin;
 
-  if (normalizedRole === "employee") {
+  if (normalizedRole === "admin" || normalizedRole === "employee") {
     const baseSection: NavSection = {
       items: [
         // { key: "dashboard",       label: "Dashboard",        icon: DashboardIcon,    href: href("dashboard")       },
