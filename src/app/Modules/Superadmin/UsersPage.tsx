@@ -13,6 +13,7 @@ import {
   clearUsers,
   loadUsers,
   updateUserPermissions,
+  updateUserRole,
 } from "../../../utils/users";
 
 type EnrichedUser = ADUser & { hasLoggedIn: boolean };
@@ -334,21 +335,30 @@ export default function UsersPage({ currentUser }: Props) {
     }
   }
 
-  async function savePermissions(
-    user: EnrichedUser,
-    permissions: UserPermissions,
-  ) {
+  async function saveUserChanges(user: EnrichedUser) {
     setSavingPermissions(true);
     try {
-      await updateUserPermissions(user.username, permissions);
+      const original = users.find((u) => u.username === user.username);
+      // Role only changes if it differs from what's already saved — the
+      // backend also refuses to touch a superadmin's role, as a backstop.
+      if (
+        original &&
+        original.role !== user.role &&
+        (user.role === "admin" || user.role === "employee")
+      ) {
+        await updateUserRole(user.username, user.role);
+      }
+      await updateUserPermissions(user.username, user.permissions);
       setUsers((prev) =>
         prev.map((u) =>
-          u.username === user.username ? { ...u, permissions } : u,
+          u.username === user.username
+            ? { ...u, permissions: user.permissions, role: user.role }
+            : u,
         ),
       );
       setPermissionUser(null);
     } catch (err) {
-      console.error("Failed to save permissions:", err);
+      console.error("Failed to save user changes:", err);
     } finally {
       setSavingPermissions(false);
     }
@@ -786,6 +796,58 @@ export default function UsersPage({ currentUser }: Props) {
               );
             })}
 
+            {permissionUser.role !== "superadmin" && (
+              <TouchableOpacity
+                onPress={() =>
+                  setPermissionUser((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          role: prev.role === "admin" ? "employee" : "admin",
+                        }
+                      : prev,
+                  )
+                }
+                className="flex-row items-center justify-between rounded-xl p-3.5 mb-2.5"
+                style={{
+                  backgroundColor: theme.bgActive,
+                  borderWidth: 1,
+                  borderColor:
+                    permissionUser.role === "admin" ? "#22c55e" : theme.border,
+                }}
+              >
+                <View className="flex-1 pr-3">
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{ color: theme.text }}
+                  >
+                    Admin Access
+                  </Text>
+                  <Text
+                    className="text-xs mt-0.5"
+                    style={{ color: theme.subtext }}
+                  >
+                    Promotes this user to Admin, or demotes back to Employee
+                  </Text>
+                </View>
+                <View
+                  className="w-11 h-6 rounded-full justify-center px-1"
+                  style={{
+                    backgroundColor:
+                      permissionUser.role === "admin"
+                        ? "#22c55e"
+                        : theme.border,
+                    alignItems:
+                      permissionUser.role === "admin"
+                        ? "flex-end"
+                        : "flex-start",
+                  }}
+                >
+                  <View className="w-[18px] h-[18px] rounded-full bg-white" />
+                </View>
+              </TouchableOpacity>
+            )}
+
             <View className="flex-row gap-2.5 mt-2">
               <TouchableOpacity
                 onPress={() => setPermissionUser(null)}
@@ -805,9 +867,7 @@ export default function UsersPage({ currentUser }: Props) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() =>
-                  savePermissions(permissionUser, permissionUser.permissions)
-                }
+                onPress={() => saveUserChanges(permissionUser)}
                 disabled={savingPermissions}
                 className="flex-1 rounded-xl py-3 items-center"
                 style={{ backgroundColor: theme.iconActive }}

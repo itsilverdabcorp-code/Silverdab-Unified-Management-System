@@ -240,6 +240,26 @@ export async function updateUserPermissions(
     throw new Error(data.message || "Failed to save permissions");
 }
 
+export async function updateUserRole(
+  username: string,
+  role: "admin" | "employee",
+): Promise<void> {
+  const token = await getServiceToken();
+  const res = await fetch(
+    `${BACKEND_URL}/users/${encodeURIComponent(username.toLowerCase().trim())}/role`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ role }),
+    },
+  );
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message || "Failed to update role");
+}
+
 export async function clearUsers(): Promise<void> {
   const token = await getServiceToken();
   const res = await fetch(`${BACKEND_URL}/users`, {
