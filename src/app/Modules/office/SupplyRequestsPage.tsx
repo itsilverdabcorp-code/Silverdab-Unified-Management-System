@@ -204,17 +204,19 @@ function effectiveStatus(
   return r.status;
 }
 
-// Lower number = shown first. Out for delivery leads because it's a
-// dangling action waiting on confirmation; failed delivery sits right
-// beside it since it also needs a re-action. Resolved/rejected trail
-// last since they're closed and mainly for reference.
+// Lower number = shown first. Pending / out for delivery / awaiting stock
+// are live, actionable states and keep their own priority tiers. Issued,
+// Failed delivery, and Rejected are all "closed" outcomes — they share one
+// tier so they interleave with each other purely by date (newest first,
+// via the secondary sort in filteredRequests below) instead of clustering
+// into three separate status blocks.
 const STATUS_SORT_ORDER: Record<string, number> = {
   pending: 0,
   out_for_delivery: 1,
-  failed_delivery: 2,
-  awaiting_stock: 3,
-  resolved: 4,
-  rejected: 5,
+  awaiting_stock: 2,
+  resolved: 3,
+  failed_delivery: 3,
+  rejected: 3,
 };
 
 // ─── Reject modal ─────────────────────────────────────────────────────────────

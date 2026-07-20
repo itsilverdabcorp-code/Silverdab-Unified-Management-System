@@ -28,6 +28,8 @@ import EditAssetModal from "./EditAssetModal";
 import { getAllDropdownConfigs } from "@/services/dropdownConfigs";
 import { logAudit } from "@/services/auditlogs";
 import AuditTrailModal from "../../../../components/common/AuditTrailModal";
+import * as XLSX from "xlsx";
+
 
 // ─── Dropdown option defaults — editable at runtime via the Manage Columns
 // modal, which is why the page holds them in state (see below) rather than
@@ -503,12 +505,36 @@ const ITInventoryPage: React.FC<Props> = ({ user, initialFilter = null }) => {
     });
   }, []);
 
+  const BLANK_OPTION: DropdownOption = {
+    label: "—",
+    value: "",
+    badgeClass: "",
+    bgColor: "#f3f4f6",
+    textColor: "#6b7280",
+  };
+
   const inventoryFilter = useTableFilter({
     fields: [
-      { key: "category", label: "Category", options: categoryOptions },
-      { key: "status", label: "Status", options: statusOptions },
-      { key: "company", label: "Company", options: companyOptions },
-      { key: "location", label: "Location", options: locationOptions },
+      {
+        key: "category",
+        label: "Category",
+        options: [BLANK_OPTION, ...categoryOptions],
+      },
+      {
+        key: "status",
+        label: "Status",
+        options: [BLANK_OPTION, ...statusOptions],
+      },
+      {
+        key: "company",
+        label: "Company",
+        options: [BLANK_OPTION, ...companyOptions],
+      },
+      {
+        key: "location",
+        label: "Location",
+        options: [BLANK_OPTION, ...locationOptions],
+      },
     ],
     showDateRange: true,
     dateLabel: "Date Purchased",
@@ -731,6 +757,34 @@ const ITInventoryPage: React.FC<Props> = ({ user, initialFilter = null }) => {
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [filtered, sortKey, sortDir, employees]);
+
+  const handleExport = useCallback(() => {
+    const rows = sortedFiltered.map((item) => ({
+      "Asset Tag": item.assetTag,
+      Company: item.company,
+      "Serial Number": item.serialNumber,
+      Model: item.model,
+      Brand: item.brand,
+      Category: item.category,
+      Status: item.status,
+      Assignee:
+        employees.find((e) => e.id === item.assigneeId)?.name ??
+        item.assigneeName ??
+        "",
+      Location: item.location,
+      "Date Purchased": item.datePurchased
+        ? formatDisplayDate(item.datePurchased)
+        : "",
+      Notes: item.notes ?? "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "IT Inventory");
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `IT_Inventory_${timestamp}.xlsx`);
+  }, [sortedFiltered, employees]);
 
   const handleSort = useCallback(
     (key: InventorySortKey) => {
@@ -1006,6 +1060,24 @@ const ITInventoryPage: React.FC<Props> = ({ user, initialFilter = null }) => {
             </button>
 
             <button
+              onClick={handleExport}
+              style={{
+                borderColor: theme.border,
+                color: theme.text,
+                backgroundColor: theme.surface,
+              }}
+              className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap"
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.bgHover)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = theme.surface)
+              }
+            >
+              Export
+            </button>
+
+            <button
               onClick={() => setManageColumnsVisible(true)}
               style={{
                 borderColor: theme.border,
@@ -1154,10 +1226,26 @@ const ITInventoryPage: React.FC<Props> = ({ user, initialFilter = null }) => {
         visible={inventoryFilter.filterPanelVisible}
         config={{
           fields: [
-            { key: "category", label: "Category", options: categoryOptions },
-            { key: "status", label: "Status", options: statusOptions },
-            { key: "company", label: "Company", options: companyOptions },
-            { key: "location", label: "Location", options: locationOptions },
+            {
+              key: "category",
+              label: "Category",
+              options: [BLANK_OPTION, ...categoryOptions],
+            },
+            {
+              key: "status",
+              label: "Status",
+              options: [BLANK_OPTION, ...statusOptions],
+            },
+            {
+              key: "company",
+              label: "Company",
+              options: [BLANK_OPTION, ...companyOptions],
+            },
+            {
+              key: "location",
+              label: "Location",
+              options: [BLANK_OPTION, ...locationOptions],
+            },
           ],
           showDateRange: true,
           dateLabel: "Date Purchased",

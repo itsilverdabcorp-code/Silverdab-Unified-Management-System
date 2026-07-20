@@ -512,6 +512,17 @@ function stripAutoOption(cols: ColumnConfig[]): ColumnConfig[] {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const GripIcon = ({ color }: { color: string }) => (
+  <svg width="10" height="16" viewBox="0 0 10 16" fill={color}>
+    <circle cx="2" cy="2" r="1.3" />
+    <circle cx="8" cy="2" r="1.3" />
+    <circle cx="2" cy="8" r="1.3" />
+    <circle cx="8" cy="8" r="1.3" />
+    <circle cx="2" cy="14" r="1.3" />
+    <circle cx="8" cy="14" r="1.3" />
+  </svg>
+);
+
 const ManageColumnsModal: React.FC<Props> = ({
   visible,
   onClose,
@@ -526,6 +537,8 @@ const ManageColumnsModal: React.FC<Props> = ({
     columns.find((c) => c.editable)?.id ?? columns[0]?.id,
   );
   const [colorPickerIdx, setColorPickerIdx] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -582,6 +595,18 @@ const ManageColumnsModal: React.FC<Props> = ({
           ? col
           : { ...col, options: col.options.filter((_, i) => i !== idx) },
       ),
+    );
+  };
+
+  const reorderOption = (fromIdx: number, toIdx: number) => {
+    setLocalCols((prev) =>
+      prev.map((col) => {
+        if (col.id !== activeColId) return col;
+        const options = [...col.options];
+        const [moved] = options.splice(fromIdx, 1);
+        options.splice(toIdx, 0, moved);
+        return { ...col, options };
+      }),
     );
   };
 
@@ -816,7 +841,32 @@ const ManageColumnsModal: React.FC<Props> = ({
                     const matchedPreset = getPresetForColor(opt.bgColor);
 
                     return (
-                      <div key={idx}>
+                      <div
+                        key={idx}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (dragIdx !== null && dragOverIdx !== idx) {
+                            setDragOverIdx(idx);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (dragIdx !== null && dragIdx !== idx) {
+                            reorderOption(dragIdx, idx);
+                          }
+                          setDragIdx(null);
+                          setDragOverIdx(null);
+                        }}
+                        style={{
+                          opacity: dragIdx === idx ? 0.4 : 1,
+                          borderTop:
+                            dragOverIdx === idx &&
+                            dragIdx !== null &&
+                            dragIdx !== idx
+                              ? `2px solid ${theme.primary}`
+                              : "2px solid transparent",
+                        }}
+                      >
                         <div
                           style={{
                             borderColor: theme.border,
@@ -824,6 +874,25 @@ const ManageColumnsModal: React.FC<Props> = ({
                           }}
                           className="flex items-center gap-2 px-3 py-2 rounded-lg border"
                         >
+                          {/* Drag handle */}
+                          <span
+                            draggable
+                            onDragStart={(e) => {
+                              setDragIdx(idx);
+                              setColorPickerIdx(null);
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            onDragEnd={() => {
+                              setDragIdx(null);
+                              setDragOverIdx(null);
+                            }}
+                            title="Drag to reorder"
+                            className="flex-shrink-0 flex items-center"
+                            style={{ cursor: "grab" }}
+                          >
+                            <GripIcon color={theme.subtext} />
+                          </span>
+
                           {/* Color swatch */}
                           <button
                             type="button"
