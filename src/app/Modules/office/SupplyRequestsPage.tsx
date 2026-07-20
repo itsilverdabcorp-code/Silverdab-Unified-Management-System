@@ -8,6 +8,7 @@ import {
   rejectSupplyRequest,
   markDelivered,
   markFailedDelivery,
+  archiveSupplyRequest,
 } from "../../../services/supplyRequest"; // ← new MySQL service
 import { getAllInventoryItems } from "../../../services/Officeinventory";
 import PartialApprovalModal from "./Modal/PartialApprovalModal";
@@ -693,6 +694,7 @@ function RequestRow({
   onView,
   onDeliver,
   onFail,
+  onArchive,
   approvingId,
   liveStock,
   theme,
@@ -704,6 +706,7 @@ function RequestRow({
   onView: (r: SupplyRequest) => void;
   onDeliver: (r: SupplyRequest) => void;
   onFail: (r: SupplyRequest) => void;
+  onArchive: (r: SupplyRequest) => void;
   approvingId: string | null;
   liveStock?: Record<string, StockStatus>;
   theme: any;
@@ -825,16 +828,31 @@ function RequestRow({
             </button>
           </div>
         ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onView(request);
-            }}
-            style={{ borderColor: theme.border, color: theme.text }}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg border"
-          >
-             View
-          </button>
+          <div className="inline-flex items-center gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onView(request);
+              }}
+              style={{ borderColor: theme.border, color: theme.text }}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border"
+            >
+               View
+            </button>
+            {["resolved", "rejected", "failed_delivery"].includes(request.status) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(request);
+                }}
+                disabled={isApproving}
+                style={{ borderColor: theme.border, color: theme.subtext }}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border disabled:opacity-60"
+              >
+                Archive
+              </button>
+            )}
+          </div>
         )}
       </td>
     </tr>
@@ -1497,6 +1515,19 @@ const handleReject = (requestId: string) => {
   setTimeout(() => setRejectTarget(request), 100);
 };
 
+  const handleArchive = async (request: SupplyRequest) => {
+    setApprovingId(request.id);
+    setError("");
+    try {
+      await archiveSupplyRequest(request.id);
+      await loadRequests();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to archive request.");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -1700,6 +1731,7 @@ const handleReject = (requestId: string) => {
                         onView={(x) => setDetailRequest(x)}
                         onDeliver={handleMarkDelivered}
                         onFail={(x) => setFailTarget(x)}
+                        onArchive={handleArchive}
                         approvingId={approvingId}
                         liveStock={liveStock}
                         theme={theme}

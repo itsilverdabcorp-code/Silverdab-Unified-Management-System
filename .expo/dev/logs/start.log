@@ -1046,3 +1046,500 @@
 {"_e":"devserver:start","_t":1784513059213,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
 {"_e":"metro:config","_t":1784513060002,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
 {"_e":"expo:dev-tools-plugin:load","_t":1784513060355,"plugins":[]}
+{"_e":"root:init","_t":1784517032246,"format":"v0-jsonl","version":"57.0.6"}
+{"_e":"env:mode","_t":1784517032249,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1784517032254,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1784517033439,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1784517034737,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1784517035313,"plugins":[]}
+{"_e":"metro:instantiate","_t":1784517042317,"atlas":false,"workers":14,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1784517042794,"id":"2","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784517042795,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1784517042805,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1784517043661,"id":"2","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1784517043761,"id":"2","progress":0.09,"total":5,"current":3}
+{"_e":"metro:bundling:progress","_t":1784517043875,"id":"2","progress":0.16000000000000003,"total":10,"current":4}
+{"_e":"metro:bundling:progress","_t":1784517044668,"id":"2","progress":0.25,"total":10,"current":5}
+{"_e":"metro:bundling:progress","_t":1784517044771,"id":"2","progress":0.25,"total":51,"current":17}
+{"_e":"metro:bundling:progress","_t":1784517044871,"id":"2","progress":0.25,"total":153,"current":43}
+{"_e":"metro:bundling:progress","_t":1784517044972,"id":"2","progress":0.25,"total":188,"current":60}
+{"_e":"metro:bundling:progress","_t":1784517045074,"id":"2","progress":0.25,"total":259,"current":104}
+{"_e":"metro:bundling:progress","_t":1784517045174,"id":"2","progress":0.25,"total":268,"current":110}
+{"_e":"metro:bundling:progress","_t":1784517045205,"id":"2","progress":0.25,"total":268,"current":111}
+{"_e":"metro:bundling:progress","_t":1784517045306,"id":"2","progress":0.25,"total":273,"current":119}
+{"_e":"metro:bundling:progress","_t":1784517045424,"id":"2","progress":0.25,"total":277,"current":123}
+{"_e":"metro:bundling:progress","_t":1784517045535,"id":"2","progress":0.25,"total":281,"current":124}
+{"_e":"metro:bundling:progress","_t":1784517045645,"id":"2","progress":0.25,"total":282,"current":125}
+{"_e":"metro:bundling:progress","_t":1784517045660,"id":"2","progress":0.25,"total":282,"current":126}
+{"_e":"metro:bundling:progress","_t":1784517045770,"id":"2","progress":0.25,"total":292,"current":129}
+{"_e":"metro:bundling:progress","_t":1784517045910,"id":"2","progress":0.25,"total":297,"current":131}
+{"_e":"metro:bundling:progress","_t":1784517046027,"id":"2","progress":0.25,"total":298,"current":134}
+{"_e":"metro:bundling:progress","_t":1784517046137,"id":"2","progress":0.25,"total":303,"current":142}
+{"_e":"metro:bundling:progress","_t":1784517046238,"id":"2","progress":0.25,"total":352,"current":154}
+{"_e":"metro:bundling:progress","_t":1784517046338,"id":"2","progress":0.25,"total":357,"current":165}
+{"_e":"metro:bundling:progress","_t":1784517046440,"id":"2","progress":0.2581738495252009,"total":370,"current":188}
+{"_e":"metro:bundling:progress","_t":1784517046541,"id":"2","progress":0.2581738495252009,"total":439,"current":220}
+{"_e":"metro:bundling:progress","_t":1784517046656,"id":"2","progress":0.30057325330871043,"total":456,"current":250}
+{"_e":"metro:bundling:progress","_t":1784517046760,"id":"2","progress":0.30057325330871043,"total":503,"current":275}
+{"_e":"metro:bundling:progress","_t":1784517046860,"id":"2","progress":0.31654174138052654,"total":519,"current":292}
+{"_e":"metro:bundling:progress","_t":1784517046960,"id":"2","progress":0.36,"total":530,"current":318}
+{"_e":"metro:bundling:progress","_t":1784517047061,"id":"2","progress":0.40830715896206127,"total":554,"current":354}
+{"_e":"metro:bundling:progress","_t":1784517047161,"id":"2","progress":0.49359631821170274,"total":585,"current":411}
+{"_e":"metro:bundling:progress","_t":1784517047262,"id":"2","progress":0.5864201278131588,"total":602,"current":461}
+{"_e":"metro:bundling:progress","_t":1784517047362,"id":"2","progress":0.6465887508766152,"total":633,"current":509}
+{"_e":"metro:bundling:progress","_t":1784517047473,"id":"2","progress":0.6568255736244152,"total":670,"current":543}
+{"_e":"metro:bundling:progress","_t":1784517047573,"id":"2","progress":0.6936441628117499,"total":694,"current":578}
+{"_e":"metro:bundling:progress","_t":1784517047737,"id":"2","progress":0.7301592792851459,"total":701,"current":599}
+{"_e":"metro:bundling:progress","_t":1784517047867,"id":"2","progress":0.7301592792851459,"total":2448,"current":600}
+{"_e":"metro:bundling:progress","_t":1784517047968,"id":"2","progress":0.7301592792851459,"total":2480,"current":634}
+{"_e":"metro:bundling:progress","_t":1784517048068,"id":"2","progress":0.7301592792851459,"total":2559,"current":695}
+{"_e":"metro:bundling:progress","_t":1784517048400,"id":"2","progress":0.7301592792851459,"total":2559,"current":696}
+{"_e":"metro:bundling:progress","_t":1784517048500,"id":"2","progress":0.7301592792851459,"total":2560,"current":696}
+{"_e":"metro:bundling:progress","_t":1784517048809,"id":"2","progress":0.7301592792851459,"total":2560,"current":697}
+{"_e":"metro:bundling:progress","_t":1784517048914,"id":"2","progress":0.7301592792851459,"total":2560,"current":713}
+{"_e":"metro:bundling:progress","_t":1784517049014,"id":"2","progress":0.7301592792851459,"total":2560,"current":740}
+{"_e":"metro:bundling:progress","_t":1784517049197,"id":"2","progress":0.7301592792851459,"total":2560,"current":791}
+{"_e":"metro:bundling:progress","_t":1784517049298,"id":"2","progress":0.7301592792851459,"total":2560,"current":869}
+{"_e":"metro:bundling:progress","_t":1784517049398,"id":"2","progress":0.7301592792851459,"total":2560,"current":956}
+{"_e":"metro:bundling:progress","_t":1784517049499,"id":"2","progress":0.7301592792851459,"total":2560,"current":1041}
+{"_e":"metro:bundling:progress","_t":1784517049599,"id":"2","progress":0.7301592792851459,"total":2560,"current":1135}
+{"_e":"metro:bundling:progress","_t":1784517049699,"id":"2","progress":0.7301592792851459,"total":2560,"current":1214}
+{"_e":"metro:bundling:progress","_t":1784517049799,"id":"2","progress":0.7301592792851459,"total":2560,"current":1306}
+{"_e":"metro:bundling:progress","_t":1784517049899,"id":"2","progress":0.7301592792851459,"total":2560,"current":1400}
+{"_e":"metro:bundling:progress","_t":1784517049999,"id":"2","progress":0.7301592792851459,"total":2560,"current":1473}
+{"_e":"metro:bundling:progress","_t":1784517050099,"id":"2","progress":0.7301592792851459,"total":2560,"current":1565}
+{"_e":"metro:bundling:progress","_t":1784517050199,"id":"2","progress":0.7301592792851459,"total":2560,"current":1656}
+{"_e":"metro:bundling:progress","_t":1784517050299,"id":"2","progress":0.7301592792851459,"total":2560,"current":1739}
+{"_e":"metro:bundling:progress","_t":1784517050399,"id":"2","progress":0.7301592792851459,"total":2560,"current":1813}
+{"_e":"metro:bundling:progress","_t":1784517050499,"id":"2","progress":0.7301592792851459,"total":2560,"current":1905}
+{"_e":"metro:bundling:progress","_t":1784517050599,"id":"2","progress":0.7301592792851459,"total":2560,"current":2002}
+{"_e":"metro:bundling:progress","_t":1784517050699,"id":"2","progress":0.7301592792851459,"total":2560,"current":2080}
+{"_e":"metro:bundling:progress","_t":1784517050799,"id":"2","progress":0.7301592792851459,"total":2560,"current":2163}
+{"_e":"metro:bundling:progress","_t":1784517050899,"id":"2","progress":0.7724761962890625,"total":2560,"current":2250}
+{"_e":"metro:bundling:progress","_t":1784517051049,"id":"2","progress":0.7911268615722655,"total":2560,"current":2277}
+{"_e":"metro:bundling:progress","_t":1784517051149,"id":"2","progress":0.8476942443847656,"total":2560,"current":2357}
+{"_e":"metro:bundling:progress","_t":1784517051250,"id":"2","progress":0.9114620060831983,"total":2561,"current":2445}
+{"_e":"metro:bundling:progress","_t":1784517051350,"id":"2","progress":0.9382914129936686,"total":2616,"current":2534}
+{"_e":"metro:bundling:progress","_t":1784517051450,"id":"2","progress":0.9567054467782129,"total":2650,"current":2592}
+{"_e":"metro:bundling:progress","_t":1784517051551,"id":"2","progress":0.9567054467782129,"total":2714,"current":2646}
+{"_e":"metro:bundling:progress","_t":1784517051653,"id":"2","progress":0.9919429004292568,"total":2725,"current":2714}
+{"_e":"metro:bundling:progress","_t":1784517051754,"id":"2","progress":0.999,"total":2742,"current":2742}
+{"_e":"metro:bundling:done","_t":1784517051850,"id":"2","total":2742,"ms":9055.1214}
+{"_e":"metro:client_log","_t":1784517052119,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784517052119,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784517052210,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517052210,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517052210,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517053415,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784517053692,"level":"warn","data":["getEmailPreference failed:","undefined"]}
+{"_e":"metro:bundling:started","_t":1784517066848,"id":"a","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784517066848,"id":"a","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784517066890,"id":"a","total":1,"ms":42.0879}
+{"_e":"metro:client_log","_t":1784517067090,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784517067090,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784517067108,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517067109,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517067109,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517067490,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784517067799,"level":"warn","data":["getEmailPreference failed:","undefined"]}
+{"_e":"metro:bundling:started","_t":1784517696726,"id":"j","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784517696727,"id":"j","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784517696771,"id":"j","total":1,"ms":44.4948}
+{"_e":"metro:client_log","_t":1784517697057,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784517697057,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784517697143,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517697144,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517697144,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517697634,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784517703402,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784517704914,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784517928069,"id":"r","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784517928069,"id":"r","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784517928110,"id":"r","total":1,"ms":40.6445}
+{"_e":"metro:client_log","_t":1784517928819,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784517928819,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784517928995,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517928996,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517928996,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784517937099,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784517938331,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784517952992,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784523541242,"id":"10","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784523541242,"id":"10","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784523541293,"id":"10","total":1,"ms":51.0281}
+{"_e":"metro:client_log","_t":1784523542797,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784523542798,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784523542882,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784523542882,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784523542882,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784523543418,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784523544213,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784523550313,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784525646383,"id":"19","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784525646383,"id":"19","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784525646426,"id":"19","total":1,"ms":42.631}
+{"_e":"metro:client_log","_t":1784525646710,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784525646710,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784525646795,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525646796,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525646796,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525647277,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784525654829,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784525781243,"id":"1i","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784525781243,"id":"1i","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784525781283,"id":"1i","total":1,"ms":40.3448}
+{"_e":"metro:client_log","_t":1784525781570,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784525781570,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784525781653,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525781660,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525781660,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525782191,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784525784021,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784525789164,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784525938601,"id":"1r","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784525938601,"id":"1r","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784525938642,"id":"1r","total":1,"ms":41.1454}
+{"_e":"metro:client_log","_t":1784525938934,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784525938935,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784525939016,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525939017,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525939017,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525939660,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784525941062,"id":"20","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784525941062,"id":"20","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784525941105,"id":"20","total":1,"ms":42.501}
+{"_e":"metro:client_log","_t":1784525941392,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784525941392,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784525941470,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525941471,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525941471,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525941962,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784525943436,"id":"29","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784525943436,"id":"29","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784525943477,"id":"29","total":1,"ms":40.5307}
+{"_e":"metro:client_log","_t":1784525943760,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784525943760,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784525943841,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525943842,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525943842,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784525944037,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1784525954046,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784525954951,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784525955309,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784526292836,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784526292870,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784526300380,"id":"2m","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784526300380,"id":"2m","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784526300427,"id":"2m","total":1,"ms":47.4101}
+{"_e":"metro:client_log","_t":1784526300727,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784526300727,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784526300810,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526300811,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526300812,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526301452,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784526325129,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784526878315,"id":"2w","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784526878315,"id":"2w","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784526878354,"id":"2w","total":1,"ms":38.9335}
+{"_e":"metro:client_log","_t":1784526878577,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784526878578,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784526878654,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526878655,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526878655,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526879023,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784526880832,"id":"34","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784526880833,"id":"34","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784526880872,"id":"34","total":1,"ms":39.0813}
+{"_e":"metro:client_log","_t":1784526881067,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784526881067,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784526881085,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526881085,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526881085,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526881588,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784526909876,"id":"3b","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784526909876,"id":"3b","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784526909914,"id":"3b","total":1,"ms":37.4459}
+{"_e":"metro:client_log","_t":1784526910218,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784526910218,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784526910315,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526910315,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526910315,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784526910943,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784526930814,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784536602049,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784536868052,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784536868054,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784536874545,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784536874553,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784536875473,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784536875473,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784537177770,"id":"3h","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784537177770,"id":"3h","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784537177807,"id":"3h","total":1,"ms":37.2945}
+{"_e":"metro:client_log","_t":1784537179691,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784537179691,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784537179767,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537179767,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537179767,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537274528,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784537275484,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784537285211,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784537839466,"id":"3q","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784537839466,"id":"3q","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784537839506,"id":"3q","total":1,"ms":40.2238}
+{"_e":"metro:client_log","_t":1784537839731,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784537839731,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784537839808,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537839808,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537839808,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784537840003,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1784537845645,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784537846773,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784537848628,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784538439966,"id":"42","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784538439966,"id":"42","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784538440006,"id":"42","total":1,"ms":40.206}
+{"_e":"metro:client_log","_t":1784538440234,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784538440234,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784538440315,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538440315,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538440315,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538440778,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784538441908,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784538465281,"level":"warn","data":["Could not fetch service token:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784538467819,"id":"4a","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784538467820,"id":"4a","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784538467858,"id":"4a","total":1,"ms":38.1938}
+{"_e":"metro:client_log","_t":1784538468047,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784538468047,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784538468069,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538468069,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538468069,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784538468311,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1784538473302,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784538474327,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784538475397,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784539169351,"id":"4n","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539169351,"id":"4n","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539169391,"id":"4n","total":1,"ms":39.6542}
+{"_e":"metro:client_log","_t":1784539169612,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539169612,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539169705,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539169705,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539169706,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539170316,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784539171481,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784539240724,"id":"4u","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539240724,"id":"4u","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539240772,"id":"4u","total":1,"ms":47.4243}
+{"_e":"metro:client_log","_t":1784539241088,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539241088,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539241174,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539241174,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539241174,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539245386,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784539246284,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784539274081,"id":"52","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539274081,"id":"52","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539274127,"id":"52","total":1,"ms":46.2007}
+{"_e":"metro:client_log","_t":1784539274400,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539274400,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539274485,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539274485,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539274485,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539274868,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784539288124,"id":"59","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539288124,"id":"59","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539288162,"id":"59","total":1,"ms":38.7898}
+{"_e":"metro:client_log","_t":1784539288415,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539288415,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539288435,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539288435,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539288435,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539321555,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784539322409,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784539329760,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784539559571,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784539559575,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784539569054,"id":"5i","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539569054,"id":"5i","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539569094,"id":"5i","total":1,"ms":39.6732}
+{"_e":"metro:client_log","_t":1784539569381,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539569382,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539569463,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539569463,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539569463,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539570392,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784539570893,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784539580605,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784539694525,"id":"5q","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539694526,"id":"5q","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539694566,"id":"5q","total":1,"ms":40.0626}
+{"_e":"metro:client_log","_t":1784539694786,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539694787,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539694883,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539694883,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539694883,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539695373,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784539696104,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784539830202,"id":"5y","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539830203,"id":"5y","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539830244,"id":"5y","total":1,"ms":41.3545}
+{"_e":"metro:client_log","_t":1784539830444,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539830444,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539830465,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539830465,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539830465,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539830670,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1784539832333,"id":"69","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784539832333,"id":"69","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784539832371,"id":"69","total":1,"ms":38.2021}
+{"_e":"metro:client_log","_t":1784539832580,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784539832581,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784539832600,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539832600,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539832600,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784539832890,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1784539839313,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784539841036,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784539848438,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784540097445,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784540097478,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784540098076,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784540098076,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784540109018,"id":"6l","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540109019,"id":"6l","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540109056,"id":"6l","total":1,"ms":37.7525}
+{"_e":"metro:client_log","_t":1784540109282,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540109282,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540109380,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540109380,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540109380,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540109864,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540128009,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784540334038,"level":"warn","data":["getAllInventoryItems error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1784540334049,"level":"warn","data":["getAllSupplyRequests error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784540337152,"id":"6t","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540337152,"id":"6t","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540337189,"id":"6t","total":1,"ms":37.2055}
+{"_e":"metro:client_log","_t":1784540337406,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540337406,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540337508,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540337508,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540337508,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540337989,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540339470,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784540708967,"id":"71","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540708967,"id":"71","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540709009,"id":"71","total":1,"ms":41.8314}
+{"_e":"metro:client_log","_t":1784540709283,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540709283,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540709364,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540709364,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540709364,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540709853,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540712618,"level":"warn","data":["Could not fetch service token:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1784540717202,"id":"79","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540717202,"id":"79","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540717241,"id":"79","total":1,"ms":38.4938}
+{"_e":"metro:client_log","_t":1784540717489,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540717490,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540717506,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540717506,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540717506,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540717763,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 193 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m  \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m   headers\u001b[33m:\u001b[39m {\n \u001b[90m 197 |\u001b[39m     \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 198 |\u001b[39m     \u001b[33m...\u001b[39m\u001b[33mNGROK_HEADERS\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:195:26)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1784540730270,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1784540731263,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784540743134,"id":"7l","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540743134,"id":"7l","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540743173,"id":"7l","total":1,"ms":39.3405}
+{"_e":"metro:client_log","_t":1784540743416,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540743416,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540743445,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540743445,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540743445,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540743913,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540748853,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784540749642,"id":"7t","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540749642,"id":"7t","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540749681,"id":"7t","total":1,"ms":39.0869}
+{"_e":"metro:client_log","_t":1784540749923,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540749923,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540749940,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540749940,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540749940,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540750346,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540759835,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784540768103,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784540860570,"id":"82","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540860571,"id":"82","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540860611,"id":"82","total":1,"ms":40.7966}
+{"_e":"metro:client_log","_t":1784540861961,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540861961,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540861961,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540861961,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540861961,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540862577,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:bundling:started","_t":1784540865497,"id":"8a","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784540865497,"id":"8a","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784540865533,"id":"8a","total":1,"ms":35.5074}
+{"_e":"metro:client_log","_t":1784540865767,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784540865767,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784540865786,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540865786,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540865786,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784540866009,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784540867051,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784540874924,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784541309148,"id":"8i","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784541309148,"id":"8i","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784541309192,"id":"8i","total":1,"ms":44.24}
+{"_e":"metro:client_log","_t":1784541309469,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784541309470,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784541309551,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541309552,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541309552,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541309919,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784541310334,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1784541317670,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:bundling:started","_t":1784541427240,"id":"8q","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784541427240,"id":"8q","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784541427282,"id":"8q","total":1,"ms":41.7182}
+{"_e":"metro:client_log","_t":1784541427566,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784541427566,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784541427650,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541427650,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541427650,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541428030,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784541428033,"level":"log","data":["[dev] Email preference feature disabled, skipping fetch."]}
+{"_e":"metro:bundling:started","_t":1784541430811,"id":"8y","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784541430811,"id":"8y","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784541430857,"id":"8y","total":1,"ms":46.2137}
+{"_e":"metro:client_log","_t":1784541431116,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784541431117,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784541431138,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541431138,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541431138,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541431347,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784541431351,"level":"log","data":["[dev] Email preference feature disabled, skipping fetch."]}
+{"_e":"metro:bundling:started","_t":1784541460095,"id":"96","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784541460095,"id":"96","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784541460142,"id":"96","total":1,"ms":46.2387}
+{"_e":"metro:client_log","_t":1784541460397,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784541460397,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784541460419,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541460419,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541460419,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541460757,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784541464910,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1784541465571,"id":"9e","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1784541465571,"id":"9e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1784541465611,"id":"9e","total":1,"ms":39.2544}
+{"_e":"metro:client_log","_t":1784541465861,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1784541465861,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1784541465881,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541465881,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541465881,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1784541466224,"level":"warn","data":["\"shadow*\" style props are deprecated. Use \"boxShadow\"."]}
+{"_e":"metro:client_log","_t":1784541466227,"level":"log","data":["[dev] Email preference feature disabled, skipping fetch."]}
+{"_e":"metro:client_log","_t":1784541495911,"level":"log","data":["[dev] Email preference feature disabled, skipping fetch."]}

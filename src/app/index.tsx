@@ -4,6 +4,7 @@ import AppShell from "../components/Navigations/AppShell"; // adjust to your act
 import AuthScreen from "../app/Auth/AuthScreen"; // adjust to your actual saved path
 import { authenticateWithAD, endADSession, refreshADSession } from "../app/Auth/Auth";
 import { useFonts } from "expo-font";
+import EmailPreferenceModal from "../components/common/EmailPreferenceModal"; // adjust to wherever you saved it
 
 
 export default function HomeScreen() {
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   });
 
   const [user, setUser] = useState<ADUser | null>(null); // ← moved up, above the early return
+  const [showEmailPrefModal, setShowEmailPrefModal] = useState(false);
 
   if (!fontsLoaded) {
     return null; // or a splash/loading screen
@@ -22,6 +24,7 @@ export default function HomeScreen() {
 
   const handleLoginSuccess = (loggedInUser: ADUser) => {
     setUser(loggedInUser);
+    setShowEmailPrefModal(true);
   };
 
   const handleLogout = () => {
@@ -40,5 +43,14 @@ export default function HomeScreen() {
     );
   }
 
-  return <AppShell user={user} onLogout={handleLogout} />;
+  return (
+    <>
+      <AppShell user={user} onLogout={handleLogout} />
+      <EmailPreferenceModal
+        visible={showEmailPrefModal}
+        username={user.username}
+        onDone={() => setShowEmailPrefModal(false)}
+      />
+    </>
+  );
 }

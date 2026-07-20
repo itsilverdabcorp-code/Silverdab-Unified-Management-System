@@ -338,3 +338,39 @@ export async function markFailedDelivery(
     throw new Error(data?.message || "Failed to update delivery status.");
   }
 }
+
+// ─── ARCHIVE ────────────────────────────────────────────────────────────────
+
+export async function archiveSupplyRequest(id: string): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/supply-requests/${encodeURIComponent(id)}/archive`,
+    {
+      method: "POST",
+      headers: await authHeaders(),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to archive request.");
+  }
+}
+
+export async function unarchiveSupplyRequest(id: string): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/supply-requests/${encodeURIComponent(id)}/unarchive`,
+    {
+      method: "POST",
+      headers: await authHeaders(),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to unarchive request.");
+  }
+}

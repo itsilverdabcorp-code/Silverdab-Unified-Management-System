@@ -84,6 +84,23 @@ const STATUS_FILTER_OPTIONS = [
   },
 ];
 
+const RESTRICTION_FILTER_OPTIONS = [
+  {
+    label: "Restricted",
+    value: "restricted",
+    badgeClass: "",
+    bgColor: "#f1f5f9",
+    textColor: "#334155",
+  },
+  {
+    label: "Unrestricted",
+    value: "unrestricted",
+    badgeClass: "",
+    bgColor: "#dcfce7",
+    textColor: "#166534",
+  },
+];
+
 const CATEGORY_LABELS: Record<OfficeCategory, string> = {
   office_supplies: "Office Supplies",
   cleaning: "Cleaning",
@@ -414,6 +431,66 @@ type Props = {
   initialDeliverItem?: OfficeInventoryItem | null;
   onDeliverModalOpened?: () => void;
 };
+function RestrictConfirmModal({
+  visible,
+  itemName,
+  onCancel,
+  onConfirm,
+  submitting,
+  theme,
+}: {
+  visible: boolean;
+  itemName: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  submitting: boolean;
+  theme: any;
+}) {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div
+        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        className="w-full max-w-sm rounded-xl border p-5"
+      >
+        <h3 style={{ color: theme.text }} className="text-sm font-semibold mb-1">
+          Restrict "{itemName}"?
+        </h3>
+        <p style={{ color: theme.subtext }} className="text-xs mb-4">
+          This item will be hidden from employees — only admins and
+          superadmins will be able to see or request it. You can unrestrict it
+          again at any time.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={submitting}
+            style={{
+              backgroundColor: theme.surface,
+              color: theme.text,
+              borderColor: theme.border,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg border"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={submitting}
+            style={{
+              backgroundColor: "#D97706",
+              color: "#fff",
+              opacity: submitting ? 0.6 : 1,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg"
+          >
+            {submitting ? "Restricting…" : "Restrict item"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const OfficeInventoryPage: React.FC<Props> = ({
   initialFilter = null,
@@ -426,6 +503,11 @@ const OfficeInventoryPage: React.FC<Props> = ({
   const inventoryFilter = useTableFilter({
     fields: [
       { key: "stockStatus", label: "Status", options: STATUS_FILTER_OPTIONS },
+      {
+        key: "restrictionStatus",
+        label: "Access",
+        options: RESTRICTION_FILTER_OPTIONS,
+      },
     ],
     showDateRange: false,
   });
@@ -457,6 +539,9 @@ const OfficeInventoryPage: React.FC<Props> = ({
     null,
   );
   const [deleting, setDeleting] = useState(false);
+  const [restrictTarget, setRestrictTarget] =
+    useState<OfficeInventoryItem | null>(null);
+  const [restricting, setRestricting] = useState(false);
   const [auditModal, setAuditModal] = useState<{
     recordId?: string;
     recordLabel?: string;
@@ -542,10 +627,8 @@ const OfficeInventoryPage: React.FC<Props> = ({
     }
   }, [deleteTarget, fetchArchivedData]);
 
-  const handleToggleRestriction = useCallback(
-    async (item: OfficeInventoryItem) => {
-      const nextRestricted = !item.isRestricted;
-
+  const applyRestrictionToggle = useCallback(
+    async (item: OfficeInventoryItem, nextRestricted: boolean) => {
       // Optimistic update — no loading flash, no full refetch.
       setData((prev) =>
         prev.map((row) =>
@@ -570,6 +653,31 @@ const OfficeInventoryPage: React.FC<Props> = ({
     [],
   );
 
+  // Unrestricting is instant — restoring visibility isn't destructive.
+  // Restricting requires confirmation since it hides the item from
+  // employees; see RestrictConfirmModal / handleConfirmRestrict below.
+  const handleToggleRestriction = useCallback(
+    (item: OfficeInventoryItem) => {
+      if (item.isRestricted) {
+        applyRestrictionToggle(item, false);
+      } else {
+        setRestrictTarget(item);
+      }
+    },
+    [applyRestrictionToggle],
+  );
+
+  const handleConfirmRestrict = useCallback(async () => {
+    if (!restrictTarget) return;
+    setRestricting(true);
+    try {
+      await applyRestrictionToggle(restrictTarget, true);
+    } finally {
+      setRestricting(false);
+      setRestrictTarget(null);
+    }
+  }, [restrictTarget, applyRestrictionToggle]);
+
   
 
   const dirFor = (key: InventorySortKey): SortDir =>
@@ -578,23 +686,11 @@ const OfficeInventoryPage: React.FC<Props> = ({
   // ─── Tab counts ───────────────────────────────────────────────────────────
   const sourceData = viewMode === "archived" ? archivedData : data;
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<CategoryTab, number> = {
-      all: sourceData.length,
-      office_supplies: 0,
-      cleaning: 0,
-      ppe: 0,
-      medicine: 0,
-      pantry: 0,
-    };
-    sourceData.forEach((item) => {
-      if (item.category in counts) counts[item.category as OfficeCategory]++;
-    });
-    return counts;
-  }, [sourceData]);
-
-  // ─── Filtered + sorted items ──────────────────────────────────────────────
-  const filtered = useMemo(() => {
+  // Everything except the category tab itself — search, activeFilter, and
+  // the filter panel (stock status / restriction). Tab counts are derived
+  // from this so the badges reflect what's actually filtered, and the
+  // category tab click just narrows this set further below.
+  const preTabFiltered = useMemo(() => {
     const q = search.toLowerCase().trim();
 
     let result = activeFilter
@@ -603,14 +699,16 @@ const OfficeInventoryPage: React.FC<Props> = ({
         )
       : sourceData;
 
-    // Apply category tab
-    if (activeTab !== "all") {
-      result = result.filter((item) => item.category === activeTab);
-    }
-
-    result = inventoryFilter.applyToData(result, {
-      stockStatus: "stockStatus",
-    });
+    result = inventoryFilter.applyToData(
+      result.map((item) => ({
+        ...item,
+        restrictionStatus: item.isRestricted ? "restricted" : "unrestricted",
+      })),
+      {
+        stockStatus: "stockStatus",
+        restrictionStatus: "restrictionStatus",
+      },
+    );
 
     if (!q) return result;
     return result.filter((item) =>
@@ -618,7 +716,28 @@ const OfficeInventoryPage: React.FC<Props> = ({
         .map((v) => (v ?? "").toString().toLowerCase())
         .some((v) => v.includes(q)),
     );
-  }, [sourceData, activeFilter, activeTab, inventoryFilter.appliedFilters, search]);
+  }, [sourceData, activeFilter, inventoryFilter.appliedFilters, search]);
+
+  const tabCounts = useMemo(() => {
+    const counts: Record<CategoryTab, number> = {
+      all: preTabFiltered.length,
+      office_supplies: 0,
+      cleaning: 0,
+      ppe: 0,
+      medicine: 0,
+      pantry: 0,
+    };
+    preTabFiltered.forEach((item) => {
+      if (item.category in counts) counts[item.category as OfficeCategory]++;
+    });
+    return counts;
+  }, [preTabFiltered]);
+
+  // ─── Filtered + sorted items ──────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    if (activeTab === "all") return preTabFiltered;
+    return preTabFiltered.filter((item) => item.category === activeTab);
+  }, [preTabFiltered, activeTab]);
 
   const sortedFiltered = useMemo(() => {
     if (!sortKey || sortDir === "default") return filtered;
@@ -1206,6 +1325,11 @@ const OfficeInventoryPage: React.FC<Props> = ({
               label: "Status",
               options: STATUS_FILTER_OPTIONS,
             },
+            {
+              key: "restrictionStatus",
+              label: "Access",
+              options: RESTRICTION_FILTER_OPTIONS,
+            },
           ],
           showDateRange: false,
         }}
@@ -1260,6 +1384,15 @@ const OfficeInventoryPage: React.FC<Props> = ({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
         submitting={deleting}
+        theme={theme}
+      />
+
+      <RestrictConfirmModal
+        visible={restrictTarget !== null}
+        itemName={restrictTarget?.name ?? ""}
+        onCancel={() => setRestrictTarget(null)}
+        onConfirm={handleConfirmRestrict}
+        submitting={restricting}
         theme={theme}
       />
     </div>
