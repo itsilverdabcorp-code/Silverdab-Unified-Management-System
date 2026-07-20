@@ -15,6 +15,7 @@ const CATEGORY_CHOICES: { value: OfficeCategory; label: string }[] = [
   { value: "cleaning", label: "Cleaning" },
   { value: "ppe", label: "PPE" },
   { value: "medicine", label: "Medicine" },
+  { value: "pantry", label: "Pantry" },
 ];
 
 const UNIT_CHOICES: OfficeUnit[] = [

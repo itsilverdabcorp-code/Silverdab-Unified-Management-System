@@ -7,6 +7,7 @@ import {
 import {
   archiveInventoryItem,
   restoreInventoryItem,
+  deleteInventoryItemPermanently,
   getAllInventoryItems,
   toggleItemRestriction,
 } from "../../../services/Officeinventory";
@@ -88,6 +89,7 @@ const CATEGORY_LABELS: Record<OfficeCategory, string> = {
   cleaning: "Cleaning",
   ppe: "PPE",
   medicine: "Medicine",
+  pantry: "Pantry",
 };
 
 // ─── Category tabs ────────────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ const CATEGORY_TABS: { label: string; value: CategoryTab }[] = [
   { label: "Cleaning", value: "cleaning" },
   { label: "PPE", value: "ppe" },
   { label: "Medicine", value: "medicine" },
+  { label: "Pantry", value: "pantry" },
 ];
 
 // ─── Sort helpers ─────────────────────────────────────────────────────────
@@ -335,6 +338,69 @@ const UnlockIcon = () => (
   </svg>
 );
 
+// ─── Delete confirmation modal ─────────────────────────────────────────────
+
+function DeleteConfirmModal({
+  visible,
+  itemName,
+  onCancel,
+  onConfirm,
+  submitting,
+  theme,
+}: {
+  visible: boolean;
+  itemName: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  submitting: boolean;
+  theme: any;
+}) {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div
+        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        className="w-full max-w-sm rounded-xl border p-5"
+      >
+        <h3 style={{ color: theme.text }} className="text-sm font-semibold mb-1">
+          Permanently delete "{itemName}"?
+        </h3>
+        <p style={{ color: theme.subtext }} className="text-xs mb-4">
+          This cannot be undone. The item will be removed from inventory for
+          good — its transaction history will stay in the Activity log, but it
+          can no longer be restored.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={submitting}
+            style={{
+              backgroundColor: theme.surface,
+              color: theme.text,
+              borderColor: theme.border,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg border"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={submitting}
+            style={{
+              backgroundColor: "#E11D48",
+              color: "#fff",
+              opacity: submitting ? 0.6 : 1,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg"
+          >
+            {submitting ? "Deleting…" : "Delete permanently"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export type InventoryFilter = {
@@ -387,6 +453,10 @@ const OfficeInventoryPage: React.FC<Props> = ({
     useState<OfficeInventoryItem | null>(null);
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [deliverModalOpen, setDeliverModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<OfficeInventoryItem | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
   const [auditModal, setAuditModal] = useState<{
     recordId?: string;
     recordLabel?: string;
@@ -458,6 +528,20 @@ const OfficeInventoryPage: React.FC<Props> = ({
     [fetchArchivedData, fetchData],
   );
 
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteInventoryItemPermanently(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchArchivedData();
+    } catch (err) {
+      console.error("Unable to delete item", err);
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, fetchArchivedData]);
+
   const handleToggleRestriction = useCallback(
     async (item: OfficeInventoryItem) => {
       const nextRestricted = !item.isRestricted;
@@ -501,6 +585,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
       cleaning: 0,
       ppe: 0,
       medicine: 0,
+      pantry: 0,
     };
     sourceData.forEach((item) => {
       if (item.category in counts) counts[item.category as OfficeCategory]++;
@@ -692,12 +777,20 @@ const OfficeInventoryPage: React.FC<Props> = ({
           <td className="px-3 py-1.5 min-w-[170px]">
             <div className="flex gap-1.5">
               {viewMode === "archived" ? (
-                <IconBtn
-                  title="Restore item"
-                  onClick={() => handleRestore(item.id)}
-                >
-                  <RestoreIcon />
-                </IconBtn>
+                <>
+                  <IconBtn
+                    title="Restore item"
+                    onClick={() => handleRestore(item.id)}
+                  >
+                    <RestoreIcon />
+                  </IconBtn>
+                  <IconBtn
+                    title="Delete permanently"
+                    onClick={() => setDeleteTarget(item)}
+                  >
+                    <TrashIcon />
+                  </IconBtn>
+                </>
               ) : (
                 <>
                   <IconBtn
@@ -787,12 +880,20 @@ const OfficeInventoryPage: React.FC<Props> = ({
 
             <div className="flex gap-1.5">
               {viewMode === "archived" ? (
-                <IconBtn
-                  title="Restore item"
-                  onClick={() => handleRestore(item.id)}
-                >
-                  <RestoreIcon />
-                </IconBtn>
+                <>
+                  <IconBtn
+                    title="Restore item"
+                    onClick={() => handleRestore(item.id)}
+                  >
+                    <RestoreIcon />
+                  </IconBtn>
+                  <IconBtn
+                    title="Delete permanently"
+                    onClick={() => setDeleteTarget(item)}
+                  >
+                    <TrashIcon />
+                  </IconBtn>
+                </>
               ) : (
                 <>
                   <IconBtn
@@ -1151,6 +1252,15 @@ const OfficeInventoryPage: React.FC<Props> = ({
           setDeliverTarget(null);
         }}
         onSuccess={fetchData}
+      />
+
+      <DeleteConfirmModal
+        visible={deleteTarget !== null}
+        itemName={deleteTarget?.name ?? ""}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        submitting={deleting}
+        theme={theme}
       />
     </div>
   );

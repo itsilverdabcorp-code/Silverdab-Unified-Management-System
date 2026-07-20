@@ -36,7 +36,7 @@ import { OfficeInventoryItem, StockTransaction } from "../../../../types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CategoryTab = "office_supplies" | "cleaning" | "ppe" | "medicine";
+type CategoryTab = "office_supplies" | "cleaning" | "ppe" | "medicine" | "pantry";
 type ActivityDot = {
   type: "consumed" | "delivered" | "both" | "none";
   date: string;
@@ -75,6 +75,7 @@ const CATEGORY_TABS: {
   { label: "Cleaning", value: "cleaning" },
   { label: "PPE", value: "ppe" },
   { label: "Medicine", value: "medicine" },
+  { label: "Pantry", value: "pantry" },
 ];
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -82,6 +83,7 @@ const CATEGORY_MAP: Record<string, string> = {
   cleaning: "Cleaning",
   ppe: "PPE",
   medicine: "Medicine",
+  pantry: "Pantry",
 };
 
 const POLL_INTERVAL_MS = 30_000;

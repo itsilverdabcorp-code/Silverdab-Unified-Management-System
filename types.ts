@@ -41,7 +41,8 @@ export type OfficeCategory =
   | "office_supplies"
   | "cleaning"
   | "ppe"
-  | "medicine";
+  | "medicine"
+  | "pantry";
 
 export type OfficeUnit =
   | "piece"
@@ -96,7 +97,8 @@ export interface StockTransaction {
     | "item_archived"
     | "item_restored"
     | "item_restricted"
-    | "item_unrestricted";
+    | "item_unrestricted"
+    | "item_deleted";
   quantityChange: number;
   stockBefore: number;
   stockAfter: number;
@@ -118,6 +120,7 @@ export interface NewItemInput {
   beginningInventory: number;
   lowStockThreshold?: number;
   inStockThreshold?: number;
+  isRestricted?: boolean;
 }
 
 export interface EditItemInput {

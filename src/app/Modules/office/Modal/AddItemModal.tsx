@@ -15,6 +15,7 @@ const CATEGORY_CHOICES: { value: OfficeCategory; label: string }[] = [
   { value: "cleaning", label: "Cleaning" },
   { value: "ppe", label: "PPE" },
   { value: "medicine", label: "Medicine" },
+  { value: "pantry", label: "Pantry" },
 ];
 const CATEGORY_LABEL_MAP: Record<string, OfficeCategory> = {
   "office supplies": "office_supplies",
@@ -22,6 +23,7 @@ const CATEGORY_LABEL_MAP: Record<string, OfficeCategory> = {
   cleaning: "cleaning",
   ppe: "ppe",
   medicine: "medicine",
+  pantry: "pantry",
 };
 const UNIT_CHOICES: OfficeUnit[] = [
   "bottle",
@@ -67,6 +69,7 @@ const CATEGORY_PREFIX: Record<OfficeCategory, string> = {
   cleaning: "CS",
   ppe: "PPE",
   medicine: "MS",
+  pantry: "PT",
 };
 
 function getNextCode(
@@ -100,6 +103,7 @@ interface BulkRow {
   unit: OfficeUnit;
   pricePerUnit: string;
   beginningInventory: string;
+  isRestricted: boolean;
 }
 
 const EMPTY_ROW = (id: number): BulkRow => ({
@@ -111,6 +115,7 @@ const EMPTY_ROW = (id: number): BulkRow => ({
   unit: "piece",
   pricePerUnit: "",
   beginningInventory: "",
+  isRestricted: false,
 });
 
 const emptyForm = {
@@ -121,6 +126,7 @@ const emptyForm = {
   unit: "piece" as OfficeUnit,
   pricePerUnit: "",
   beginningInventory: "",
+  isRestricted: false,
 };
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -278,6 +284,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
     cleaning: "CS001",
     ppe: "PPE001",
     medicine: "MS001",
+    pantry: "PT001",
   });
   const [codesLoading, setCodesLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -285,13 +292,14 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
   useEffect(() => {
     if (!visible) return;
     setCodesLoading(true);
-    getAllInventoryItems()
+    getAllInventoryItems(true) // include archived so codes stay globally unique
       .then((items) => {
         const categories: OfficeCategory[] = [
           "office_supplies",
           "cleaning",
           "ppe",
           "medicine",
+          "pantry",
         ];
         const codes = {} as Record<OfficeCategory, string>;
         categories.forEach((cat) => {
@@ -345,6 +353,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
         unit: form.unit,
         pricePerUnit: Number(form.pricePerUnit) || 0,
         beginningInventory: Number(form.beginningInventory) || 0,
+        isRestricted: form.isRestricted,
       });
       setForm(emptyForm);
       onSuccess();
@@ -458,6 +467,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
             unit: (norm.unit as OfficeUnit) ?? "piece",
             pricePerUnit: norm.pricePerUnit ?? "",
             beginningInventory: norm.beginningInventory ?? "",
+            isRestricted: false,
           });
           return acc;
         }, []);
@@ -496,6 +506,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
           unit: r.unit,
           pricePerUnit: Number(r.pricePerUnit) || 0,
           beginningInventory: Number(r.beginningInventory) || 0,
+          isRestricted: r.isRestricted,
         });
       }
       setBulkSuccess(rows.length);
@@ -794,6 +805,27 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
                   className="px-2.5 py-2 text-sm border rounded-md focus:outline-none"
                 />
               </div>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.isRestricted}
+                  onChange={(e) =>
+                    setForm({ ...form, isRestricted: e.target.checked })
+                  }
+                  style={{ width: 14, height: 14, cursor: "pointer" }}
+                />
+                <span style={{ color: theme.text, fontSize: 12 }}>
+                  Restrict to admin/superadmin only
+                </span>
+              </label>
             </div>
 
             <div
@@ -974,6 +1006,7 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
                       "Unit",
                       "Price/Unit (₱)",
                       "Beg. Inventory",
+                      "Restricted",
                       "",
                     ].map((h) => (
                       <th
@@ -1103,6 +1136,23 @@ const AddItemModal: React.FC<Props> = ({ visible, onClose, onSuccess }) => {
                           placeholder="0"
                           type="number"
                           width={90}
+                        />
+                      </td>
+
+                      <td style={{ padding: "4px 4px", textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={row.isRestricted}
+                          onChange={(e) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.id === row.id
+                                  ? { ...r, isRestricted: e.target.checked }
+                                  : r,
+                              ),
+                            )
+                          }
+                          style={{ width: 14, height: 14, cursor: "pointer" }}
                         />
                       </td>
 

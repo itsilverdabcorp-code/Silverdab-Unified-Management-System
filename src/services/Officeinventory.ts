@@ -179,6 +179,26 @@ export async function getAllInventoryItems(
 
 // ─── RESTORE (undo archive) ─────────────────────────────────────────────────
 
+export async function deleteInventoryItemPermanently(id: string): Promise<void> {
+  const user = await getCurrentUser();
+
+  const res = await fetch(
+    `${BACKEND_URL}/office-inventory/${encodeURIComponent(id)}/permanent`,
+    {
+      method: "DELETE",
+      headers: await authHeaders(),
+      body: JSON.stringify({ performedByName: user.name }),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to delete item");
+  }
+}
+
 export async function restoreInventoryItem(id: string): Promise<void> {
   const user = await getCurrentUser();
 
@@ -249,6 +269,7 @@ export async function createInventoryItem(
       ),
       lowStockThreshold,
       inStockThreshold,
+      isRestricted: input.isRestricted ?? false,
     }),
   });
 

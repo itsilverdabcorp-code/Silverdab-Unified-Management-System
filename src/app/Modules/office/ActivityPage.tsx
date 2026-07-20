@@ -69,6 +69,12 @@ const ACTION_CONFIG: Record<
     text: "#1d4ed8",
     border: "#bfdbfe",
   },
+  item_deleted: {
+    label: "Deleted",
+    bg: "#fee2e2",
+    text: "#b91c1c",
+    border: "#fecaca",
+  },
 };
 
 function getActionConfig(type: string) {
@@ -92,6 +98,7 @@ const ACTION_FILTER_OPTIONS = [
   { label: "Supply request rejected", value: "supply_request_rejected" },
   { label: "Item archived", value: "item_archived" },
   { label: "Item restored", value: "item_restored" },
+  { label: "Item deleted", value: "item_deleted" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -152,7 +159,9 @@ function deriveRef(tx: StockTransaction): string {
             ? "ARC"
             : tx.type === "item_restored"
               ? "RST"
-              : "TXN";
+              : tx.type === "item_deleted"
+                ? "DEL"
+                : "TXN";
   return `${prefix}-${tx.id.slice(0, 6).toUpperCase()}`;
 }
 
