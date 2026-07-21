@@ -5,6 +5,7 @@ import AuthScreen from "../app/Auth/AuthScreen"; // adjust to your actual saved 
 import { authenticateWithAD, endADSession, refreshADSession } from "../app/Auth/Auth";
 import { useFonts } from "expo-font";
 import EmailPreferenceModal from "../components/common/EmailPreferenceModal"; // adjust to wherever you saved it
+import { setupPushNotifications } from "../services/pushNotifications";
 
 
 export default function HomeScreen() {
@@ -25,6 +26,9 @@ export default function HomeScreen() {
   const handleLoginSuccess = (loggedInUser: ADUser) => {
     setUser(loggedInUser);
     setShowEmailPrefModal(true);
+    if (loggedInUser.role === "superadmin") {
+      setupPushNotifications();
+    }
   };
 
   const handleLogout = () => {
