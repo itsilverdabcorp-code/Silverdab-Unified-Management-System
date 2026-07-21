@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const handleLoginSuccess = (loggedInUser: ADUser) => {
     setUser(loggedInUser);
     setShowEmailPrefModal(true);
-    if (loggedInUser.role === "superadmin") {
+    if (loggedInUser.role === "superadmin" || loggedInUser.permissions?.officeSupplies) {
       setupPushNotifications();
     }
   };
