@@ -695,6 +695,7 @@ function RequestRow({
   onDeliver,
   onFail,
   onArchive,
+  canArchive,
   approvingId,
   liveStock,
   theme,
@@ -707,6 +708,7 @@ function RequestRow({
   onDeliver: (r: SupplyRequest) => void;
   onFail: (r: SupplyRequest) => void;
   onArchive: (r: SupplyRequest) => void;
+  canArchive: boolean;
   approvingId: string | null;
   liveStock?: Record<string, StockStatus>;
   theme: any;
@@ -839,7 +841,7 @@ function RequestRow({
             >
                View
             </button>
-            {["resolved", "rejected", "failed_delivery"].includes(request.status) && (
+            {canArchive && ["resolved", "rejected", "failed_delivery"].includes(request.status) && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1732,6 +1734,7 @@ const handleReject = (requestId: string) => {
                         onDeliver={handleMarkDelivered}
                         onFail={(x) => setFailTarget(x)}
                         onArchive={handleArchive}
+                        canArchive={user?.role === "superadmin"}
                         approvingId={approvingId}
                         liveStock={liveStock}
                         theme={theme}
