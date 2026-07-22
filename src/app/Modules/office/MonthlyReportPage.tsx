@@ -33,7 +33,6 @@ import {
   ExcelExportCategory,
 } from "../../../services/exportMonthlyReportExcel";
 import { OfficeInventoryItem, StockTransaction } from "../../../../types";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CategoryTab = "office_supplies" | "cleaning" | "ppe" | "medicine" | "pantry";

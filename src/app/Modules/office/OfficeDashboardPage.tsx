@@ -26,6 +26,17 @@ import {
 import { getAllSupplyRequests } from "../../../services/supplyRequest";
 import { useTheme } from "../../../theme/ThemeContext";
 import PartialApprovalModal from "./Modal/PartialApprovalModal"; // adjust path as needed
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -194,6 +205,143 @@ const ATTENTION_FILTER_OPTIONS: { priority: number; label: string; dot: string }
   { priority: 3, label: "Low stock", dot: "#f59e0b" },
   { priority: 4, label: "Recent activity", dot: "#3b82f6" },
 ];
+
+// ─── Dashboard consumption graphs (mirrors MonthlyGraphsView's builders,
+// scoped to the current calendar month + already-loaded `transactions`) ──────
+
+const CONSUMPTION_TYPES = new Set([
+  "manual_adjustment",
+  "supply_request_fulfilled",
+  "ticket_deduction",
+]);
+
+// Flat hex fills for recharts <Cell>. Distinct from CATEGORY_COLORS above,
+// which is {bg,text} for HTML badges.
+const CHART_CATEGORY_FILL: Record<string, string> = {
+  office_supplies: "#3b82f6",
+  cleaning: "#f59e0b",
+  ppe: "#a855f7",
+  medicine: "#ef4444",
+  pantry: "#10b981",
+  other: "#64748b",
+};
+
+// Shorter than CATEGORY_LABELS — the y-axis column is narrow, and
+// "Office Supplies" was wrapping mid-word inside it.
+const CHART_CATEGORY_LABELS: Record<string, string> = {
+  office_supplies: "Supplies",
+  cleaning: "Cleaning",
+  ppe: "PPE",
+  medicine: "Medicine",
+  pantry: "Pantry",
+};
+
+const DASHBOARD_ITEMS_PER_PAGE = 6;
+const DASHBOARD_TREND_MONTHS = 6;
+const DASHBOARD_MAX_COMPARE_ITEMS = 6;
+const DASHBOARD_ITEM_COMPARE_COLORS = ["#3b82f6", "#f59e0b", "#a855f7", "#10b981", "#ef4444", "#06b6d4"];
+
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildDashboardConsumptionRows(
+  items: OfficeInventoryItem[],
+  transactions: StockTransaction[],
+) {
+  const thisMonth = currentMonthKey();
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const totals: Record<string, { consumed: number; amount: number }> = {};
+
+  transactions.forEach((tx) => {
+    if (!CONSUMPTION_TYPES.has(tx.type)) return;
+    const dateStr = toISOString(tx.createdAt).slice(0, 10);
+    if (!dateStr || dateStr.slice(0, 7) !== thisMonth) return;
+    if (!totals[tx.itemId]) totals[tx.itemId] = { consumed: 0, amount: 0 };
+    totals[tx.itemId].consumed += Math.abs(tx.quantityChange);
+    totals[tx.itemId].amount += tx.totalAmount;
+  });
+
+  return Object.entries(totals)
+    .map(([itemId, v]) => {
+      const item = itemById.get(itemId);
+      return {
+        id: itemId,
+        name: item?.name ?? "Unknown item",
+        category: item?.category ?? "other",
+        totalConsumed: v.consumed,
+        consumptionAmount: v.amount,
+      };
+    })
+    .filter((r) => r.totalConsumed > 0);
+}
+
+function buildDashboardTopItems(
+  rows: ReturnType<typeof buildDashboardConsumptionRows>,
+) {
+  // Full sorted list — paging happens in the component, not here, so the
+  // same array can be sliced per page without re-sorting.
+  return [...rows]
+    .sort((a, b) => b.totalConsumed - a.totalConsumed)
+    .map((r) => ({
+      name: r.name,
+      consumed: r.totalConsumed,
+      category: r.category,
+    }));
+}
+
+function buildDashboardCategoryBreakdown(
+  rows: ReturnType<typeof buildDashboardConsumptionRows>,
+) {
+  const byCategory: Record<string, number> = {};
+  rows.forEach((r) => {
+    byCategory[r.category] = (byCategory[r.category] ?? 0) + r.totalConsumed;
+  });
+  return Object.entries(byCategory)
+    .map(([category, consumed]) => ({ category, consumed }))
+    .sort((a, b) => b.consumed - a.consumed);
+}
+
+function buildDashboardMonthlyTrend(
+  transactions: StockTransaction[],
+  itemIds: string[] = [],
+) {
+  const byMonth: Record<string, { qty: number; perItem: Record<string, number> }> = {};
+  transactions.forEach((tx) => {
+    if (!CONSUMPTION_TYPES.has(tx.type)) return;
+    const dateStr = toISOString(tx.createdAt).slice(0, 10);
+    if (!dateStr) return;
+    const ym = dateStr.slice(0, 7);
+    if (!byMonth[ym]) byMonth[ym] = { qty: 0, perItem: {} };
+    byMonth[ym].qty += Math.abs(tx.quantityChange);
+    if (itemIds.includes(tx.itemId)) {
+      byMonth[ym].perItem[tx.itemId] =
+        (byMonth[ym].perItem[tx.itemId] ?? 0) + Math.abs(tx.quantityChange);
+    }
+  });
+  return Object.entries(byMonth)
+    .sort(([a], [b]) => (a > b ? 1 : -1))
+    .slice(-DASHBOARD_TREND_MONTHS)
+    .map(([ym, v]) => {
+      const [y, m] = ym.split("-").map(Number);
+      const label =
+        y && m
+          ? new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short" })
+          : ym;
+      const row: Record<string, any> = { ym, label, qty: v.qty };
+      itemIds.forEach((id) => {
+        row[id] = v.perItem[id] ?? 0;
+      });
+      return row;
+    });
+}
+
+function buildDashboardItemOptions(items: OfficeInventoryItem[]) {
+  return [...items]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((i) => ({ id: i.id, name: i.name, itemCode: i.itemCode }));
+}
 
 // ─── Sub-components (unchanged) ───────────────────────────────────────────────
 
@@ -527,6 +675,15 @@ const [activeMobileTab, setActiveMobileTab] =
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Consumption-by-month item comparison ────────────────────────────────
+  const [trendItemIds, setTrendItemIds] = useState<string[]>([]);
+  const [trendItemSearch, setTrendItemSearch] = useState<string>("");
+  const [trendDropdownOpen, setTrendDropdownOpen] = useState(false);
+  const trendDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // ── Most consumed items pagination ──────────────────────────────────────
+  const [topItemsPage, setTopItemsPage] = useState(0);
+
   const [dismissedAlertSignature, setDismissedAlertSignature] = useState<
     string | null
   >(() => readDismissedAlertSignature());
@@ -620,6 +777,81 @@ const [activeMobileTab, setActiveMobileTab] =
       outOfStockWithPendingReqs,
     };
   }, [items, requests]);
+
+  // ── Consumption graphs (this month + all-time trend) ───────────────────────
+
+  const dashboardConsumptionRows = useMemo(
+    () => buildDashboardConsumptionRows(items, transactions),
+    [items, transactions],
+  );
+  const graphTopItemsAll = useMemo(
+    () => buildDashboardTopItems(dashboardConsumptionRows),
+    [dashboardConsumptionRows],
+  );
+  const topItemsTotalPages = Math.max(
+    1,
+    Math.ceil(graphTopItemsAll.length / DASHBOARD_ITEMS_PER_PAGE),
+  );
+  // Clamped, not stored — if the underlying list shrinks (e.g. a poll
+  // refresh drops an item), the visible page adjusts automatically instead
+  // of pointing at a page that no longer exists.
+  const topItemsCurrentPage = Math.min(topItemsPage, topItemsTotalPages - 1);
+  const graphTopItemsPage = useMemo(
+    () =>
+      graphTopItemsAll.slice(
+        topItemsCurrentPage * DASHBOARD_ITEMS_PER_PAGE,
+        (topItemsCurrentPage + 1) * DASHBOARD_ITEMS_PER_PAGE,
+      ),
+    [graphTopItemsAll, topItemsCurrentPage],
+  );
+  // Fixed across all pages so bar height is relative to the true max,
+  // not just whatever happens to be on the current page.
+  const graphTopItemsMaxConsumed = useMemo(
+    () => graphTopItemsAll.reduce((max, item) => Math.max(max, item.consumed), 0),
+    [graphTopItemsAll],
+  );
+  const graphCategoryBreakdown = useMemo(
+    () => buildDashboardCategoryBreakdown(dashboardConsumptionRows),
+    [dashboardConsumptionRows],
+  );
+  const graphMonthlyTrend = useMemo(
+    () => buildDashboardMonthlyTrend(transactions, trendItemIds),
+    [transactions, trendItemIds],
+  );
+  const trendItemOptions = useMemo(() => buildDashboardItemOptions(items), [items]);
+  const trendItemSearchResults = useMemo(() => {
+    const q = trendItemSearch.trim().toLowerCase();
+    if (!q) return trendItemOptions;
+    return trendItemOptions.filter(
+      (i) => i.name.toLowerCase().includes(q) || i.itemCode.toLowerCase().includes(q),
+    );
+  }, [trendItemSearch, trendItemOptions]);
+  const selectedTrendItems = useMemo(
+    () => trendItemOptions.filter((i) => trendItemIds.includes(i.id)),
+    [trendItemOptions, trendItemIds],
+  );
+
+  const toggleTrendItem = (id: string) => {
+    setTrendItemIds((prev) => {
+      if (prev.includes(id)) return prev.filter((c) => c !== id);
+      if (prev.length >= DASHBOARD_MAX_COMPARE_ITEMS) return prev;
+      return [...prev, id];
+    });
+  };
+
+  useEffect(() => {
+    if (!trendDropdownOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        trendDropdownRef.current &&
+        !trendDropdownRef.current.contains(e.target as Node)
+      ) {
+        setTrendDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [trendDropdownOpen]);
 
   // ── Category breakdown ──────────────────────────────────────────────────────
 
@@ -810,6 +1042,333 @@ const [activeMobileTab, setActiveMobileTab] =
             dismissedSignature={dismissedAlertSignature}
             onDismiss={handleDismissAlert}
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5 items-stretch">
+            <div
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              className="rounded-xl border p-4 flex flex-col h-full"
+            >
+              <p style={{ color: theme.text }} className="text-sm font-semibold mb-0.5">
+                Most consumed items
+              </p>
+              <p style={{ color: theme.subtext }} className="text-xs mb-3">
+                {graphTopItemsAll.length === 0
+                  ? "This month"
+                  : `This month · ${topItemsCurrentPage * DASHBOARD_ITEMS_PER_PAGE + 1}–${Math.min(
+                      (topItemsCurrentPage + 1) * DASHBOARD_ITEMS_PER_PAGE,
+                      graphTopItemsAll.length,
+                    )} of ${graphTopItemsAll.length}`}
+              </p>
+              {graphTopItemsAll.length === 0 ? (
+                <p style={{ color: theme.subtext }} className="text-xs py-8 text-center">
+                  No consumption yet this month.
+                </p>
+              ) : (
+                <>
+                  <div className="flex-1 min-h-[160px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={graphTopItemsPage} margin={{ top: 5, right: 5, bottom: 40, left: 0 }}>
+                      <CartesianGrid stroke={theme.border} strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="name"
+                        stroke={theme.subtext}
+                        fontSize={9}
+                        angle={-35}
+                        textAnchor="end"
+                        interval={0}
+                        height={60}
+                      />
+                      <YAxis
+                        stroke={theme.subtext}
+                        fontSize={10}
+                        domain={[0, graphTopItemsMaxConsumed]}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme.surfaceRaised ?? theme.surface,
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: 8,
+                          fontSize: 11,
+                        }}
+                        labelStyle={{ color: theme.text }}
+                        itemStyle={{ color: theme.text }}
+                        formatter={(value: any) => [`${Number(value)} units`, "Consumed"]}
+                      />
+                      <Bar dataKey="consumed" radius={[3, 3, 0, 0]}>
+                        {graphTopItemsPage.map((entry, idx) => (
+                          <Cell
+                            key={idx}
+                            fill={CHART_CATEGORY_FILL[entry.category] ?? CHART_CATEGORY_FILL.other}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  </div>
+                  {topItemsTotalPages > 1 && (
+                    <div className="flex items-center justify-between mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setTopItemsPage(Math.max(0, topItemsCurrentPage - 1))}
+                        disabled={topItemsCurrentPage === 0}
+                        style={{
+                          borderColor: theme.border,
+                          color: topItemsCurrentPage === 0 ? theme.subtext : theme.primary,
+                          opacity: topItemsCurrentPage === 0 ? 0.5 : 1,
+                        }}
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg border"
+                      >
+                        ← Prev
+                      </button>
+                      <span style={{ color: theme.subtext }} className="text-[10.5px]">
+                        Page {topItemsCurrentPage + 1} of {topItemsTotalPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTopItemsPage(Math.min(topItemsTotalPages - 1, topItemsCurrentPage + 1))
+                        }
+                        disabled={topItemsCurrentPage >= topItemsTotalPages - 1}
+                        style={{
+                          borderColor: theme.border,
+                          color:
+                            topItemsCurrentPage >= topItemsTotalPages - 1
+                              ? theme.subtext
+                              : theme.primary,
+                          opacity: topItemsCurrentPage >= topItemsTotalPages - 1 ? 0.5 : 1,
+                        }}
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg border"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              className="rounded-xl border p-4 flex flex-col h-full"
+            >
+              <p style={{ color: theme.text }} className="text-sm font-semibold mb-0.5">
+                Consumption by category
+              </p>
+              <p style={{ color: theme.subtext }} className="text-xs mb-3">
+                This month
+              </p>
+              {graphCategoryBreakdown.length === 0 ? (
+                <p style={{ color: theme.subtext }} className="text-xs py-8 text-center">
+                  No consumption yet this month.
+                </p>
+              ) : (
+                <div className="flex-1 min-h-[160px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={graphCategoryBreakdown}
+                    layout="vertical"
+                    margin={{ top: 5, right: 20, bottom: 5, left: 10 }}
+                  >
+                    <CartesianGrid stroke={theme.border} strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" stroke={theme.subtext} fontSize={10} />
+                    <YAxis
+                      type="category"
+                      dataKey="category"
+                      stroke={theme.subtext}
+                      fontSize={10}
+                      width={70}
+                      tickFormatter={(v: string) => CHART_CATEGORY_LABELS[v] ?? v}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme.surfaceRaised ?? theme.surface,
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: 8,
+                        fontSize: 11,
+                      }}
+                      labelStyle={{ color: theme.text }}
+                      itemStyle={{ color: theme.text }}
+                      formatter={(value: any) => [`${Number(value)} units`, "Consumed"]}
+                    />
+                    <Bar dataKey="consumed" radius={[0, 4, 4, 0]}>
+                      {graphCategoryBreakdown.map((entry, idx) => (
+                        <Cell
+                          key={idx}
+                          fill={CHART_CATEGORY_FILL[entry.category] ?? CHART_CATEGORY_FILL.other}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              className="rounded-xl border p-4 flex flex-col h-full"
+            >
+              <p style={{ color: theme.text }} className="text-sm font-semibold mb-0.5">
+                Consumption by month
+              </p>
+              <p style={{ color: theme.subtext }} className="text-xs mb-3">
+                {selectedTrendItems.length > 0
+                  ? `Comparing ${selectedTrendItems.length} item${selectedTrendItems.length > 1 ? "s" : ""} · last ${DASHBOARD_TREND_MONTHS} months`
+                  : `All items · last ${DASHBOARD_TREND_MONTHS} months`}
+              </p>
+
+              <div className="mb-3 space-y-2" ref={trendDropdownRef}>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setTrendDropdownOpen((o) => !o)}
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: selectedTrendItems.length > 0 ? theme.text : theme.subtext,
+                    }}
+                    className="w-full flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 border rounded-lg"
+                  >
+                    <span className="truncate">
+                      {selectedTrendItems.length > 0
+                        ? `${selectedTrendItems.length} item${selectedTrendItems.length > 1 ? "s" : ""} selected`
+                        : `Add item to compare (up to ${DASHBOARD_MAX_COMPARE_ITEMS})…`}
+                    </span>
+                    <span style={{ color: theme.subtext }}>{trendDropdownOpen ? "▲" : "▼"}</span>
+                  </button>
+
+                  {trendDropdownOpen && (
+                    <div
+                      style={{
+                        backgroundColor: theme.surfaceRaised ?? theme.surface,
+                        borderColor: theme.border,
+                      }}
+                      className="absolute z-10 mt-1 w-full border rounded-lg shadow-lg overflow-hidden"
+                    >
+                      <div style={{ borderColor: theme.border }} className="p-2 border-b">
+                        <input
+                          autoFocus
+                          value={trendItemSearch}
+                          onChange={(e) => setTrendItemSearch(e.target.value)}
+                          placeholder="Search items…"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                            color: theme.text,
+                          }}
+                          className="w-full text-xs px-2.5 py-1.5 border rounded-lg focus:outline-none"
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {trendItemSearchResults.length === 0 ? (
+                          <p style={{ color: theme.subtext }} className="text-xs px-2.5 py-2">
+                            No items match "{trendItemSearch}"
+                          </p>
+                        ) : (
+                          trendItemSearchResults.map((item) => {
+                            const checked = trendItemIds.includes(item.id);
+                            const disabled =
+                              !checked && trendItemIds.length >= DASHBOARD_MAX_COMPARE_ITEMS;
+                            return (
+                              <label
+                                key={item.id}
+                                style={{ color: disabled ? theme.subtext : theme.text }}
+                                className="flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:opacity-70"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={disabled}
+                                  onChange={() => toggleTrendItem(item.id)}
+                                />
+                                <span className="truncate">{item.name}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {selectedTrendItems.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedTrendItems.map((item, idx) => (
+                      <button
+                        key={item.id}
+                        onClick={() => toggleTrendItem(item.id)}
+                        className="text-xs px-2 py-1 rounded-full border flex items-center gap-1.5"
+                        style={{
+                          borderColor:
+                            DASHBOARD_ITEM_COMPARE_COLORS[idx % DASHBOARD_ITEM_COMPARE_COLORS.length],
+                          color:
+                            DASHBOARD_ITEM_COMPARE_COLORS[idx % DASHBOARD_ITEM_COMPARE_COLORS.length],
+                          backgroundColor: `${DASHBOARD_ITEM_COMPARE_COLORS[idx % DASHBOARD_ITEM_COMPARE_COLORS.length]}1A`,
+                        }}
+                      >
+                        {item.name}
+                        <span style={{ color: theme.subtext }}>×</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {graphMonthlyTrend.length === 0 ? (
+                <p style={{ color: theme.subtext }} className="text-xs py-8 text-center">
+                  No historical data yet.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={graphMonthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                    <CartesianGrid stroke={theme.border} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" stroke={theme.subtext} fontSize={10} />
+                    <YAxis stroke={theme.subtext} fontSize={10} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme.surfaceRaised ?? theme.surface,
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: 8,
+                        fontSize: 11,
+                      }}
+                      labelStyle={{ color: theme.text }}
+                      itemStyle={{ color: theme.text }}
+                      formatter={(value: any, name: any) => [`${Number(value)} units`, name]}
+                    />
+                    {selectedTrendItems.length > 0 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+                    {selectedTrendItems.length === 0 ? (
+                      <Bar dataKey="qty" name="All items" radius={[3, 3, 0, 0]} maxBarSize={56}>
+                        {graphMonthlyTrend.map((entry, idx) => (
+                          <Cell
+                            key={idx}
+                            fill={idx === graphMonthlyTrend.length - 1 ? theme.primary ?? "#3b82f6" : "#94a3b8"}
+                          />
+                        ))}
+                      </Bar>
+                    ) : (
+                      selectedTrendItems.map((item, idx) => (
+                        <Bar
+                          key={item.id}
+                          dataKey={item.id}
+                          name={item.name}
+                          radius={[3, 3, 0, 0]}
+                          maxBarSize={56}
+                          fill={DASHBOARD_ITEM_COMPARE_COLORS[idx % DASHBOARD_ITEM_COMPARE_COLORS.length]}
+                        />
+                      ))
+                    )}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              <p style={{ color: theme.subtext }} className="text-[10.5px] mt-2">
+                {selectedTrendItems.length > 0
+                  ? "Each color is a different item."
+                  : graphMonthlyTrend.length === 1
+                    ? `Trend builds as more months come in — currently only ${graphMonthlyTrend[0].label} has recorded consumption.`
+                    : "Latest month is highlighted."}
+              </p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 sm:flex gap-3 mb-5 sm:flex-wrap">
             <KpiCard
