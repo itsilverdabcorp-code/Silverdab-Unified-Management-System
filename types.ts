@@ -142,7 +142,8 @@ export type SupplyRequestStatus =
   | "delivered"
   | "failed_delivery"
   | "resolved"
-  | "rejected";
+  | "rejected"
+  | "cancelled";
 
 export type SupplyRequestItem = {
   itemId: string;
@@ -176,6 +177,9 @@ export type SupplyRequest = {
   deliveredByName?: string;
   failedReason?: string;
   failedAt?: string;
+  // cancellation fields (employee-initiated, only while pending/awaiting_stock)
+  cancelledAt?: string;
+  cancelledByName?: string;
 };
 export type ITStatus = "Deployed" | "Spare" | "Defective";
 export type ITCategory =

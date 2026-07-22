@@ -339,6 +339,33 @@ export async function markFailedDelivery(
   }
 }
 
+// ─── CANCEL (employee-initiated) ────────────────────────────────────────────
+// Only allowed while status is 'pending' or 'awaiting_stock' — i.e. before
+// an admin has started acting on the request (approving, sending out for
+// delivery, etc). The backend route should re-validate this server-side
+// too, not just trust the client's check.
+
+export async function cancelSupplyRequest(
+  id: string,
+  byName: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/supply-requests/${encodeURIComponent(id)}/cancel`,
+    {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({ cancelledByName: byName }),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to cancel request.");
+  }
+}
+
 // ─── ARCHIVE ────────────────────────────────────────────────────────────────
 
 export async function archiveSupplyRequest(id: string): Promise<void> {

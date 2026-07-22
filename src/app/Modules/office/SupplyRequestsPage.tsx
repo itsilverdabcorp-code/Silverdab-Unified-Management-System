@@ -22,8 +22,7 @@ type StatusFilter =
   | "awaiting_stock"
   | "out_for_delivery"
   | "resolved"
-  | "failed_delivery"
-  | "rejected";
+  | "unfulfilled";
 type StockStatus = "available" | "low" | "out_of_stock";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -34,8 +33,7 @@ const REQUEST_STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: "Awaiting stock", value: "awaiting_stock" },
   { label: "Out for delivery", value: "out_for_delivery" },
   { label: "Issued", value: "resolved" }, // ← changed from "Delivered"
-  { label: "Failed", value: "failed_delivery" },
-  { label: "Rejected", value: "rejected" },
+  { label: "Unfulfilled", value: "unfulfilled" }, // rejected + failed delivery + cancelled
 ];
 
 const DELIVERY_STATUS_TABS: {
@@ -63,6 +61,8 @@ function statusBadgeClass(status: string): string {
       return "bg-rose-100 text-rose-700";
     case "rejected":
       return "bg-rose-100 text-rose-700";
+    case "cancelled":
+      return "bg-slate-200 text-slate-600";
     default:
       return "bg-gray-100 text-gray-700";
   }
@@ -82,6 +82,8 @@ function statusLabel(status: string): string {
       return "Failed delivery";
     case "rejected":
       return "Rejected";
+    case "cancelled":
+      return "Cancelled";
     default:
       return status;
   }
@@ -111,6 +113,68 @@ function stockLabel(status: StockStatus): string {
     default:
       return status;
   }
+}
+function ArchiveConfirmModal({
+  visible,
+  ticketNumber,
+  onCancel,
+  onConfirm,
+  submitting,
+  theme,
+}: {
+  visible: boolean;
+  ticketNumber: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  submitting: boolean;
+  theme: any;
+}) {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div
+        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        className="w-full max-w-sm rounded-xl border p-5"
+      >
+        <h3
+          style={{ color: theme.text }}
+          className="text-sm font-semibold mb-1"
+        >
+          Archive request {ticketNumber}
+        </h3>
+        <p style={{ color: theme.subtext }} className="text-xs mb-4 leading-relaxed">
+          This removes it from the default list. You can unarchive it later if
+          needed.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            disabled={submitting}
+            style={{
+              backgroundColor: theme.surface,
+              color: theme.text,
+              borderColor: theme.border,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg border disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={submitting}
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.primaryText,
+              opacity: submitting ? 0.6 : 1,
+            }}
+            className="px-3 py-2 text-sm font-medium rounded-lg"
+          >
+            {submitting ? "Archiving…" : "Archive request"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function worstStockStatus(
@@ -207,10 +271,10 @@ function effectiveStatus(
 
 // Lower number = shown first. Pending / out for delivery / awaiting stock
 // are live, actionable states and keep their own priority tiers. Issued,
-// Failed delivery, and Rejected are all "closed" outcomes — they share one
-// tier so they interleave with each other purely by date (newest first,
-// via the secondary sort in filteredRequests below) instead of clustering
-// into three separate status blocks.
+// Failed delivery, Rejected, and Cancelled are all "closed" outcomes — they
+// share one tier so they interleave with each other purely by date (newest
+// first, via the secondary sort in filteredRequests below) instead of
+// clustering into separate status blocks.
 const STATUS_SORT_ORDER: Record<string, number> = {
   pending: 0,
   out_for_delivery: 1,
@@ -218,7 +282,34 @@ const STATUS_SORT_ORDER: Record<string, number> = {
   resolved: 3,
   failed_delivery: 3,
   rejected: 3,
+  cancelled: 3,
 };
+
+// Statuses that never got fulfilled — grouped under the "Unfulfilled" tab
+// so cancellations, failed deliveries, and rejections all live in one place
+// instead of three separate tabs.
+const UNFULFILLED_STATUSES = new Set(["rejected", "failed_delivery", "cancelled"]);
+
+// The date a "closed" request actually closed — cancelledAt for a
+// cancellation, reviewedAt for a rejection, failedAt for a failed delivery,
+// resolvedAt for a completed one. Falls back to createdAt for anything
+// still open. Using this (instead of always sorting by createdAt) means a
+// request cancelled today shows up near the top of its tier even if it was
+// originally filed weeks ago — not buried at the bottom by an old filing date.
+function closureDate(r: SupplyRequest): string {
+  switch (r.status) {
+    case "cancelled":
+      return r.cancelledAt || r.createdAt;
+    case "rejected":
+      return r.reviewedAt || r.createdAt;
+    case "failed_delivery":
+      return r.failedAt || r.createdAt;
+    case "resolved":
+      return r.resolvedAt || r.createdAt;
+    default:
+      return r.createdAt;
+  }
+}
 
 // ─── Reject modal ─────────────────────────────────────────────────────────────
 
@@ -841,7 +932,7 @@ function RequestRow({
             >
                View
             </button>
-            {canArchive && ["resolved", "rejected", "failed_delivery"].includes(request.status) && (
+            {canArchive && ["resolved", "rejected", "failed_delivery", "cancelled"].includes(request.status) && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1296,6 +1387,8 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
     null,
   );
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<SupplyRequest | null>(null);
+  const [archiving, setArchiving] = useState(false);
   const [delivActionId, setDelivActionId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [failing, setFailing] = useState(false);
@@ -1357,8 +1450,11 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
 
   const filteredRequests = useMemo(() => {
     let r = requests;
-    if (statusFilter !== "all")
+    if (statusFilter === "unfulfilled") {
+      r = r.filter((x) => UNFULFILLED_STATUSES.has(x.status));
+    } else if (statusFilter !== "all") {
       r = r.filter((x) => effectiveStatus(x, liveStock) === statusFilter);
+    }
     const q = search.trim().toLowerCase();
     if (q)
       r = r.filter((x) =>
@@ -1377,9 +1473,12 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
       const pa = STATUS_SORT_ORDER[effectiveStatus(a, liveStock)] ?? 99;
       const pb = STATUS_SORT_ORDER[effectiveStatus(b, liveStock)] ?? 99;
       if (pa !== pb) return pa - pb;
-      // Same priority tier — newest first
+      // Same priority tier — sort by when each request actually closed
+      // (cancelled/rejected/failed/resolved date), not when it was filed,
+      // so recent activity in this tier stays near the top instead of
+      // sinking based on an old filing date.
       return (
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(closureDate(b)).getTime() - new Date(closureDate(a)).getTime()
       );
     });
   }, [requests, statusFilter, search, liveStock]);
@@ -1409,6 +1508,7 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
       const s = effectiveStatus(r, liveStock);
       c[s] = (c[s] ?? 0) + 1;
     });
+    c.unfulfilled = requests.filter((r) => UNFULFILLED_STATUSES.has(r.status)).length;
     return c;
   }, [requests, liveStock]);
 
@@ -1517,16 +1617,22 @@ const handleReject = (requestId: string) => {
   setTimeout(() => setRejectTarget(request), 100);
 };
 
-  const handleArchive = async (request: SupplyRequest) => {
-    setApprovingId(request.id);
+  const handleArchive = (request: SupplyRequest) => {
+    setArchiveTarget(request);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!archiveTarget) return;
+    setArchiving(true);
     setError("");
     try {
-      await archiveSupplyRequest(request.id);
+      await archiveSupplyRequest(archiveTarget.id);
+      setArchiveTarget(null);
       await loadRequests();
     } catch (err: any) {
       setError(err?.message ?? "Failed to archive request.");
     } finally {
-      setApprovingId(null);
+      setArchiving(false);
     }
   };
 
@@ -1842,6 +1948,14 @@ const handleReject = (requestId: string) => {
         onCancel={() => setFailTarget(null)}
         onConfirm={handleConfirmFailed}
         submitting={failing}
+        theme={theme}
+      />
+      <ArchiveConfirmModal
+        visible={archiveTarget !== null}
+        ticketNumber={archiveTarget?.ticketNumber ?? ""}
+        onCancel={() => setArchiveTarget(null)}
+        onConfirm={handleConfirmArchive}
+        submitting={archiving}
         theme={theme}
       />
     </div>

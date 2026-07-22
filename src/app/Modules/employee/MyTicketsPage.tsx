@@ -29,7 +29,7 @@ import { ADUser, ConcernTicket, SupplyRequest } from "../../../../types";
 import { getTicketsByRequester } from "../../../services/ticketService";
 import SupplyRequestModal from "./Modal/SupplyRequestModal";
 // import ITConcernModal from "./Modal/ITConcernModal";
-import { getAllSupplyRequests } from "@/services/supplyRequest";
+import { getAllSupplyRequests, cancelSupplyRequest } from "@/services/supplyRequest";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +98,7 @@ const SUPPLY_STATUS_MAP: Record<string, string> = {
   failed_delivery: "Rejected",
   resolved: "Resolved",
   rejected: "Rejected",
+  cancelled: "Rejected",
 };
 const normaliseSupplyStatus = (raw: string) => SUPPLY_STATUS_MAP[raw] ?? raw;
 
@@ -111,6 +112,7 @@ const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
   failed_delivery: "Failed Delivery",
   resolved: "Resolved",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 const displaySupplyStatus = (raw: string) =>
   SUPPLY_DISPLAY_STATUS_MAP[raw] ?? raw;
@@ -127,6 +129,7 @@ const STATUS_CONFIG: Record<
   "Failed Delivery": { bg: "#FFE4E6", border: "#FDA4AF", text: "#BE123C" },
   Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
+  Cancelled: { bg: "#F1F5F9", border: "#CBD5E1", text: "#475569" },
 };
 
 const SOURCE_CONFIG: Record<
@@ -941,17 +944,84 @@ function SupplyDetailContent({
   request,
   theme,
   primary,
+  onCancel,
 }: {
   request: SupplyRequest;
   theme: any;
   primary: string;
+  onCancel?: (request: SupplyRequest) => Promise<void>;
 }) {
   const displayStatus = normaliseSupplyStatus(request.status);
   const isRejected = request.status === "rejected";
+  const isCancelled = request.status === "cancelled";
+
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+
+  // Only cancellable before an admin has started acting on it — i.e. still
+  // pending or waiting on stock. Once it's out for delivery, resolved,
+  // rejected, or already cancelled, this stays hidden.
+  const cancellable =
+    request.status === "pending" || request.status === "awaiting_stock";
+
+  const handleConfirmCancel = async () => {
+    if (!onCancel) return;
+    setCancelling(true);
+    setCancelError("");
+    try {
+      await onCancel(request);
+    } catch (err: any) {
+      setCancelError(err?.message ?? "Failed to cancel request.");
+      setCancelling(false);
+    }
+  };
 
   return (
     <>
-      {isRejected ? (
+      {isCancelled ? (
+        <View
+          style={{
+            backgroundColor: "#F8FAFC",
+            borderWidth: 1,
+            borderColor: "#E2E8F0",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>🚫</Text>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 13,
+                color: "#475569",
+              }}
+            >
+              Request Cancelled
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Outfit",
+                fontSize: 12,
+                color: "#64748B",
+                marginTop: 3,
+              }}
+            >
+              {request.cancelledByName
+                ? `Cancelled by ${request.cancelledByName}`
+                : "Cancelled by requester"}
+              {request.cancelledAt
+                ? ` · ${toReadableDate(request.cancelledAt)}`
+                : ""}
+            </Text>
+          </View>
+        </View>
+      ) : isRejected ? (
         <View
           style={{
             backgroundColor: "#FEF2F2",
@@ -1019,6 +1089,144 @@ function SupplyDetailContent({
         ]}
         theme={theme}
       />
+
+      {/* Cancel request — employee-initiated, only before admin acts on it */}
+      {cancellable && onCancel ? (
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            padding: 15,
+            marginBottom: 16,
+          }}
+        >
+          {!confirmingCancel ? (
+            <TouchableOpacity
+              onPress={() => {
+                setConfirmingCancel(true);
+                setCancelError("");
+              }}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 7,
+                paddingVertical: 10,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: "#FCA5A5",
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#DC2626",
+                }}
+              >
+                Cancel this request
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View>
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: theme.textActive ?? theme.text,
+                  marginBottom: 4,
+                }}
+              >
+                Cancel this request?
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Outfit",
+                  fontSize: 12,
+                  color: theme.subtext,
+                  marginBottom: 12,
+                  lineHeight: 17,
+                }}
+              >
+                This can't be undone. You'll need to submit a new request if
+                you still need these items.
+              </Text>
+
+              {cancelError ? (
+                <Text
+                  style={{
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    color: "#EF4444",
+                    marginBottom: 10,
+                  }}
+                >
+                  {cancelError}
+                </Text>
+              ) : null}
+
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setConfirmingCancel(false)}
+                  disabled={cancelling}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    borderWidth: 1.5,
+                    borderColor: theme.border,
+                    alignItems: "center",
+                    opacity: cancelling ? 0.6 : 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: theme.subtext,
+                    }}
+                  >
+                    Keep request
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmCancel}
+                  disabled={cancelling}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: "#DC2626",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 6,
+                    opacity: cancelling ? 0.7 : 1,
+                  }}
+                >
+                  {cancelling ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : null}
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: "#fff",
+                    }}
+                  >
+                    {cancelling ? "Cancelling…" : "Yes, cancel it"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      ) : null}
 
       <Text
         style={{
@@ -1156,11 +1364,13 @@ function DetailDrawer({
   onClose,
   theme,
   primary,
+  onCancelSupplyRequest,
 }: {
   ticket: UnifiedTicket | null;
   onClose: () => void;
   theme: any;
   primary: string;
+  onCancelSupplyRequest?: (request: SupplyRequest) => Promise<void>;
 }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const isMobile = winW < 768;
@@ -1271,6 +1481,7 @@ function DetailDrawer({
                 request={ticket.supplyRequest}
                 theme={theme}
                 primary={primary}
+                onCancel={onCancelSupplyRequest}
               />
             ) : null}
           </ScrollView>
@@ -1571,6 +1782,15 @@ export default function TicketHubPage({ user }: Props) {
     setTicketType("supply");
     setSupplyModalVisible(true);
   };
+
+  const handleCancelSupplyRequest = useCallback(
+    async (request: SupplyRequest) => {
+      await cancelSupplyRequest(request.id, user.displayName ?? user.username);
+      setSelected(null);
+      load(true);
+    },
+    [user, load],
+  );
 
   const inputStyle = {
     backgroundColor: theme.background,
@@ -2528,6 +2748,7 @@ export default function TicketHubPage({ user }: Props) {
         onClose={() => setSelected(null)}
         theme={theme}
         primary={primary}
+        onCancelSupplyRequest={handleCancelSupplyRequest}
       />
     </ScrollView>
   );
