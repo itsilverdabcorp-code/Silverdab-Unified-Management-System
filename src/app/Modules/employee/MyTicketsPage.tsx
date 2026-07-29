@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -23,17 +23,21 @@ import {
   RefreshCw,
   Package,
   MonitorSmartphone,
+  Car,
+  Filter,
 } from "lucide-react-native";
 import { useTheme } from "../../../theme/ThemeContext";
-import { ADUser, ConcernTicket, SupplyRequest } from "../../../../types";
+import { ADUser, ConcernTicket, SupplyRequest, FleetTrip } from "../../../../types";
 import { getTicketsByRequester } from "../../../services/ticketService";
+import { getAllFleetTrips } from "../../../services/fleetOps";
 import SupplyRequestModal from "./Modal/SupplyRequestModal";
+import TripBookingModal from "./Modal/TripBookingModal";
 // import ITConcernModal from "./Modal/ITConcernModal";
 import { getAllSupplyRequests, cancelSupplyRequest } from "@/services/supplyRequest";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TicketSource = "it" | "supply";
+type TicketSource = "it" | "supply" | "trip";
 type TicketType = "it" | "hr" | "supply";
 type Step = 1 | 2 | 3 | 4;
 type TabKey = "All" | "Pending" | "In Progress" | "Resolved" | "Rejected";
@@ -44,6 +48,13 @@ const TABS: TabKey[] = [
   "In Progress",
   "Resolved",
   "Rejected",
+];
+
+const TYPE_FILTER_OPTIONS: { key: "all" | TicketSource; label: string }[] = [
+  { key: "all", label: "All Types" },
+  { key: "supply", label: "Supply Requests" },
+  { key: "trip", label: "Trips" },
+  { key: "it", label: "IT Concerns" },
 ];
 
 const HR_CATEGORIES = [
@@ -67,6 +78,7 @@ type UnifiedTicket = {
   category: string;
   itTicket?: ConcernTicket;
   supplyRequest?: SupplyRequest;
+  fleetTrip?: FleetTrip;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,6 +129,35 @@ const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
 const displaySupplyStatus = (raw: string) =>
   SUPPLY_DISPLAY_STATUS_MAP[raw] ?? raw;
 
+// Trip statuses collapse into the same three ticket-tab buckets:
+// pending -> Pending, approved/ongoing/arrived/returning -> In Progress,
+// completed -> Resolved. rejected/cancelled fall under the Rejected tab.
+const TRIP_STATUS_MAP: Record<string, string> = {
+  pending: "Pending",
+  approved: "In Progress",
+  ongoing: "In Progress",
+  arrived: "In Progress",
+  returning: "In Progress",
+  completed: "Resolved",
+  rejected: "Rejected",
+  cancelled: "Rejected",
+};
+const normaliseTripStatus = (raw: string) => TRIP_STATUS_MAP[raw] ?? raw;
+
+// Badge shows the actual trip-management status — not the collapsed
+// Pending/In Progress/Resolved bucket used for the tab counts above.
+const TRIP_DISPLAY_STATUS_MAP: Record<string, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  ongoing: "Ongoing",
+  arrived: "Arrived",
+  returning: "Returning",
+  completed: "Completed",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+};
+const displayTripStatus = (raw: string) => TRIP_DISPLAY_STATUS_MAP[raw] ?? raw;
+
 // ─── Status / source config ───────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
@@ -130,6 +171,13 @@ const STATUS_CONFIG: Record<
   Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
   Cancelled: { bg: "#F1F5F9", border: "#CBD5E1", text: "#475569" },
+  // Trip-management statuses — colors mirror FleetControlTowerPage's
+  // TRIP_STATUS_CONFIG so a trip looks the same in both places.
+  Approved: { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
+  Ongoing: { bg: "#DCFCE7", border: "#86EFAC", text: "#166534" },
+  Arrived: { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
+  Returning: { bg: "#FEF3C7", border: "#FCD34D", text: "#92400E" },
+  Completed: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
 };
 
 const SOURCE_CONFIG: Record<
@@ -138,6 +186,7 @@ const SOURCE_CONFIG: Record<
 > = {
   it: { bg: "#EEF2FF", text: "#4338CA", label: "IT" },
   supply: { bg: "#F0FDF4", text: "#15803D", label: "Supply" },
+  trip: { bg: "#FFF7ED", text: "#C2410C", label: "Trip" },
 };
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
@@ -152,9 +201,22 @@ async function getSupplyRequestsByUser(
   );
 }
 
+// NOTE: GET /fleet/trips returns requestorId as the internal numeric
+// users.id (resolved server-side via a JOIN), not the AD username — so
+// unlike supply requests it can't be matched against user.username.
+// Matching on display name only.
+async function getFleetTripsByUser(
+  userId: string,
+  userName: string,
+): Promise<FleetTrip[]> {
+  const all = await getAllFleetTrips();
+  return all.filter((t) => t.requestorName === userName);
+}
+
 function mergeTickets(
   it: ConcernTicket[],
   supply: SupplyRequest[],
+  trips: FleetTrip[],
 ): UnifiedTicket[] {
   const itUnified: UnifiedTicket[] = it.map((t) => ({
     _source: "it",
@@ -183,6 +245,18 @@ function mergeTickets(
     supplyRequest: r,
   }));
 
+  const tripUnified: UnifiedTicket[] = trips.map((t) => ({
+    _source: "trip",
+    id: t.id,
+    ticketNumber: t.tripRef,
+    title: `${t.pickupLabel} → ${t.dropoffLabel}`,
+    status: normaliseTripStatus(t.status),
+    displayStatus: displayTripStatus(t.status),
+    dateCreated: t.createdAt,
+    category: "Trip",
+    fleetTrip: t,
+  }));
+
   const toMs = (v: any): number => {
     if (!v) return 0;
     if (typeof v?.toDate === "function") return v.toDate().getTime();
@@ -191,7 +265,7 @@ function mergeTickets(
     return isNaN(d.getTime()) ? 0 : d.getTime();
   };
 
-  return [...itUnified, ...supplyUnified].sort(
+  return [...itUnified, ...supplyUnified, ...tripUnified].sort(
     (a, b) => toMs(b.dateCreated) - toMs(a.dateCreated),
   );
 }
@@ -248,6 +322,8 @@ function SourceTag({ source }: { source: TicketSource }) {
     >
       {source === "it" ? (
         <MonitorSmartphone size={9} color={c.text} />
+      ) : source === "trip" ? (
+        <Car size={9} color={c.text} />
       ) : (
         <Package size={9} color={c.text} />
       )}
@@ -329,6 +405,7 @@ function StatCard({ label, value, sub, dotColor, theme }: StatCardProps) {
 
 type LeftPanelProps = {
   onNewRequest: () => void;
+  onNewTrip: () => void;
   counts: Record<TabKey, number>;
   theme: any;
   primary: string;
@@ -337,14 +414,24 @@ type LeftPanelProps = {
 
 function LeftPanel({
   onNewRequest,
+  onNewTrip,
   counts,
   theme,
   primary,
   isMobile,
 }: LeftPanelProps) {
+  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(null);
+  const hoverHandlers = (key: "supplies" | "trip") =>
+    Platform.OS === "web"
+      ? {
+          onMouseEnter: () => setHoveredBtn(key),
+          onMouseLeave: () => setHoveredBtn(null),
+        }
+      : {};
+
   return (
     <View style={isMobile ? { width: "100%" } : { width: 240, flexShrink: 0 }}>
-      {/* New request panel — single button, opens Supply Request modal directly */}
+      {/* New request panel — choose between Supply Request or Book a Trip */}
       <View
         style={{
           backgroundColor: theme.surface ?? theme.background,
@@ -372,7 +459,7 @@ function LeftPanel({
               marginBottom: 2,
             }}
           >
-            New request
+            Submit a Ticket
           </Text>
           <Text
             style={{
@@ -381,14 +468,15 @@ function LeftPanel({
               color: theme.textActive ?? theme.text,
             }}
           >
-            Need office supplies?
+            What do you need?
           </Text>
         </View>
 
-        <View style={{ padding: 10 }}>
+        <View style={{ padding: 10, gap: 8 }}>
           <TouchableOpacity
             onPress={onNewRequest}
             activeOpacity={0.8}
+            {...hoverHandlers("supplies")}
             style={{
               backgroundColor: primary,
               borderRadius: 8,
@@ -397,8 +485,23 @@ function LeftPanel({
               flexDirection: "row",
               justifyContent: "center",
               gap: 8,
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            {hoveredBtn === "supplies" && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                }}
+              />
+            )}
             <Package size={14} color="#fff" />
             <Text
               style={{
@@ -407,9 +510,50 @@ function LeftPanel({
                 color: "#fff",
               }}
             >
-              New Supply Request
+              Request Supplies
             </Text>
           </TouchableOpacity>
+
+          {/* <TouchableOpacity
+            onPress={onNewTrip}
+            activeOpacity={0.8}
+            {...hoverHandlers("trip")}
+            style={{
+              backgroundColor: primary,
+              borderRadius: 8,
+              paddingVertical: 12,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {hoveredBtn === "trip" && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                }}
+              />
+            )}
+            <Car size={14} color="#fff" />
+            <Text
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 13,
+                color: "#fff",
+              }}
+            >
+              Book a Trip
+            </Text>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -1357,6 +1501,141 @@ function SupplyDetailContent({
   );
 }
 
+// ─── Trip Detail ──────────────────────────────────────────────────────────────
+
+function TripDetailContent({
+  trip,
+  theme,
+}: {
+  trip: FleetTrip;
+  theme: any;
+  primary: string;
+}) {
+  const displayStatus = normaliseTripStatus(trip.status);
+  const isRejected = trip.status === "rejected";
+  const isCancelled = trip.status === "cancelled";
+
+  return (
+    <>
+      {isCancelled ? (
+        <View
+          style={{
+            backgroundColor: "#F8FAFC",
+            borderWidth: 1,
+            borderColor: "#E2E8F0",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>🚫</Text>
+          <Text
+            style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#475569" }}
+          >
+            Trip Cancelled
+          </Text>
+        </View>
+      ) : isRejected ? (
+        <View
+          style={{
+            backgroundColor: "#FEF2F2",
+            borderWidth: 1,
+            borderColor: "#FECACA",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>❌</Text>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#DC2626" }}
+            >
+              Trip Rejected
+            </Text>
+            {trip.rejectedReason ? (
+              <Text
+                style={{
+                  fontFamily: "Outfit",
+                  fontSize: 12,
+                  color: "#DC2626",
+                  marginTop: 3,
+                }}
+              >
+                {trip.rejectedReason}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <StatusTimeline
+          steps={["Pending", "In Progress", "Resolved"]}
+          currentStatus={displayStatus}
+          theme={theme}
+        />
+      )}
+
+      <MetaCard
+        fields={[
+          { label: "Trip Ref", value: trip.tripRef },
+          { label: "Route", value: `${trip.pickupLabel} → ${trip.dropoffLabel}` },
+          { label: "Departure", value: toReadableDate(trip.departureDatetime) },
+          {
+            label: "Return",
+            value: trip.returnDatetime ? toReadableDate(trip.returnDatetime) : "—",
+          },
+          { label: "Passengers", value: String(trip.passengerCount ?? 1) },
+          { label: "Vehicle", value: trip.vehiclePlate || "Not yet assigned" },
+          { label: "Driver", value: trip.driverName || "Not yet assigned" },
+          { label: "Approved by", value: trip.approvedByName || "Pending review" },
+        ]}
+        theme={theme}
+      />
+
+      {trip.purpose ? (
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            padding: 15,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 11,
+              color: theme.subtext,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 8,
+            }}
+          >
+            Purpose
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Outfit",
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 20,
+            }}
+          >
+            {trip.purpose}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 // ─── Detail Drawer ────────────────────────────────────────────────────────────
 
 function DetailDrawer({
@@ -1473,6 +1752,12 @@ function DetailDrawer({
             {ticket._source === "it" && ticket.itTicket ? (
               <ITDetailContent
                 ticket={ticket.itTicket}
+                theme={theme}
+                primary={primary}
+              />
+            ) : ticket._source === "trip" && ticket.fleetTrip ? (
+              <TripDetailContent
+                trip={ticket.fleetTrip}
                 theme={theme}
                 primary={primary}
               />
@@ -1679,6 +1964,13 @@ export default function TicketHubPage({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("All");
+  const [typeFilter, setTypeFilter] = useState<"all" | TicketSource>("all");
+  const [typeFilterOpen, setTypeFilterOpen] = useState(false);
+  const [typeFilterPos, setTypeFilterPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const typeFilterBtnRef = useRef<any>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UnifiedTicket | null>(null);
 
@@ -1688,6 +1980,7 @@ export default function TicketHubPage({ user }: Props) {
   const [submittedId, setSubmittedId] = useState("");
   const [itModalVisible, setItModalVisible] = useState(false);
   const [supplyModalVisible, setSupplyModalVisible] = useState(false);
+  const [tripModalVisible, setTripModalVisible] = useState(false);
 
   // HR fields
   const [hrCategory, setHrCategory] = useState("Overtime Filing");
@@ -1711,11 +2004,17 @@ export default function TicketHubPage({ user }: Props) {
         // ]);
         // setUnified(mergeTickets(itTickets, supplyRequests));
 
-        const supplyRequests = await getSupplyRequestsByUser(
-          user.username,
-          user.displayName ?? user.username,
-        );
-        setUnified(mergeTickets([], supplyRequests));
+        const [supplyRequests, trips] = await Promise.all([
+          getSupplyRequestsByUser(
+            user.username,
+            user.displayName ?? user.username,
+          ),
+          getFleetTripsByUser(
+            user.username,
+            user.displayName ?? user.username,
+          ),
+        ]);
+        setUnified(mergeTickets([], supplyRequests, trips));
       } catch (err) {
         console.error("Failed to load tickets:", err);
       } finally {
@@ -1732,21 +2031,27 @@ export default function TicketHubPage({ user }: Props) {
 
   // ── Counts & filtered list ──
   const counts = useMemo(() => {
+    const base =
+      typeFilter === "all"
+        ? unified
+        : unified.filter((t) => t._source === typeFilter);
     const c: Record<TabKey, number> = {
-      All: unified.length,
+      All: base.length,
       Pending: 0,
       "In Progress": 0,
       Resolved: 0,
       Rejected: 0,
     };
-    unified.forEach((t) => {
+    base.forEach((t) => {
       if (t.status in c) (c as any)[t.status]++;
     });
     return c;
-  }, [unified]);
+  }, [unified, typeFilter]);
 
   const displayed = useMemo(() => {
     let result = unified;
+    if (typeFilter !== "all")
+      result = result.filter((t) => t._source === typeFilter);
     if (activeTab !== "All")
       result = result.filter((t) => t.status === activeTab);
     const q = search.trim().toLowerCase();
@@ -1758,7 +2063,7 @@ export default function TicketHubPage({ user }: Props) {
           t.category?.toLowerCase().includes(q),
       );
     return result;
-  }, [unified, activeTab, search]);
+  }, [unified, activeTab, search, typeFilter]);
 
   // ── Submit form actions ──
   const resetForm = () => {
@@ -1781,6 +2086,11 @@ export default function TicketHubPage({ user }: Props) {
   const handleNewSupplyRequest = () => {
     setTicketType("supply");
     setSupplyModalVisible(true);
+  };
+
+  // Opens the Book a Trip modal directly, same pattern as supply requests.
+  const handleNewTripBooking = () => {
+    setTripModalVisible(true);
   };
 
   const handleCancelSupplyRequest = useCallback(
@@ -2434,8 +2744,142 @@ export default function TicketHubPage({ user }: Props) {
               </TouchableOpacity>
             )}
           </View>
-          
+
+          <TouchableOpacity
+            ref={typeFilterBtnRef}
+            onPress={() => {
+              typeFilterBtnRef.current?.measureInWindow(
+                (x: number, y: number, w: number, h: number) => {
+                  const PANEL_W = 200;
+                  setTypeFilterPos({
+                    top: y + h + 4,
+                    left: Math.min(
+                      Math.max(8, x + w - PANEL_W),
+                      width - PANEL_W - 8,
+                    ),
+                  });
+                  setTypeFilterOpen(true);
+                },
+              );
+            }}
+            activeOpacity={0.7}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: Platform.OS === "ios" ? 9 : 7,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: typeFilter !== "all" ? primary : theme.border,
+              backgroundColor:
+                typeFilter !== "all"
+                  ? primary + "15"
+                  : (theme.surface ?? theme.background),
+            }}
+          >
+            <Filter
+              size={13}
+              color={typeFilter !== "all" ? primary : theme.subtext}
+            />
+            <Text
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 12,
+                color: typeFilter !== "all" ? primary : theme.subtext,
+              }}
+            >
+              {typeFilter === "all" ? "Type" : SOURCE_CONFIG[typeFilter].label}
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {/* ── Type filter dropdown — anchored under the button, not centered ── */}
+        <Modal
+          visible={typeFilterOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setTypeFilterOpen(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setTypeFilterOpen(false)}
+            style={{ flex: 1 }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{
+                position: "absolute",
+                top: typeFilterPos?.top ?? 0,
+                left: typeFilterPos?.left ?? 0,
+                width: 200,
+                backgroundColor: theme.surface ?? theme.background,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: theme.border,
+                overflow: "hidden",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 12,
+                elevation: 8,
+              }}
+            >
+              <View
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.border,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Outfit-medium",
+                    fontSize: 13,
+                    color: theme.textActive ?? theme.text,
+                  }}
+                >
+                  Filter by type
+                </Text>
+              </View>
+              {TYPE_FILTER_OPTIONS.map((opt, i) => {
+                const active = typeFilter === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => {
+                      setTypeFilter(opt.key);
+                      setTypeFilterOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 14,
+                      paddingVertical: 11,
+                      borderBottomWidth:
+                        i < TYPE_FILTER_OPTIONS.length - 1 ? 1 : 0,
+                      borderBottomColor: theme.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: active ? "Outfit-medium" : "Outfit",
+                        fontSize: 13,
+                        color: active ? primary : (theme.textActive ?? theme.text),
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                    {active ? <CheckCircle size={14} color={primary} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         {/* ── Tabs — underline style matching HTML reference ── */}
         <View
@@ -2704,6 +3148,7 @@ export default function TicketHubPage({ user }: Props) {
           {/* Left: new request button + stats */}
           <LeftPanel
             onNewRequest={handleNewSupplyRequest}
+            onNewTrip={handleNewTripBooking}
             counts={counts}
             theme={theme}
             primary={primary}
@@ -2738,6 +3183,18 @@ export default function TicketHubPage({ user }: Props) {
           setSubmittedId(ticketNum);
           setStep(4);
           setSupplyModalVisible(false);
+          load(true);
+        }}
+      />
+
+      <TripBookingModal
+        visible={tripModalVisible}
+        onClose={() => setTripModalVisible(false)}
+        user={user}
+        onSuccess={(tripRef) => {
+          setSubmittedId(tripRef);
+          setStep(4);
+          setTripModalVisible(false);
           load(true);
         }}
       />

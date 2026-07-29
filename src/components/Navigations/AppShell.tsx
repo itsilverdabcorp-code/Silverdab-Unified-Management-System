@@ -22,6 +22,8 @@ import Sidebar from "./Sidebar"; // adjust to your actual saved path
 import MobileNavbar from "./MobileNavbar"; // adjust to your actual saved path
 import AuditTrailPage from "@/app/Modules/it/AuditTrailPage";
 import ConsumablesPage from "@/app/Modules/it/consumables/ConsumablesPage";
+import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPage";
+import DriverPortalPage from "@/app/Modules/tripbooking/DriverPortalPage";
 
 const LAST_PAGE_KEY = "SUMS_LAST_PAGE";
 
@@ -140,6 +142,14 @@ function renderPage(
           description="Supply inventory page is coming soon."
           currentUser={user}
         />
+      );
+    case "fleetadmin":
+      return (
+        <FleetControlTowerPage user={user} />
+      );
+    case "fleetdriver":
+      return (
+        <DriverPortalPage user={user} />
       );
     case "settings":
       return (

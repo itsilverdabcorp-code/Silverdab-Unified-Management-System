@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://darkness-hardness-effects.ngrok-free.dev"; // match your other services
+const BACKEND_URL = "http://10.10.100.112:3000"; // match your other services
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 // Same VAPID public key printed by `npx web-push generate-vapid-keys` on the backend.
@@ -23,7 +23,7 @@ async function getServiceToken(): Promise<string> {
     const res = await fetch(`${BACKEND_URL}/auth/service-token`, {
       headers: {
         "x-internal-secret": INTERNAL_SECRET,
-        "ngrok-skip-browser-warning": "true",
+        
       },
     });
     const data = await res.json();
@@ -67,7 +67,7 @@ export async function setupPushNotifications() {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true",
+        
       },
       body: JSON.stringify({ subscription: subscription.toJSON() }),
     });

@@ -1,7 +1,7 @@
 // Services/auditLog.ts — MySQL implementation
 // Same auth/fetch pattern as your other Services/*.ts files.
 
-const BACKEND_URL = "https://darkness-hardness-effects.ngrok-free.dev";
+const BACKEND_URL = "http://10.10.100.112:3000";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;
@@ -22,7 +22,7 @@ async function getServiceToken(): Promise<string> {
     const res = await fetch(`${BACKEND_URL}/auth/service-token`, {
   headers: {
     "x-internal-secret": INTERNAL_SECRET,
-    "ngrok-skip-browser-warning": "true",
+    
   },
 });
     const data = await readJsonResponse<{ success?: boolean; token?: string }>(res);
@@ -42,7 +42,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   const token = await getServiceToken();
   return {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true",
+    
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }

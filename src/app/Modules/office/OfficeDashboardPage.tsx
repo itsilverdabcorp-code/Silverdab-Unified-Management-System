@@ -434,33 +434,55 @@ function SectionHeader({
 
 function AlertBanner({
   items,
-  pendingCount,
+  requests,
   onViewRequests,
   theme,
   dismissedSignature,
   onDismiss,
 }: {
   items: OfficeInventoryItem[];
-  pendingCount: number;
+  requests: SupplyRequest[];
   onViewRequests?: () => void;
   theme: any;
   dismissedSignature: string | null;
   onDismiss: (signature: string) => void;
 }) {
-  const outOfStockWithPending = items.filter(
-    (i) => i.stockStatus === "out_of_stock",
+  // Only requests that are still awaiting action count as "pending" here.
+  const openRequests = requests.filter(
+    (r) => r.status === "pending" || r.status === "awaiting_stock",
   );
-  if (outOfStockWithPending.length === 0 || pendingCount === 0) return null;
+
+  // For each out-of-stock item, count how many OPEN requests actually
+  // include that item — this is the piece that was missing before. The old
+  // version paired "any out-of-stock item" with "total pending requests
+  // across the whole system", which had no real connection to each other.
+  const outOfStockWithPending = items
+    .filter((i) => i.stockStatus === "out_of_stock")
+    .map((item) => ({
+      item,
+      pendingCount: openRequests.filter((r) =>
+        r.items.some((li) => li.itemId === item.id),
+      ).length,
+    }))
+    .filter((entry) => entry.pendingCount > 0)
+    .sort((a, b) => b.pendingCount - a.pendingCount);
+
+  if (outOfStockWithPending.length === 0) return null;
+
+  const totalPendingForTheseItems = outOfStockWithPending.reduce(
+    (sum, entry) => sum + entry.pendingCount,
+    0,
+  );
 
   const signature =
     outOfStockWithPending
-      .map((i) => i.id)
+      .map((e) => `${e.item.id}:${e.pendingCount}`)
       .sort()
-      .join(",") + `|${pendingCount}`;
+      .join(",");
 
   if (dismissedSignature === signature) return null;
 
-  const firstName = outOfStockWithPending[0].name;
+  const firstName = outOfStockWithPending[0].item.name;
   const extra = outOfStockWithPending.length - 1;
 
   const handleViewRequests = () => {
@@ -490,10 +512,11 @@ function AlertBanner({
         </svg>
         <p className="text-xs text-amber-800">
           <strong>
-            {pendingCount} pending {pendingCount === 1 ? "request" : "requests"}
+            {totalPendingForTheseItems} pending{" "}
+            {totalPendingForTheseItems === 1 ? "request" : "requests"}
           </strong>{" "}
           for <strong>{firstName}</strong>
-          {extra > 0 ? ` and ${extra} other${extra > 1 ? "s" : ""}` : ""} —
+          {extra > 0 ? ` and ${extra} other item${extra > 1 ? "s" : ""}` : ""} —
           stock now out.
         </p>
       </div>
@@ -1036,7 +1059,7 @@ const [activeMobileTab, setActiveMobileTab] =
 
           <AlertBanner
             items={items}
-            pendingCount={kpi.pendingReqs}
+            requests={requests}
             onViewRequests={() => onNavigate?.("supply_requests")}
             theme={theme}
             dismissedSignature={dismissedAlertSignature}

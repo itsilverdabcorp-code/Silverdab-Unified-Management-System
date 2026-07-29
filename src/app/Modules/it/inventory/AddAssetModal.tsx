@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { ITInventory, NewAssetInput } from "../../../../../types";
 import BadgeSelect from "../../../../components/common/BadgeSelect";
@@ -200,6 +200,166 @@ const ThemedSelect: React.FC<{
     >
       {children}
     </select>
+  );
+};
+
+const AssigneeSearchSelect: React.FC<{
+  value: string;
+  displayName: string;
+  options: { label: string; value: string }[];
+  onChange: (value: string, label: string) => void;
+}> = ({ value, displayName, options, onChange }) => {
+  const { theme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const allOptions = [{ label: "—", value: "" }, ...options];
+  const filtered = query
+    ? allOptions.filter((o) =>
+        o.label.toLowerCase().includes(query.toLowerCase()),
+      )
+    : allOptions;
+
+  const openDropdown = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownH = Math.min(200, filtered.length * 28 + 40);
+      const showAbove = spaceBelow < dropdownH && rect.top > dropdownH;
+      setDropdownStyle({
+        position: "fixed",
+        left: rect.left,
+        width: Math.max(rect.width, 140),
+        zIndex: 9999,
+        ...(showAbove
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 }),
+      });
+    }
+    setQuery("");
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={openDropdown}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          padding: "0 8px",
+          height: 32,
+          fontSize: 12,
+          borderRadius: 6,
+          border: `1px solid ${theme.inputBorder}`,
+          backgroundColor: theme.inputBg,
+          color: value ? theme.inputText : theme.subtext,
+          cursor: "pointer",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value ? displayName : "Unassigned"}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            ...dropdownStyle,
+            backgroundColor: theme.surface,
+            border: `1px solid ${theme.border}`,
+            borderRadius: 8,
+            boxShadow: `0 8px 24px ${theme.shadow}`,
+          }}
+        >
+          <input
+            autoFocus
+            type="text"
+            value={query}
+            placeholder="Search..."
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "8px 10px",
+              fontSize: 12,
+              border: "none",
+              borderBottom: `1px solid ${theme.border}`,
+              backgroundColor: theme.surface,
+              color: theme.text,
+              outline: "none",
+            }}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setOpen(false);
+                setQuery("");
+              }
+            }}
+          />
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: "4px 0",
+              maxHeight: 176,
+              overflowY: "auto",
+            }}
+          >
+            {filtered.length === 0 ? (
+              <li
+                style={{ padding: "6px 10px", fontSize: 12, color: theme.subtext }}
+              >
+                No results
+              </li>
+            ) : (
+              filtered.map((o) => (
+                <li
+                  key={o.value}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange(o.value, o.label);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  style={{
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    color: o.value === value ? theme.primary : theme.text,
+                    fontWeight: o.value === value ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme.bgHover)
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                >
+                  {o.label}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -999,14 +1159,22 @@ const AddAssetModal: React.FC<Props> = ({
                           ))}
                         </ThemedSelect>
                       </td>
-                      <td style={{ padding: "4px 4px" }}>
-                        <input
-                          placeholder="Name"
-                          value={row.assigneeName}
-                          onChange={(e) =>
-                            updateRow(row.id, "assigneeName", e.target.value)
-                          }
-                          style={{ ...cellInputStyle(), width: 100 }}
+                      <td style={{ padding: "4px 4px", width: 130 }}>
+                        <AssigneeSearchSelect
+                          value={row.assigneeId}
+                          displayName={row.assigneeName}
+                          options={employees.map((e) => ({
+                            label: e.name,
+                            value: e.id,
+                          }))}
+                          onChange={(id, label) => {
+                            updateRow(row.id, "assigneeId", id);
+                            updateRow(
+                              row.id,
+                              "assigneeName",
+                              label === "—" ? "" : label,
+                            );
+                          }}
                         />
                       </td>
                       <td style={{ padding: "4px 4px" }}>

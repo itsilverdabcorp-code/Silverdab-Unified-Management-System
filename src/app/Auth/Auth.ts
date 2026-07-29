@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ADUser, UserPermissions } from "../../../types";
 
 // Same backend that /users, /users/sync, /auth/login, /auth/verify live on.
-const BACKEND_URL = "https://darkness-hardness-effects.ngrok-free.dev";
+const BACKEND_URL = "http://10.10.100.112:3000";
 
 // Separate from AuthScreen's own "AD_USER_DATA" cache — this is the JWT
 // issued by /auth/login, needed as a Bearer token for every other call.
@@ -42,6 +42,8 @@ function mapRowToPermissions(row: any): UserPermissions {
     consumables: !!row.perm_consumables,
     tickets: !!row.perm_tickets,
     officeSupplies: !!row.perm_office_supplies,
+    fleetControl: !!row.perm_fleet_control,
+    fleetDriver: !!row.perm_fleet_driver,
   };
 }
 async function fetchUserRow(

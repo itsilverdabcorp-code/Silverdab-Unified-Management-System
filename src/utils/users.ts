@@ -15,6 +15,8 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   consumables: false,
   tickets: false,
   officeSupplies: false,
+  fleetControl: false,
+  fleetDriver: false,
 };
 
 async function readJsonResponse<T = any>(res: Response): Promise<T | null> {
@@ -102,6 +104,8 @@ function mapRow(row: any): ADUser & { hasLoggedIn: boolean } {
       consumables: !!row.perm_consumables,
       tickets: !!row.perm_tickets,
       officeSupplies: !!row.perm_office_supplies,
+      fleetControl: !!row.perm_fleet_control,
+      fleetDriver: !!row.perm_fleet_driver,
     },
     hasLoggedIn: !!row.last_login,
   };

@@ -71,6 +71,8 @@ export default function Sidebar({
         user.permissions?.officeSupplies ||
         (user.permissions as any)?.officesupplies,
       ),
+      fleetControl: Boolean(user.permissions?.fleetControl),
+      fleetDriver: Boolean(user.permissions?.fleetDriver),
     },
   };
 
@@ -187,12 +189,12 @@ export default function Sidebar({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: expanded ? "flex-start" : "center", // ← center when collapsed
-          gap: expanded ? 12 : 0, // ← no phantom gap when collapsed
+          gap: expanded ? 8 : 0, // ← no phantom gap when collapsed
           marginHorizontal: 8,
-          marginVertical: 2,
-          paddingHorizontal: expanded ? 12 : 0, // ← full-width tap target, icon centered
-          paddingVertical: 10,
-          borderRadius: 10,
+          marginVertical: 1,
+          paddingHorizontal: expanded ? 10 : 0, // ← full-width tap target, icon centered
+          paddingVertical: 7,
+          borderRadius: 8,
           backgroundColor: isActive
             ? theme.bgActive
             : isHovered
@@ -207,9 +209,9 @@ export default function Sidebar({
               position: "absolute",
               right: 0,
               top: "50%",
-              marginTop: -11,
+              marginTop: -8,
               width: 3,
-              height: 22,
+              height: 16,
               borderTopLeftRadius: 3,
               borderBottomLeftRadius: 3,
               backgroundColor: C.activeBar,
@@ -223,7 +225,7 @@ export default function Sidebar({
             justifyContent: "center",
           }}
         >
-          <Icon color={isActive ? C.iconActive : C.iconInactive} size={23} />
+          <Icon color={isActive ? C.iconActive : C.iconInactive} size={18} />
         </View>
 
         {/* Label now collapses its actual width, not just opacity */}
@@ -240,7 +242,7 @@ export default function Sidebar({
             numberOfLines={1}
             style={{
               fontFamily: isActive ? "Outfit-medium" : "Outfit",
-              fontSize: 15.5,
+              fontSize: 13.5,
               letterSpacing: -0.1,
               color: isActive ? C.textActive : C.textInactive,
               opacity: labelOpacity,
@@ -316,7 +318,7 @@ export default function Sidebar({
         {/* ── Scrollable nav ── */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingVertical: 12 }}
+          contentContainerStyle={{ paddingVertical: 8 }}
           showsVerticalScrollIndicator={false}
         >
           {sections.map((section, sIdx) => (
@@ -325,10 +327,10 @@ export default function Sidebar({
               style={
                 sIdx > 0
                   ? {
-                      marginTop: 8,
+                      marginTop: 6,
                       borderTopWidth: 0.5,
                       borderTopColor: theme.navBorder,
-                      paddingTop: 8,
+                      paddingTop: 6,
                     }
                   : undefined
               }

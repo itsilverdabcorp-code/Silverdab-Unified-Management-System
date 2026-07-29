@@ -296,6 +296,7 @@ export default function UsersPage({ currentUser }: Props) {
   }[] = [
     { key: "itAccess", label: "IT Access" },
     { key: "officeSupplies", label: "Office Supplies" },
+    { key: "fleetControl", label: "Fleet Control Tower" },
   ];
 
   const [roleFilter, setRoleFilter] = useState<
@@ -909,7 +910,9 @@ export default function UsersPage({ currentUser }: Props) {
               {permissionUser.displayName} · {permissionUser.username}
             </Text>
 
-            {(["itAccess", "officeSupplies"] as const).map((key) => {
+            {(
+              ["itAccess", "officeSupplies", "fleetControl"] as const
+            ).map((key) => {
               const labels: Record<
                 string,
                 { label: string; description: string }
@@ -923,6 +926,11 @@ export default function UsersPage({ currentUser }: Props) {
                   label: "Office Supplies",
                   description:
                     "Shows full Office Supplies section in the sidebar",
+                 },
+                fleetControl: {
+                  label: "Fleet Control Tower",
+                  description:
+                    "Dispatch access — approve trip requests, assign vehicles and drivers, manage fleet roster",
                 },
               };
               const granted = permissionUser.permissions?.[key] ?? false;

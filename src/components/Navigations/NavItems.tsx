@@ -318,6 +318,58 @@ export const SuppliesIcon: React.FC<{ color: string; size?: number }> = ({
   </Svg>
 );
 
+// ─── Fleet Ops icons ──────────────────────────────────────────────────────────
+
+export const FleetControlIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Rect
+      x="2"
+      y="13"
+      width="20"
+      height="6"
+      rx="1.5"
+      stroke={color}
+      strokeWidth="2"
+    />
+    <Circle cx="7" cy="19" r="1.6" fill={color} />
+    <Circle cx="17" cy="19" r="1.6" fill={color} />
+  </Svg>
+);
+
+export const FleetDriverIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="6"
+      y="2"
+      width="12"
+      height="20"
+      rx="2.5"
+      stroke={color}
+      strokeWidth="2"
+    />
+    <Path
+      d="M9 6h6"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Circle cx="12" cy="14" r="1.4" fill={color} />
+  </Svg>
+);
+
 // ─── Audit Trail icon ─────────────────────────────────────────────────────────
 
 export const AuditIcon: React.FC<{ color: string; size?: number }> = ({
@@ -533,6 +585,8 @@ const ROUTE_BY_KEY: Record<string, string> = {
   mytickets: "/my-tickets",
   supplyinventory: "/supply-inventory",
   settings: "/settings",
+  fleetadmin: "/fleet/control-tower",
+  fleetdriver: "/fleet/driver-view",
 };
 
 function href(key: string): string {
@@ -631,6 +685,23 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
       ],
     },
     {
+      sectionLabel: "Fleet Management",
+      items: [
+        {
+          key: "fleetadmin",
+          label: "Control Tower",
+          icon: FleetControlIcon,
+          href: href("fleetadmin"),
+        },
+        {
+          key: "fleetdriver",
+          label: "Driver View",
+          icon: FleetDriverIcon,
+          href: href("fleetdriver"),
+        },
+      ],
+    },
+    {
       sectionLabel: "Employee",
       items: [
         // {
@@ -723,6 +794,23 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
         },
       ],
     },
+    {
+      sectionLabel: "Fleet Management",
+      items: [
+        {
+          key: "fleetadmin",
+          label: "Control Tower",
+          icon: FleetControlIcon,
+          href: href("fleetadmin"),
+        },
+        {
+          key: "fleetdriver",
+          label: "Driver View",
+          icon: FleetDriverIcon,
+          href: href("fleetdriver"),
+        },
+      ],
+    },
   ],
   employee: [
     {
@@ -774,6 +862,8 @@ export function getNavSectionsForUser(user: {
     tickets?: boolean;
     officeSupplies?: boolean;
     officesupplies?: boolean;
+    fleetControl?: boolean;
+    fleetDriver?: boolean;
   };
 }): NavSection[] {
   const normalizedRole = normalizeRole(user.role);
@@ -861,6 +951,30 @@ export function getNavSectionsForUser(user: {
 
     if (officeItems.length > 0)
       sections.push({ sectionLabel: "Office Supplies", items: officeItems });
+
+   const fleetItems: NavItem[] = [];
+
+    if (user.permissions?.fleetControl) {
+      fleetItems.push({
+        key: "fleetadmin",
+        label: "Control Tower",
+        icon: FleetControlIcon,
+        href: href("fleetadmin"),
+      });
+    }
+
+    if (user.permissions?.fleetDriver) {
+      fleetItems.push({
+        key: "fleetdriver",
+        label: "Driver View",
+        icon: FleetDriverIcon,
+        href: href("fleetdriver"),
+      });
+    }
+
+    if (fleetItems.length > 0) {
+      sections.push({ sectionLabel: "Fleet Management", items: fleetItems });
+    }
 
     return sections;
   }

@@ -27,7 +27,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ADUser, ConcernTicket } from "../../types";
 
-const BACKEND_URL = "https://darkness-hardness-effects.ngrok-free.dev";
+const BACKEND_URL = "http://10.10.100.112:3000";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;
@@ -51,7 +51,7 @@ async function getServiceToken(): Promise<string> {
     const res = await fetch(`${BACKEND_URL}/auth/service-token`, {
   headers: {
     "x-internal-secret": INTERNAL_SECRET,
-    "ngrok-skip-browser-warning": "true",
+    
   },
 });
     const data = await readJsonResponse<{
@@ -78,7 +78,7 @@ async function authHeaders(json = true): Promise<Record<string, string>> {
   const token = await getServiceToken();
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
-    "ngrok-skip-browser-warning": "true",
+    
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
@@ -157,7 +157,7 @@ export const getAllTickets = async (): Promise<ConcernTicket[]> => {
     const res = await fetch(`${BACKEND_URL}/tickets`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true",
+        
       },
     });
     const data = await readJsonResponse<{
@@ -192,7 +192,7 @@ export const getTicketsByRequester = async (
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true",
+          
         },
       },
     );

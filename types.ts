@@ -1,11 +1,13 @@
-export type UserRole = 'employee' | 'admin' | 'superadmin';
+export type UserRole = "employee" | "admin" | "superadmin";
 
 export type UserPermissions = {
-  itAccess: boolean;
-  itInventory: boolean;
-  consumables: boolean;
-  tickets: boolean;
-  officeSupplies: boolean;
+  itAccess?: boolean;
+  itInventory?: boolean;
+  consumables?: boolean;
+  tickets?: boolean;
+  officeSupplies?: boolean;
+  fleetControl?: boolean; // Fleet Control Tower — dispatch/admin
+  fleetDriver?: boolean; // Fleet Driver View — assigned drivers
 };
 
 export type ADUser = {
@@ -18,8 +20,6 @@ export type ADUser = {
   role: UserRole;
   permissions: UserPermissions;
 };
-
-
 
 export interface ConcernTicket {
   id: string;
@@ -183,9 +183,18 @@ export type SupplyRequest = {
 };
 export type ITStatus = "Deployed" | "Spare" | "Defective";
 export type ITCategory =
-  | "Laptop" | "Monitor" | "Desktop" | "UPS" | "Network Device" | "Server";
+  | "Laptop"
+  | "Monitor"
+  | "Desktop"
+  | "UPS"
+  | "Network Device"
+  | "Server";
 export type ITLocation =
-  | "Unit 1 & 2" | "Unit 3" | "BDO Makati" | "Triumph" | "WFH";
+  | "Unit 1 & 2"
+  | "Unit 3"
+  | "BDO Makati"
+  | "Triumph"
+  | "WFH";
 
 export interface ITInventory {
   assetTag: string;
@@ -205,25 +214,127 @@ export interface ITInventory {
 }
 
 export type NewAssetInput = Omit<ITInventory, "createdAt" | "updatedAt">;
-export type EditAssetInput = Omit<ITInventory, "assetTag" | "createdAt" | "updatedAt">;
-
+export type EditAssetInput = Omit<
+  ITInventory,
+  "assetTag" | "createdAt" | "updatedAt"
+>;
 
 // ─── Add or replace ITConsumable in your types.ts ────────────────────────────
 
 export interface ITConsumable {
-  id:             string;
-  name:           string;
-  model:          string;
-  status:         "Spare" | "Deployed" | "Defective";
-  location:       "Unit 1 & 2" | "Unit 3" | "BDO Makati" | "Triumph" | "WFH";
-  ipAddress:      string;
-  macAddress:     string;
-  black:          number;
-  photoBlack:     number;
-  cyan:           number;
-  magenta:        number;
-  yellow:         number;
+  id: string;
+  name: string;
+  model: string;
+  status: "Spare" | "Deployed" | "Defective";
+  location: "Unit 1 & 2" | "Unit 3" | "BDO Makati" | "Triumph" | "WFH";
+  ipAddress: string;
+  macAddress: string;
+  black: number;
+  photoBlack: number;
+  cyan: number;
+  magenta: number;
+  yellow: number;
   maintenanceBox: number;
-  createdAt?:     any;
-  updatedAt?:     any;
+  createdAt?: any;
+  updatedAt?: any;
 }
+
+// ─── Fleet Ops types — paste into your shared types.ts ─────────────────────
+
+export type TripStatus =
+  | "pending"
+  | "approved"
+  | "ongoing"
+  | "arrived"
+  | "returning"
+  | "completed"
+  | "cancelled"
+  | "rejected";
+
+export type VehicleStatus =
+  | "idle"
+  | "active"
+  | "maintenance"
+  | "personal"
+  | "off_duty";
+
+export type VehicleType = "sedan" | "van" | "suv" | "truck";
+
+export type FleetTripStatusLogEntry = {
+  status: TripStatus;
+  vehicleId?: string | null;
+  vehiclePlate?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  note?: string | null;
+  changedByName?: string | null;
+  timestamp: string; // created_at
+};
+export type FleetTrip = {
+  id: string;
+  tripRef: string;
+  requestorId: string;
+  requestorName: string;
+  pickupLocationId?: string | null;
+  pickupLabel: string;
+  dropoffLocationId?: string | null;
+  dropoffLabel: string;
+  tripType: "oneway" | "roundtrip";
+  departureDatetime: string; // ISO
+  returnDatetime?: string | null;
+  purpose?: string;
+  passengerCount: number;
+  vehicleId?: string | null;
+  vehiclePlate?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  status: TripStatus;
+  rejectedReason?: string | null;
+  approvedByName?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  statusHistory?: FleetTripStatusLogEntry[];
+};
+
+export type FleetVehicle = {
+  id: string;
+  plateNumber: string;
+  type: VehicleType;
+  model: string;
+  seatingCapacity: number;
+  status: VehicleStatus;
+  currentTripLabel?: string | null;
+  assignedDriverId?: string | null;
+  assignedDriverName?: string | null;
+  lastPingAt?: string | null;
+};
+
+export type DriverDutyStatus = "off_duty" | "active" | "personal";
+
+export type FleetDriver = {
+  id: string;
+  userId: string;
+  name: string;
+  licenseNumber?: string | null;
+  contactNumber?: string | null;
+  vehicleId?: string | null;
+  vehiclePlate?: string | null;
+  dutyStatus: DriverDutyStatus;
+};
+
+export type FleetLocation = {
+  id: string;
+  name: string;
+  shortLabel: string;
+};
+
+export type FleetLiveLocation = {
+  vehicleId: string;
+  plateNumber: string;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  heading: number | null;
+  reportedAt: string;
+};
