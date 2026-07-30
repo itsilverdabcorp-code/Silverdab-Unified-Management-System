@@ -410,6 +410,7 @@ type LeftPanelProps = {
   theme: any;
   primary: string;
   isMobile: boolean;
+  canBookTrip: boolean;
 };
 
 function LeftPanel({
@@ -419,8 +420,8 @@ function LeftPanel({
   theme,
   primary,
   isMobile,
-}: LeftPanelProps) {
-  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(null);
+  canBookTrip,
+}: LeftPanelProps) {  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(null);
   const hoverHandlers = (key: "supplies" | "trip") =>
     Platform.OS === "web"
       ? {
@@ -514,46 +515,48 @@ function LeftPanel({
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={onNewTrip}
-            activeOpacity={0.8}
-            {...hoverHandlers("trip")}
-            style={{
-              backgroundColor: primary,
-              borderRadius: 8,
-              paddingVertical: 12,
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 8,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {hoveredBtn === "trip" && (
-              <View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                }}
-              />
-            )}
-            <Car size={14} color="#fff" />
-            <Text
+           {canBookTrip && (
+            <TouchableOpacity
+              onPress={onNewTrip}
+              activeOpacity={0.8}
+              {...hoverHandlers("trip")}
               style={{
-                fontFamily: "Outfit-medium",
-                fontSize: 13,
-                color: "#fff",
+                backgroundColor: primary,
+                borderRadius: 8,
+                paddingVertical: 12,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                position: "relative",
+                overflow: "hidden",
               }}
             >
-              Book a Trip
-            </Text>
-          </TouchableOpacity>
+              {hoveredBtn === "trip" && (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                  }}
+                />
+              )}
+              <Car size={14} color="#fff" />
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#fff",
+                }}
+              >
+                Book a Trip
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -1954,10 +1957,11 @@ function StepBar({
 type Props = { user: ADUser };
 
 export default function TicketHubPage({ user }: Props) {
-  const { theme } = useTheme();
+ const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const canBookTrip = user.role === "admin" || user.role === "superadmin";
 
   // ── Ticket list state ──
   const [unified, setUnified] = useState<UnifiedTicket[]>([]);
@@ -3153,6 +3157,7 @@ export default function TicketHubPage({ user }: Props) {
             theme={theme}
             primary={primary}
             isMobile={isMobile}
+            canBookTrip={canBookTrip}
           />
 
           {/* Right: ticket list or HR form */}
