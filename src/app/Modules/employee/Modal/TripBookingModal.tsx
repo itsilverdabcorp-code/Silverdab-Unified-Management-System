@@ -14,6 +14,7 @@ import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser } from "../../../../../types";
 import { submitTripRequest, getAllFleetLocations } from "../../../../services/fleetOps";
 import { FleetLocation } from "../../../../../types";
+import FleetLocationPickerMap from "../../tripbooking/FleetLocationPickerMap";
 
 type TripType = "oneway" | "roundtrip";
 
@@ -209,6 +210,16 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   const [dropoffText, setDropoffText] = useState("");
   const [dropoffLocationId, setDropoffLocationId] = useState<string | null>(null);
 
+  // Map pin state — populated automatically when a preset is picked from
+  // the dropdown (flies the map to that preset's coords), or set directly
+  // by tapping/searching the map when no preset matches what was typed.
+  // activeMapField controls which side's pin the shared map below is
+  // currently showing/editing.
+  type PickedPoint = { latitude: number; longitude: number };
+  const [pickupPoint, setPickupPoint] = useState<PickedPoint | null>(null);
+  const [dropoffPoint, setDropoffPoint] = useState<PickedPoint | null>(null);
+  const [activeMapField, setActiveMapField] = useState<"pickup" | "dropoff">("pickup");
+
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
@@ -288,6 +299,9 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setPickupLocationId(null);
     setDropoffText("");
     setDropoffLocationId(null);
+    setPickupPoint(null);
+    setDropoffPoint(null);
+    setActiveMapField("pickup");
     setTripType("roundtrip");
     setDepartureDate("");
     setDepartureTime("");
@@ -324,6 +338,10 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     }
     if (tripType === "roundtrip" && (!returnDate.trim() || !returnTime.trim())) {
       setError("Estimated return date and time are required for a round trip.");
+      return;
+    }
+    if (!purpose.trim()) {
+      setError("Purpose / remarks is required.");
       return;
     }
 
@@ -567,11 +585,22 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                     webInputStyle={webInputStyle}
                     onTextChange={(t) => {
                       setPickupText(t);
+                      // Only drop the pin if it was tied to a preset — a
+                      // manually-placed custom pin should survive further
+                      // typing (e.g. fixing a typo in the label).
+                      if (pickupLocationId) setPickupPoint(null);
                       setPickupLocationId(null);
+                      setActiveMapField("pickup");
                     }}
                     onSelect={(loc) => {
                       setPickupText(loc.name);
                       setPickupLocationId(loc.id);
+                      setActiveMapField("pickup");
+                      setPickupPoint(
+                        loc.latitude != null && loc.longitude != null
+                          ? { latitude: loc.latitude, longitude: loc.longitude }
+                          : null,
+                      );
                     }}
                   />
                 </Field>
@@ -587,11 +616,19 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                     webInputStyle={webInputStyle}
                     onTextChange={(t) => {
                       setDropoffText(t);
+                      if (dropoffLocationId) setDropoffPoint(null);
                       setDropoffLocationId(null);
+                      setActiveMapField("dropoff");
                     }}
                     onSelect={(loc) => {
                       setDropoffText(loc.name);
                       setDropoffLocationId(loc.id);
+                      setActiveMapField("dropoff");
+                      setDropoffPoint(
+                        loc.latitude != null && loc.longitude != null
+                          ? { latitude: loc.latitude, longitude: loc.longitude }
+                          : null,
+                      );
                     }}
                   />
                 </Field>
@@ -631,6 +668,114 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 </Text>
               </View>
             )}
+
+            {/* Pickup / Drop-off pin map — reuses the same click-to-pin +
+                address-search map the admin's Add Location modal uses, so
+                the requestor can see exactly where a selected preset sits,
+                or drop/search a custom pin when the location they need
+                isn't in the list. Tabs switch which side's pin the map is
+                currently editing; existing presets always show as grey
+                reference dots so a custom pin doesn't duplicate one by
+                accident. */}
+            <Field label="Confirm location on map" theme={theme}>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+                {(["pickup", "dropoff"] as const).map((key) => {
+                  const active = activeMapField === key;
+                  const hasPin = key === "pickup" ? !!pickupPoint : !!dropoffPoint;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => setActiveMapField(key)}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 1,
+                        borderRadius: 8,
+                        paddingVertical: 8,
+                        alignItems: "center",
+                        backgroundColor: active ? primary : theme.background,
+                        borderWidth: 1.5,
+                        borderColor: active ? primary : theme.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 11.5,
+                          color: active ? "#fff" : theme.subtext,
+                        }}
+                      >
+                        {key === "pickup" ? "Pickup pin" : "Drop-off pin"}
+                        {hasPin ? " ✓" : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <FleetLocationPickerMap
+                presets={locations}
+                value={activeMapField === "pickup" ? pickupPoint : dropoffPoint}
+                onPick={(pt) => {
+                  if (activeMapField === "pickup") {
+                    setPickupPoint(pt);
+                    setPickupLocationId(null);
+                  } else {
+                    setDropoffPoint(pt);
+                    setDropoffLocationId(null);
+                  }
+                }}
+                theme={theme}
+                height={200}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Outfit",
+                    fontSize: 11,
+                    color: theme.subtext,
+                    flex: 1,
+                    marginRight: 8,
+                  }}
+                >
+                  {activeMapField === "pickup"
+                    ? pickupPoint
+                      ? `Pickup pin: ${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`
+                      : "Tap the map, search, or pick a preset above to set the pickup pin."
+                    : dropoffPoint
+                      ? `Drop-off pin: ${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`
+                      : "Tap the map, search, or pick a preset above to set the drop-off pin."}
+                </Text>
+                {((activeMapField === "pickup" && pickupPoint) ||
+                  (activeMapField === "dropoff" && dropoffPoint)) && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      activeMapField === "pickup"
+                        ? setPickupPoint(null)
+                        : setDropoffPoint(null)
+                    }
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 11,
+                        color: theme.subtext,
+                        textDecorationLine: "underline",
+                      }}
+                    >
+                      Clear pin
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Field>
 
             {/* Trip type */}
             <Field label="Trip type" theme={theme}>
@@ -769,7 +914,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
             )}
 
             {/* Purpose */}
-            <Field label="Purpose / remarks" theme={theme}>
+            <Field label="Purpose / remarks" required theme={theme}>
               <TextInput
                 style={[inputStyle, { height: 70, textAlignVertical: "top" }]}
                 placeholder="e.g. Client visit — pick up 2 delegates from airport arrival"

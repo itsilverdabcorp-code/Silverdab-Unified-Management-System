@@ -7,7 +7,6 @@ const BACKEND_URL = "http://10.10.100.112:3000";
 // Separate from AuthScreen's own "AD_USER_DATA" cache — this is the JWT
 // issued by /auth/login, needed as a Bearer token for every other call.
 const TOKEN_KEY = "AD_AUTH_TOKEN";
-const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
 type BackendRole = "superadmin" | "admin" | "employee";
 
 type LoginApiResponse = {
@@ -54,7 +53,6 @@ async function fetchUserRow(
     const res = await fetch(`${BACKEND_URL}/users`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        ...NGROK_HEADERS,
       },
     });
     const data = await res.json();
@@ -87,12 +85,11 @@ async function fetchPermissions(
   token: string,
 ): Promise<UserPermissions> {
   try {
-   const res = await fetch(`${BACKEND_URL}/users`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-    ...NGROK_HEADERS,
-  },
-});
+    const res = await fetch(`${BACKEND_URL}/users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const data = await res.json();
     if (!data.success) return DEFAULT_PERMISSIONS;
 
@@ -114,14 +111,13 @@ async function syncUser(
 ): Promise<void> {
   try {
     await fetch(`${BACKEND_URL}/users/sync`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-    ...NGROK_HEADERS,
-  },
-  body: JSON.stringify({ users: [user], resetRoles: false }),
-});
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ users: [user], resetRoles: false }),
+    });
   } catch (err) {
     // Non-fatal — login can still proceed with default permissions.
     console.error("User sync error:", err);
@@ -142,7 +138,6 @@ export async function authenticateWithAD(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...NGROK_HEADERS,
       },
       body: JSON.stringify({ username, password }),
     });
@@ -194,12 +189,11 @@ export async function refreshADSession(user: ADUser): Promise<ADUser> {
   const token = await getToken();
   if (!token) throw new Error("No active session.");
 
- const verifyRes = await fetch(`${BACKEND_URL}/auth/verify`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-    ...NGROK_HEADERS,
-  },
-});
+  const verifyRes = await fetch(`${BACKEND_URL}/auth/verify`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   const verifyData = await verifyRes.json();
   if (!verifyData.success) throw new Error("Session expired.");
 

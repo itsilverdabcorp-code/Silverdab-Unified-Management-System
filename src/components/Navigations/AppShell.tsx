@@ -24,6 +24,7 @@ import AuditTrailPage from "@/app/Modules/it/AuditTrailPage";
 import ConsumablesPage from "@/app/Modules/it/consumables/ConsumablesPage";
 import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPage";
 import DriverPortalPage from "@/app/Modules/tripbooking/DriverPortalPage";
+import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPages";
 
 const LAST_PAGE_KEY = "SUMS_LAST_PAGE";
 
@@ -146,6 +147,10 @@ function renderPage(
     case "fleetadmin":
       return (
         <FleetControlTowerPage user={user} />
+      );
+    case "fleettrips":
+      return (
+        <FleetAllTripsPage user={user} />
       );
     case "fleetdriver":
       return (

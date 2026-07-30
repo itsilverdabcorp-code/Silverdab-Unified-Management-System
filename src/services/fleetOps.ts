@@ -159,7 +159,12 @@ function mapDriverRow(row: any): FleetDriver {
 }
 
 function mapLocationRow(row: any): FleetLocation {
-  return { id: row.id, name: row.name, shortLabel: row.shortLabel };
+  return {
+    id: row.id,
+    name: row.name,
+    latitude: row.latitude != null ? Number(row.latitude) : null,
+    longitude: row.longitude != null ? Number(row.longitude) : null,
+  };
 }
 
 export async function startFleetTrip(tripId: string): Promise<void> {
@@ -188,6 +193,26 @@ export async function updateFleetVehicle(
   const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update vehicle.");
+  }
+}
+
+export async function updateFleetLocation(
+  locationId: string,
+  payload: Partial<{
+    name: string;
+    shortLabel: string;
+    latitude: number | null;
+    longitude: number | null;
+  }>,
+): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/fleet/locations/${encodeURIComponent(locationId)}`, {
+    method: "PATCH",
+    headers: await authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to update location.");
   }
 }
 
@@ -467,7 +492,8 @@ export async function createFleetDriver(payload: {
 
 export async function createFleetLocation(payload: {
   name: string;
-  shortLabel: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }): Promise<void> {
   const res = await fetch(`${BACKEND_URL}/fleet/locations`, {
     method: "POST",
@@ -523,7 +549,7 @@ export async function rejectFleetTrip(
   const res = await fetch(
     `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/reject`,
     {
-      method: "PATCH",
+      method: "POST",
       headers: await authHeaders(),
       body: JSON.stringify({
         reason,

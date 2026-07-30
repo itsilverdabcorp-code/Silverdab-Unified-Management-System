@@ -326,7 +326,8 @@ export type FleetDriver = {
 export type FleetLocation = {
   id: string;
   name: string;
-  shortLabel: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type FleetLiveLocation = {

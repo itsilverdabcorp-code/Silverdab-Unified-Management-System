@@ -20,6 +20,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "../../../theme/ThemeContext";
 import FleetLiveMap from "./FleetLiveMap";
+import FleetLocationPickerMap from "./FleetLocationPickerMap";
 import {
   getAllFleetTrips,
   getAllFleetVehicles,
@@ -37,6 +38,7 @@ import {
   deleteFleetVehicle,
   updateFleetDriver,
   deleteFleetDriver,
+  updateFleetLocation,
   deleteFleetLocation,
 } from "../../../services/fleetOps";
 import {
@@ -84,16 +86,7 @@ function isToday(iso?: string | null): boolean {
   );
 }
 
-// Completed trips should sort by when they actually finished, not when they
-// were originally scheduled to depart. fleet_trips.updated_at gets stamped
-// with NOW() at the moment a trip is marked completed (see POST
-// /fleet/trips/:id/complete in server.js), so it doubles as a reliable
-// "completed at" timestamp even though there's no dedicated column for it.
-function getTripSortDate(trip: FleetTrip): string {
-  return trip.status === "completed"
-    ? trip.updatedAt || trip.departureDatetime
-    : trip.departureDatetime;
-}
+
 
 function getInitials(name: string): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -204,19 +197,7 @@ const FILTER_TABS: { key: "all" | TripStatus; label: string }[] = [
   { key: "returning", label: "Returning" },
 ];
 
-// Filter tabs for the "All trips" log — adds terminal statuses
-// (completed/cancelled/rejected) that FILTER_TABS above omits.
-const ALL_TRIPS_FILTER_TABS: { key: "all" | TripStatus; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved" },
-  { key: "ongoing", label: "Ongoing" },
-  { key: "arrived", label: "Arrived" },
-  { key: "returning", label: "Returning" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
-  { key: "rejected", label: "Rejected" },
-];
+
 
 // ─── KPI card (stacked variant — full width within its column) ───────────────
 
@@ -325,14 +306,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
 
   const [statusFilter, setStatusFilter] = useState<"all" | TripStatus>("all");
 
-  // Bottom-of-page tabs: Fleet management (vehicles/drivers/locations)
-  // and All trips (full trip log), mirroring the HTML prototype's subtab
-  // toggle below the Trip Requests panel.
-  const [adminSubtab, setAdminSubtab] = useState<"fleet" | "trips">("fleet");
-  const [allTripsFilter, setAllTripsFilter] = useState<"all" | TripStatus>(
-    "all",
-  );
-  const [allTripsSearch, setAllTripsSearch] = useState("");
+  
 
   // Pending-row assignment drafts, keyed by trip id — lets dispatch pick a
   // vehicle/driver before hitting Approve without touching global state.
@@ -410,12 +384,27 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     null,
   );
   const [locationDeleteError, setLocationDeleteError] = useState("");
-  const [addLocationForm, setAddLocationForm] = useState({
+  const [addLocationForm, setAddLocationForm] = useState<{
+    name: string;
+    latitude: number | null;
+    longitude: number | null;
+  }>({
     name: "",
-    shortLabel: "",
+    latitude: null,
+    longitude: null,
   });
   const [addLocationError, setAddLocationError] = useState("");
   const [addLocationSubmitting, setAddLocationSubmitting] = useState(false);
+
+  const [editingLocation, setEditingLocation] = useState<FleetLocation | null>(null);
+  const [editLocationForm, setEditLocationForm] = useState<{
+    name: string;
+    latitude: number | null;
+    longitude: number | null;
+  }>({ name: "", latitude: null, longitude: null });
+  const [editLocationError, setEditLocationError] = useState("");
+  const [editLocationSubmitting, setEditLocationSubmitting] = useState(false);
+  const [confirmDeleteLocation, setConfirmDeleteLocation] = useState(false);
 
   const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(
     null,
@@ -477,7 +466,11 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
 
   const kpi = useMemo(() => {
     const tripsToday = trips.filter((t) => isToday(t.departureDatetime)).length;
-    const vehiclesOnTrip = vehicles.filter((v) => v.status === "active").length;
+    // Driven by the booked trip's own status, not vehicle.status (which
+    // reflects Tramigo/GPS state) — a vehicle can be physically moving
+    // without an ongoing booked trip attached to it, and that shouldn't
+    // count here.
+    const vehiclesOnTrip = trips.filter((t) => t.status === "ongoing").length;
     const pendingApproval = trips.filter((t) => t.status === "pending").length;
     const underMaintenance = vehicles.filter(
       (v) => v.status === "maintenance",
@@ -566,10 +559,13 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
   );
 
   // Drivers get linked to a vehicle (fleet_drivers.vehicle_id) as soon as a
-  // trip is *approved* — not just when it starts — so the Driver Portal's
-  // duty-status selector is available early. But the admin badge below
-  // should still read "Available" until the driver has actually tapped
-  // Start Trip, so track who's genuinely mid-trip separately.
+  // trip is *approved*, but the admin badge should only flip to "on trip"
+  // once the driver actually taps Start Trip (status -> ongoing) — an
+  // approved-but-not-started trip still shows the driver's own duty status.
+  // This is driven entirely by the booked trip's own status, not by
+  // vehicle.status (which reflects Tramigo/GPS state), and stays "on trip"
+  // through arrived/returning until the trip is completed (or
+  // cancelled/rejected, which also frees the driver up).
   const ON_TRIP_STATUSES: TripStatus[] = ["ongoing", "arrived", "returning"];
   const onTripDriverUserIds = useMemo(
     () =>
@@ -582,30 +578,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     [trips],
   );
 
-  // All-trips log (bottom tab) — every trip regardless of status, newest first.
-  const filteredAllTrips = useMemo(() => {
-    let result = trips;
-    if (allTripsFilter !== "all")
-      result = result.filter((t) => t.status === allTripsFilter);
-    const q = allTripsSearch.trim().toLowerCase();
-    if (q) {
-      result = result.filter((t) =>
-        [t.pickupLabel, t.dropoffLabel, t.requestorName, t.vehiclePlate, t.driverName, t.tripRef, t.purpose]
-          .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(q)),
-      );
-    }
-    return [...result].sort((a, b) => {
-      const aTime = new Date(getTripSortDate(a)).getTime();
-      const bTime = new Date(getTripSortDate(b)).getTime();
-      const aValid = !isNaN(aTime);
-      const bValid = !isNaN(bTime);
-      if (!aValid && !bValid) return 0;
-      if (!aValid) return 1; // invalid dates sink to the bottom
-      if (!bValid) return -1;
-      return bTime - aTime; // recent → oldest
-    });
-  }, [trips, allTripsFilter, allTripsSearch]);
+  
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -876,9 +849,64 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     }
   }
 
+  function openEditLocation(l: FleetLocation) {
+    setEditingLocation(l);
+    setEditLocationForm({
+      name: l.name,
+      latitude: l.latitude ?? null,
+      longitude: l.longitude ?? null,
+    });
+    setEditLocationError("");
+    setConfirmDeleteLocation(false);
+  }
+
+  async function handleUpdateLocation() {
+    if (!editingLocation) return;
+    if (!editLocationForm.name.trim()) {
+      setEditLocationError("Name is required.");
+      return;
+    }
+    setEditLocationSubmitting(true);
+    setEditLocationError("");
+    try {
+      await updateFleetLocation(editingLocation.id, {
+        name: editLocationForm.name.trim(),
+        latitude: editLocationForm.latitude,
+        longitude: editLocationForm.longitude,
+      });
+      setEditingLocation(null);
+      await loadAll();
+    } catch (err) {
+      console.error("Update location failed:", err);
+      setEditLocationError(
+        err instanceof Error ? err.message : "Failed to update location.",
+      );
+    } finally {
+      setEditLocationSubmitting(false);
+    }
+  }
+
+  async function handleDeleteLocationFromEdit() {
+    if (!editingLocation) return;
+    setEditLocationSubmitting(true);
+    setEditLocationError("");
+    try {
+      await deleteFleetLocation(editingLocation.id);
+      setEditingLocation(null);
+      await loadAll();
+    } catch (err) {
+      console.error("Delete location failed:", err);
+      setEditLocationError(
+        err instanceof Error ? err.message : "Failed to delete location.",
+      );
+    } finally {
+      setEditLocationSubmitting(false);
+    }
+  }
+
   async function handleAddLocation() {
-    if (!addLocationForm.name.trim() || !addLocationForm.shortLabel.trim()) {
-      setAddLocationError("Name and short label are required.");
+    if (!addLocationForm.name.trim()) {
+      setAddLocationError("Name is required.");
       return;
     }
     setAddLocationSubmitting(true);
@@ -886,10 +914,11 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     try {
       await createFleetLocation({
         name: addLocationForm.name.trim(),
-        shortLabel: addLocationForm.shortLabel.trim(),
+        latitude: addLocationForm.latitude,
+        longitude: addLocationForm.longitude,
       });
       setAddLocationOpen(false);
-      setAddLocationForm({ name: "", shortLabel: "" });
+      setAddLocationForm({ name: "", latitude: null, longitude: null });
       await loadAll();
     } catch (err) {
       console.error("Add location failed:", err);
@@ -974,292 +1003,35 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
           </button>
         </div>
 
-        {/* ── KPI row — 1 row × 4 columns ── */}
-        <div className="grid gap-2.5 mb-4" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-          <StackedKpiCard
-            icon={
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-            }
-            label="Trips today"
-            value={kpi.tripsToday}
-            sub="Departing or returning today"
-            theme={theme}
-          />
-          <StackedKpiCard
-            icon={
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 17h14M5 17a2 2 0 1 0 4 0M5 17a2 2 0 1 1 4 0m6 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0M3 17V9l2-5h10l4 5v8" />
-              </svg>
-            }
-            label="Vehicles on trip"
-            value={kpi.vehiclesOnTrip}
-            sub={`Of ${vehicles.length} in fleet`}
-            valueColor="#16a34a"
-            onClick={() => onNavigate?.("fleet_vehicles")}
-            theme={theme}
-          />
-          <StackedKpiCard
-            icon={
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4l3 2" />
-              </svg>
-            }
-            label="Pending approval"
-            value={kpi.pendingApproval}
-            sub="Needs vehicle & driver"
-            valueColor="#d97706"
-            onClick={() => setStatusFilter("pending")}
-            theme={theme}
-          />
-          <StackedKpiCard
-            icon={
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#ef4444"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-            }
-            label="Under maintenance"
-            value={kpi.underMaintenance}
-            sub="Unavailable for dispatch"
-            valueColor="#dc2626"
-            onClick={() => onNavigate?.("fleet_vehicles")}
-            theme={theme}
-          />
-        </div>
-
-        {/* ── 2-column layout: Live Fleet Map (col 1) · Trip Requests (col 2) ── */}
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-          {/* Column 1 — Live Fleet Map */}
-         <div style={{ height: 450 }} className="w-full lg:flex-1 min-w-0 overflow-hidden rounded-xl">
-            <FleetLiveMap focusVehicle={focusVehicle} vehicles={vehicles} theme={theme} />
-          </div>
-
-          {/* Column 2 — Trip Requests panel */}
-          <div
-            style={{
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              height: 450,
-              minHeight: 450,
-            }}
-            className="rounded-xl border flex-1 min-w-0 w-full flex flex-col"
-          >
-            {" "}
-            <div className="px-4 pt-4 pb-3">
-              <h2
-                style={{ color: theme.text }}
-                className="text-sm font-semibold"
-              >
-                Trip Requests
-              </h2>
-              <p
-                style={{ color: theme.subtext }}
-                className="text-[11px] mt-0.5"
-              >
-                Assign a vehicle &amp; driver to approve. Requests stay listed
-                here through the full trip until completed.
-              </p>
-            </div>
-            <div className="flex gap-1.5 px-4 pb-3 flex-wrap">
-              {FILTER_TABS.map((tab) => {
-                const active = statusFilter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setStatusFilter(tab.key)}
-                    style={{
-                      backgroundColor: active ? theme.primary : "transparent",
-                      color: active ? theme.primaryText : theme.subtext,
-                      borderColor: active ? theme.primary : theme.border,
-                    }}
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap"
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-            {filteredTrips.length === 0 ? (
-              <div className="px-4 pb-6 pt-2 text-center">
-                <p style={{ color: theme.subtext }} className="text-xs">
-                  No trips match this filter.
-                </p>
-              </div>
-            ) : (
-              <div className="fct-scroll flex flex-col gap-2 px-4 pb-4 overflow-y-auto flex-1 min-h-0">
-                {filteredTrips.map((trip) => {
-                  const colors = avatarColor(trip.requestorName);
-                  const draft = assignDrafts[trip.id] ?? {
-                    vehicleId: "",
-                    driverId: "",
-                  };
-                  const isBusy = busyTripId === trip.id;
-                  // Admin priority: today's departures get approved first,
-                  // so make them visually pop out from the rest of the list.
-                  const isTripToday = isToday(trip.departureDatetime);
-
-                  return (
-                    <div
-                      key={trip.id}
-                      style={{
-                        borderColor: isTripToday ? "#f59e0b" : theme.border,
-                        backgroundColor: isTripToday
-                          ? "#fffbeb"
-                          : theme.surfaceRaised ?? theme.background,
-                      }}
-                      className="rounded-lg border p-3"
+      <div className="flex flex-col gap-6">
+              {/* ── Section 1: 4-column grid — Map (col 1-2) · Vehicles (col 3) · Drivers (col 4) ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+                {/* Columns 1–2 — Live Fleet Map */}
+                <div className="lg:col-span-2">
+                  <div className="mb-2">
+                    <h3
+                      style={{ color: theme.text }}
+                      className="text-sm font-semibold mb-0.5"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div
-                            style={{
-                              backgroundColor: colors.bg,
-                              color: colors.text,
-                              width: 28,
-                              height: 28,
-                              flexShrink: 0,
-                            }}
-                            className="rounded-full flex items-center justify-center text-[10px] font-bold"
-                          >
-                            {getInitials(trip.requestorName)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p
-                              style={{ color: isTripToday ? "#78350f" : theme.text }}
-                              className="text-sm font-semibold leading-tight truncate"
-                            >
-                              {trip.pickupLabel} → {trip.dropoffLabel}
-                            </p>
-                            <p
-                              style={{ color: isTripToday ? "#92400e" : theme.subtext }}
-                              className="text-[11px] mt-0.5 truncate"
-                            >
-                              {trip.requestorName} ·{" "}
-                              {formatDateTime(trip.departureDatetime)} ·{" "}
-                              {trip.passengerCount} pax
-                              {(trip.vehiclePlate || trip.driverName) && (
-                                <>
-                                  {" · "}
-                                  {trip.vehiclePlate ?? ""}
-                                  {trip.vehiclePlate && trip.driverName
-                                    ? " – "
-                                    : ""}
-                                  {trip.driverName ?? ""}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {isTripToday && (
-                            <span
-                              style={{ backgroundColor: "#f59e0b", color: "#fff" }}
-                              className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
-                            >
-                              Today
-                            </span>
-                          )}
-                          <StatusBadge
-                            config={TRIP_STATUS_CONFIG[trip.status]}
-                            size="sm"
-                          />
-                          <button
-                            onClick={() => setViewingTrip(trip)}
-                            style={{
-                              backgroundColor: theme.surface,
-                              borderColor: theme.border,
-                              color: theme.subtext,
-                            }}
-                            className="text-[10px] font-semibold px-2 py-1 rounded-lg border whitespace-nowrap"
-                          >
-                            {ACTIVE_STATUSES.includes(trip.status)
-                              ? "Review"
-                              : "View"}
-                          </button>
-                        </div>
-                      </div>
+                      Live Fleet Map
+                    </h3>
+                    <p style={{ color: theme.subtext }} className="text-[11px]">
+                      Real-time vehicle positions.
+                    </p>
+                  </div>
+                  <div
+                    style={{ height: 450 }}
+                    className="w-full overflow-hidden rounded-xl"
+                  >
+                    <FleetLiveMap
+                      focusVehicle={focusVehicle}
+                      vehicles={vehicles}
+                      theme={theme}
+                    />
+                  </div>
+                </div>
 
-                      
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Live vehicle map (Tramigo GPS positions) ── */}
-     
-
-        {/* ── Below: Fleet management / All trips — mirrors the HTML
-             prototype's subtab toggle under the Trip Requests panel ── */}
-        <div className="mt-4">
-          <div className="flex gap-1.5 mb-3">
-            {(["fleet", "trips"] as const).map((key) => {
-              const active = adminSubtab === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setAdminSubtab(key)}
-                  style={{
-                    backgroundColor: active ? theme.primary : "transparent",
-                    color: active ? theme.primaryText : theme.subtext,
-                    borderColor: active ? theme.primary : theme.border,
-                  }}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full border whitespace-nowrap"
-                >
-                  {key === "fleet" ? "Fleet management" : "All trips"}
-                </button>
-              );
-            })}
-          </div>
-
-          {adminSubtab === "fleet" ? (
-            <div className="flex flex-col gap-5">
-              {/* Vehicles + Drivers — one row, 2 columns (vehicles left, drivers right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* Column 1 — Vehicles */}
+                {/* Column 3 — Vehicles */}
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
@@ -1285,7 +1057,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       }}
                       className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border whitespace-nowrap flex-shrink-0"
                     >
-                      + Add vehicle
+                      + Add
                     </button>
                   </div>
                   {vehicles.length === 0 ? (
@@ -1293,7 +1065,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       No vehicles yet.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
                       {vehicles.map((v) => {
                         const vCfg = getVehicleDisplayStatus(v);
                         return (
@@ -1405,7 +1177,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   )}
                 </div>
 
-                {/* Column 2 — Drivers */}
+                {/* Column 4 — Drivers */}
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
@@ -1419,8 +1191,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                         style={{ color: theme.subtext }}
                         className="text-[11px]"
                       >
-                        Roster of registered drivers and their current vehicle
-                        assignment.
+                        Roster of registered drivers.
                       </p>
                     </div>
                     <button
@@ -1432,7 +1203,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       }}
                       className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border whitespace-nowrap flex-shrink-0"
                     >
-                      + Add driver
+                      + Add
                     </button>
                   </div>
                   {drivers.length === 0 ? (
@@ -1440,7 +1211,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       No drivers yet.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
                       {drivers.map((d) => {
                         const onTrip = onTripDriverUserIds.has(d.userId);
                         const showPlate = onTrip && !!d.vehiclePlate;
@@ -1527,184 +1298,226 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   )}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              }}
-              className="rounded-xl border"
-            >
-              <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-3 flex-wrap">
-                <h3
-                  style={{ color: theme.text }}
-                  className="text-sm font-semibold"
-                >
-                  All trips
-                </h3>
-                <div className="relative w-full sm:w-64">
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={theme.subtext}
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                  <input
-                    value={allTripsSearch}
-                    onChange={(e) => setAllTripsSearch(e.target.value)}
-                    placeholder="Search route, employee, vehicle, driver…"
-                    style={{
-                      backgroundColor: theme.background,
-                      borderColor: theme.border,
-                      color: theme.text,
-                    }}
-                    className="w-full text-[12px] pl-8 pr-3 py-1.5 border rounded-lg"
-                  />
+
+              {/* ── KPI column (left) + Trip Requests panel (right) — 1
+                   column × 4 rows, matched to the panel's 450px height ── */}
+              <div className="flex flex-col lg:flex-row gap-5">
+                <div style={{ height: 450 }} className="flex flex-col gap-2.5 w-full lg:w-64 flex-shrink-0">
+                  <div className="flex-1 min-h-0">
+                    <StackedKpiCard
+                      icon={
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                      }
+                      label="Trips today"
+                      value={kpi.tripsToday}
+                      sub="Departing or returning today"
+                      theme={theme}
+                    />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <StackedKpiCard
+                      icon={
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 17h14M5 17a2 2 0 1 0 4 0M5 17a2 2 0 1 1 4 0m6 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0M3 17V9l2-5h10l4 5v8" />
+                        </svg>
+                      }
+                      label="Vehicles on trip"
+                      value={kpi.vehiclesOnTrip}
+                      sub={`Of ${vehicles.length} in fleet`}
+                      valueColor="#16a34a"
+                      onClick={() => onNavigate?.("fleet_vehicles")}
+                      theme={theme}
+                    />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <StackedKpiCard
+                      icon={
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 8v4l3 2" />
+                        </svg>
+                      }
+                      label="Pending approval"
+                      value={kpi.pendingApproval}
+                      sub="Needs vehicle & driver"
+                      valueColor="#d97706"
+                      onClick={() => setStatusFilter("pending")}
+                      theme={theme}
+                    />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <StackedKpiCard
+                      icon={
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="15" y1="9" x2="9" y2="15" />
+                          <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                      }
+                      label="Under maintenance"
+                      value={kpi.underMaintenance}
+                      sub="Unavailable for dispatch"
+                      valueColor="#dc2626"
+                      onClick={() => onNavigate?.("fleet_vehicles")}
+                      theme={theme}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1.5 px-4 pb-3 flex-wrap">
-                {ALL_TRIPS_FILTER_TABS.map((tab) => {
-                  const active = allTripsFilter === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setAllTripsFilter(tab.key)}
-                      style={{
-                        backgroundColor: active ? theme.primary : "transparent",
-                        color: active ? theme.primaryText : theme.subtext,
-                        borderColor: active ? theme.primary : theme.border,
-                      }}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap"
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            <div className="fct-scroll overflow-auto h-[420px]">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr
-                      style={{ borderColor: theme.border, backgroundColor: theme.surface }}
-                      className="border-t border-b sticky top-0 z-10"
-                    >
-                      {[
-                        "Route",
-                        "Employee",
-                        "Vehicle",
-                        "Driver",
-                        "Schedule",
-                        "Status",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          style={{ color: theme.subtext }}
-                          className="text-left text-[10.5px] font-semibold uppercase tracking-wide px-4 py-2 whitespace-nowrap"
+
+                {/* Trip Requests panel */}
+                <div
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    height: 450,
+                    minHeight: 450,
+                  }}
+                  className="rounded-xl border flex flex-col flex-1 min-w-0"
+                >
+                <div className="px-4 pt-4 pb-3">
+                  <h2
+                    style={{ color: theme.text }}
+                    className="text-sm font-semibold"
+                  >
+                    Trip Requests
+                  </h2>
+                  <p
+                    style={{ color: theme.subtext }}
+                    className="text-[11px] mt-0.5"
+                  >
+                    Assign a vehicle &amp; driver to approve. Requests stay
+                    listed here through the full trip until completed.
+                  </p>
+                </div>
+                <div className="flex gap-1.5 px-4 pb-3 flex-wrap">
+                  {FILTER_TABS.map((tab) => {
+                    const active = statusFilter === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setStatusFilter(tab.key)}
+                        style={{
+                          backgroundColor: active ? theme.primary : "transparent",
+                          color: active ? theme.primaryText : theme.subtext,
+                          borderColor: active ? theme.primary : theme.border,
+                        }}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap"
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {filteredTrips.length === 0 ? (
+                  <div className="px-4 pb-6 pt-2 text-center">
+                    <p style={{ color: theme.subtext }} className="text-xs">
+                      No trips match this filter.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="fct-scroll flex flex-col gap-2 px-4 pb-4 overflow-y-auto flex-1 min-h-0">
+                    {filteredTrips.map((trip) => {
+                      const colors = avatarColor(trip.requestorName);
+                      const draft = assignDrafts[trip.id] ?? {
+                        vehicleId: "",
+                        driverId: "",
+                      };
+                      const isBusy = busyTripId === trip.id;
+                      const isTripToday = isToday(trip.departureDatetime);
+
+                      return (
+                        <div
+                          key={trip.id}
+                          style={{
+                            borderColor: isTripToday ? "#f59e0b" : theme.border,
+                            backgroundColor: isTripToday
+                              ? "#fffbeb"
+                              : theme.surfaceRaised ?? theme.background,
+                          }}
+                          className="rounded-lg border p-3"
                         >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAllTrips.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          style={{ color: theme.subtext }}
-                          className="text-xs text-center px-4 py-6"
-                        >
-                          No trips match this filter.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredAllTrips.map((trip) => {
-                        const cfg = TRIP_STATUS_CONFIG[trip.status];
-                        return (
-                          <tr
-                            key={trip.id}
-                            onClick={() => setViewingTrip(trip)}
-                            style={{ borderColor: theme.border, cursor: "pointer" }}
-                            className="border-b last:border-b-0 hover:opacity-80"
-                          >
-                            <td className="px-4 py-2.5">
-                              <p
-                                style={{ color: theme.text }}
-                                className="text-[12.5px] font-semibold"
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div
+                                style={{
+                                  backgroundColor: colors.bg,
+                                  color: colors.text,
+                                  width: 28,
+                                  height: 28,
+                                  flexShrink: 0,
+                                }}
+                                className="rounded-full flex items-center justify-center text-[10px] font-bold"
                               >
-                                {trip.pickupLabel} → {trip.dropoffLabel}
-                              </p>
-                              {trip.purpose && (
+                                {getInitials(trip.requestorName)}
+                              </div>
+                              <div className="min-w-0 flex-1">
                                 <p
-                                  style={{ color: theme.subtext }}
-                                  className="text-[11px] mt-0.5"
+                                  style={{ color: isTripToday ? "#78350f" : theme.text }}
+                                  className="text-sm font-semibold leading-tight truncate"
                                 >
-                                  {trip.purpose}
+                                  {trip.pickupLabel} → {trip.dropoffLabel}
                                 </p>
-                              )}
-                            </td>
-                            <td
-                              style={{ color: theme.text }}
-                              className="px-4 py-2.5 text-[12.5px] whitespace-nowrap"
-                            >
-                              {trip.requestorName}
-                            </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              {trip.vehiclePlate ? (
-                                <span
-                                  style={{
-                                    backgroundColor: theme.background,
-                                    color: theme.subtext,
-                                    borderColor: theme.border,
-                                  }}
-                                  className="px-1.5 py-px rounded border font-mono text-[10px]"
+                                <p
+                                  style={{ color: isTripToday ? "#92400e" : theme.subtext }}
+                                  className="text-[11px] mt-0.5 truncate"
                                 >
-                                  {trip.vehiclePlate}
-                                </span>
-                              ) : (
+                                  {trip.requestorName} ·{" "}
+                                  {formatDateTime(trip.departureDatetime)} ·{" "}
+                                  {trip.passengerCount} pax
+                                  {(trip.vehiclePlate || trip.driverName) && (
+                                    <>
+                                      {" · "}
+                                      {trip.vehiclePlate ?? ""}
+                                      {trip.vehiclePlate && trip.driverName
+                                        ? " – "
+                                        : ""}
+                                      {trip.driverName ?? ""}
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isTripToday && (
                                 <span
-                                  style={{ color: theme.subtext }}
-                                  className="text-[12.5px]"
+                                  style={{ backgroundColor: "#f59e0b", color: "#fff" }}
+                                  className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
                                 >
-                                  —
+                                  Today
                                 </span>
                               )}
-                            </td>
-                            <td
-                              style={{ color: theme.text }}
-                              className="px-4 py-2.5 text-[12.5px] whitespace-nowrap"
-                            >
-                              {trip.driverName ?? "—"}
-                            </td>
-                            <td
-                              style={{ color: theme.subtext }}
-                              className="px-4 py-2.5 text-[12.5px] whitespace-nowrap"
-                            >
-                              {formatDateTime(trip.departureDatetime)}
-                            </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              <StatusBadge config={cfg} size="sm" />
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                              <StatusBadge
+                                config={TRIP_STATUS_CONFIG[trip.status]}
+                                size="sm"
+                              />
+                              <button
+                                onClick={() => setViewingTrip(trip)}
+                                style={{
+                                  backgroundColor: theme.surface,
+                                  borderColor: theme.border,
+                                  color: theme.subtext,
+                                }}
+                                className="text-[10px] font-semibold px-2 py-1 rounded-lg border whitespace-nowrap"
+                              >
+                                {ACTIVE_STATUSES.includes(trip.status)
+                                  ? "Review"
+                                  : "View"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
       {/* Reject-reason modal */}
       {rejectingTrip && (
@@ -2625,9 +2438,13 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
           >
             <p
               style={{ color: theme.text }}
-              className="text-base font-bold mb-4"
+              className="text-base font-bold mb-1"
             >
               Add Location Preset
+            </p>
+            <p style={{ color: theme.subtext }} className="text-[11px] mb-4">
+              Tap the map to drop a pin for this location. Grey dots are
+              existing presets.
             </p>
             <div className="flex flex-col gap-3 mb-4">
               <div>
@@ -2652,28 +2469,58 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                 />
               </div>
               <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  Short label
-                </label>
-                <input
-                  value={addLocationForm.shortLabel}
-                  onChange={(e) =>
+                <div className="flex items-center justify-between mb-1">
+                  <label
+                    style={{ color: theme.subtext }}
+                    className="text-[11px] font-semibold"
+                  >
+                    Pin location
+                  </label>
+                  {addLocationForm.latitude != null && (
+                    <button
+                      onClick={() =>
+                        setAddLocationForm((f) => ({
+                          ...f,
+                          latitude: null,
+                          longitude: null,
+                        }))
+                      }
+                      style={{ color: theme.subtext }}
+                      className="text-[10.5px] font-semibold underline"
+                    >
+                      Clear pin
+                    </button>
+                  )}
+                </div>
+                <FleetLocationPickerMap
+                  presets={locations}
+                  value={
+                    addLocationForm.latitude != null &&
+                    addLocationForm.longitude != null
+                      ? {
+                          latitude: addLocationForm.latitude,
+                          longitude: addLocationForm.longitude,
+                        }
+                      : null
+                  }
+                  onPick={(pt) =>
                     setAddLocationForm((f) => ({
                       ...f,
-                      shortLabel: e.target.value,
+                      latitude: pt.latitude,
+                      longitude: pt.longitude,
                     }))
                   }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                  placeholder="e.g. Ortigas"
+                  theme={theme}
                 />
+                {addLocationForm.latitude != null && (
+                  <p
+                    style={{ color: theme.subtext }}
+                    className="text-[10.5px] mt-1"
+                  >
+                    {addLocationForm.latitude.toFixed(5)},{" "}
+                    {addLocationForm.longitude!.toFixed(5)}
+                  </p>
+                )}
               </div>
             </div>
             {addLocationError && (
@@ -2686,6 +2533,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                 onClick={() => {
                   setAddLocationOpen(false);
                   setAddLocationError("");
+                  setAddLocationForm({ name: "", latitude: null, longitude: null });
                 }}
                 style={{
                   backgroundColor: theme.surface,
@@ -2960,16 +2808,31 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       {l.name}
                     </p>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span
+                      <button
+                        onClick={() => {
+                          setViewLocationsOpen(false);
+                          openEditLocation(l);
+                        }}
                         style={{
-                          backgroundColor: theme.background,
                           color: theme.subtext,
                           borderColor: theme.border,
                         }}
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                        className="p-1 rounded-md border"
+                        aria-label="Edit location"
                       >
-                        {l.shortLabel}
-                      </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        </svg>
+                      </button>
                       <button
                         onClick={() => handleDeleteLocation(l.id)}
                         disabled={deletingLocationId === l.id}
@@ -3013,6 +2876,164 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
               className="w-full rounded-xl py-2.5 border text-sm font-semibold mt-4"
             >
               Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Location modal */}
+      {editingLocation && (
+        <div
+          className="absolute inset-0 items-center justify-center p-6 flex"
+          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+        >
+          <div
+            style={{
+              backgroundColor: theme.background,
+              borderColor: theme.border,
+            }}
+            className="rounded-2xl p-6 w-full max-w-[420px] border"
+          >
+            <p
+              style={{ color: theme.text }}
+              className="text-base font-bold mb-1"
+            >
+              Edit Location
+            </p>
+            <p style={{ color: theme.subtext }} className="text-[11px] mb-4">
+              Tap the map or search to move this location's pin.
+            </p>
+            <div className="flex flex-col gap-3 mb-4">
+              <div>
+                <label
+                  style={{ color: theme.subtext }}
+                  className="text-[11px] font-semibold block mb-1"
+                >
+                  Name
+                </label>
+                <input
+                  value={editLocationForm.name}
+                  onChange={(e) =>
+                    setEditLocationForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                  className="w-full text-sm px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label
+                    style={{ color: theme.subtext }}
+                    className="text-[11px] font-semibold"
+                  >
+                    Pin location
+                  </label>
+                  {editLocationForm.latitude != null && (
+                    <button
+                      onClick={() =>
+                        setEditLocationForm((f) => ({
+                          ...f,
+                          latitude: null,
+                          longitude: null,
+                        }))
+                      }
+                      style={{ color: theme.subtext }}
+                      className="text-[10.5px] font-semibold underline"
+                    >
+                      Clear pin
+                    </button>
+                  )}
+                </div>
+                <FleetLocationPickerMap
+                  presets={locations.filter((l) => l.id !== editingLocation.id)}
+                  value={
+                    editLocationForm.latitude != null &&
+                    editLocationForm.longitude != null
+                      ? {
+                          latitude: editLocationForm.latitude,
+                          longitude: editLocationForm.longitude,
+                        }
+                      : null
+                  }
+                  onPick={(pt) =>
+                    setEditLocationForm((f) => ({
+                      ...f,
+                      latitude: pt.latitude,
+                      longitude: pt.longitude,
+                    }))
+                  }
+                  theme={theme}
+                />
+                {editLocationForm.latitude != null && (
+                  <p
+                    style={{ color: theme.subtext }}
+                    className="text-[10.5px] mt-1"
+                  >
+                    {editLocationForm.latitude.toFixed(5)},{" "}
+                    {editLocationForm.longitude!.toFixed(5)}
+                  </p>
+                )}
+              </div>
+            </div>
+            {editLocationError && (
+              <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
+                {editLocationError}
+              </p>
+            )}
+            <div className="flex gap-2.5 mb-2.5">
+              <button
+                onClick={() => {
+                  setEditingLocation(null);
+                  setEditLocationError("");
+                  setConfirmDeleteLocation(false);
+                }}
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateLocation}
+                disabled={editLocationSubmitting}
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.primaryText,
+                  opacity: editLocationSubmitting ? 0.6 : 1,
+                }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
+              >
+                {editLocationSubmitting ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                if (!confirmDeleteLocation) {
+                  setConfirmDeleteLocation(true);
+                  return;
+                }
+                handleDeleteLocationFromEdit();
+              }}
+              disabled={editLocationSubmitting}
+              style={{
+                backgroundColor: confirmDeleteLocation ? "#ef4444" : "#fee2e2",
+                color: confirmDeleteLocation ? "#fff" : "#991b1b",
+                opacity: editLocationSubmitting ? 0.6 : 1,
+              }}
+              className="w-full rounded-xl py-2.5 text-sm font-semibold"
+            >
+              {editLocationSubmitting
+                ? "Deleting…"
+                : confirmDeleteLocation
+                  ? "Click again to confirm delete"
+                  : "Delete Location"}
             </button>
           </div>
         </div>

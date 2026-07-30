@@ -370,6 +370,23 @@ export const FleetDriverIcon: React.FC<{ color: string; size?: number }> = ({
   </Svg>
 );
 
+export const FleetTripsIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M8 6h13M8 12h13M8 18h13"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Circle cx="3.5" cy="6" r="1.5" fill={color} />
+    <Circle cx="3.5" cy="12" r="1.5" fill={color} />
+    <Circle cx="3.5" cy="18" r="1.5" fill={color} />
+  </Svg>
+);
+
 // ─── Audit Trail icon ─────────────────────────────────────────────────────────
 
 export const AuditIcon: React.FC<{ color: string; size?: number }> = ({
@@ -587,6 +604,7 @@ const ROUTE_BY_KEY: Record<string, string> = {
   settings: "/settings",
   fleetadmin: "/fleet/control-tower",
   fleetdriver: "/fleet/driver-view",
+  fleettrips: "/fleet/all-trips",
 };
 
 function href(key: string): string {
@@ -694,11 +712,18 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           href: href("fleetadmin"),
         },
         {
+          key: "fleettrips",
+          label: "All Trips",
+          icon: FleetTripsIcon,
+          href: href("fleettrips"),
+        },
+        {
           key: "fleetdriver",
           label: "Driver View",
           icon: FleetDriverIcon,
           href: href("fleetdriver"),
         },
+        
       ],
     },
     {
@@ -808,6 +833,12 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           label: "Driver View",
           icon: FleetDriverIcon,
           href: href("fleetdriver"),
+        },
+        {
+          key: "fleettrips",
+          label: "All Trips",
+          icon: FleetTripsIcon,
+          href: href("fleettrips"),
         },
       ],
     },
@@ -960,6 +991,12 @@ export function getNavSectionsForUser(user: {
         label: "Control Tower",
         icon: FleetControlIcon,
         href: href("fleetadmin"),
+      });
+      fleetItems.push({
+        key: "fleettrips",
+        label: "All Trips",
+        icon: FleetTripsIcon,
+        href: href("fleettrips"),
       });
     }
 

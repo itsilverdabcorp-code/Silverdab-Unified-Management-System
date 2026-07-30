@@ -75,19 +75,29 @@ import {
   RefreshControl,
   ActivityIndicator,
   Modal,
+  Linking,
 } from "react-native";
 import { useTheme } from "../../../theme/ThemeContext";
 import {
   getAllFleetTrips,
   getAllFleetVehicles,
   getAllFleetDrivers,
+  getAllFleetLocations,
   startFleetTrip,
   markTripArrived,
   startTripReturn,
   completeFleetTrip,
   setDriverDutyStatus,
 } from "../../../services/fleetOps";
-import { ADUser, FleetTrip, FleetVehicle, FleetDriver, TripStatus, DriverDutyStatus } from "../../../../types";
+import {
+  ADUser,
+  FleetTrip,
+  FleetVehicle,
+  FleetDriver,
+  FleetLocation,
+  TripStatus,
+  DriverDutyStatus,
+} from "../../../../types";
 
 type Props = {
   user: ADUser;
@@ -178,6 +188,50 @@ function nextDriverAction(trip: FleetTrip): NextAction | null {
 // a trip is sitting in approved/pending waiting for them to tap Start Trip.
 function isTripInProgress(trip: FleetTrip): boolean {
   return trip.status === "ongoing" || trip.status === "arrived" || trip.status === "returning";
+}
+
+// ─── Trip details: address / map helpers ───────────────────────────────────
+// Coordinates aren't stored on the trip itself — they live on the matching
+// FleetLocation row (via pickupLocationId / dropoffLocationId). A trip whose
+// pickup/dropoff was typed in freehand (no preset picked) will have no
+// matching location and therefore no coordinates — the UI below falls back
+// to address-text-only in that case.
+
+type LatLng = { latitude: number; longitude: number };
+
+function findLocationCoords(
+  locationId: string | null | undefined,
+  locations: FleetLocation[],
+): LatLng | null {
+  if (!locationId) return null;
+  const loc = locations.find((l) => l.id === locationId);
+  if (!loc || loc.latitude == null || loc.longitude == null) return null;
+  return { latitude: loc.latitude, longitude: loc.longitude };
+}
+
+
+
+// Opens the device's Google Maps app (or maps.google.com in a browser) with
+// turn-by-turn directions from pickup to drop-off — not from the driver's
+// current location — so this shows the actual route of the booked trip.
+// Prefers lat/lng when available (exact pin); falls back to the address
+// text for either end that has no matching FleetLocation coordinates.
+function openTripDirections(
+  pickup: LatLng | null,
+  pickupText: string,
+  dropoff: LatLng | null,
+  dropoffText: string,
+) {
+  const originParam = pickup
+    ? `${pickup.latitude},${pickup.longitude}`
+    : encodeURIComponent(pickupText);
+  const destParam = dropoff
+    ? `${dropoff.latitude},${dropoff.longitude}`
+    : encodeURIComponent(dropoffText);
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&travelmode=driving`;
+  Linking.openURL(url).catch((err) =>
+    console.error("Failed to open Google Maps:", err),
+  );
 }
 
 async function runDriverAction(trip: FleetTrip, next: TripStatus): Promise<void> {
@@ -335,15 +389,19 @@ function TripCard({
   theme,
   busy,
   onAdvance,
+  onViewDetails,
 }: {
   trip: FleetTrip;
   theme: any;
   busy: boolean;
   onAdvance: (trip: FleetTrip) => void;
+  onViewDetails: (trip: FleetTrip) => void;
 }) {
   const action = nextDriverAction(trip);
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => onViewDetails(trip)}
       style={{
         backgroundColor: theme.surface,
         borderWidth: 1,
@@ -399,6 +457,12 @@ function TripCard({
         </Text>
       ) : null}
 
+      <View style={{ marginTop: 8 }}>
+        <Text style={{ fontFamily: "Outfit-medium", fontSize: 11.5, color: "#3D6FE0" }}>
+          View route &amp; directions →
+        </Text>
+      </View>
+
       {action && (
         <TouchableOpacity
           onPress={() => onAdvance(trip)}
@@ -438,7 +502,7 @@ function TripCard({
           </Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -451,26 +515,31 @@ export default function DriverPortalPage({ user }: Props) {
   const [trips, setTrips] = useState<FleetTrip[]>([]);
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
+  const [locations, setLocations] = useState<FleetLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"active" | "history">("active");
   const [busyTripId, setBusyTripId] = useState<string | null>(null);
   const [togglingDutyStatus, setTogglingDutyStatus] = useState(false);
   const [confirmingTrip, setConfirmingTrip] = useState<FleetTrip | null>(null);
+  // Trip whose full details (pickup/dropoff maps + directions) are open.
+  const [viewingTrip, setViewingTrip] = useState<FleetTrip | null>(null);
 
   const isFirstLoad = React.useRef(true);
 
   const loadAll = useCallback(async () => {
     if (isFirstLoad.current) setLoading(true);
     try {
-      const [t, v, d] = await Promise.all([
+      const [t, v, d, l] = await Promise.all([
         getAllFleetTrips(),
         getAllFleetVehicles(),
         getAllFleetDrivers(),
+        getAllFleetLocations(),
       ]);
       setTrips(t);
       setVehicles(v);
       setDrivers(d);
+      setLocations(l);
     } catch (err) {
       console.error("Driver portal load error:", err);
     } finally {
@@ -708,6 +777,7 @@ export default function DriverPortalPage({ user }: Props) {
                     theme={theme}
                     busy={busyTripId === trip.id}
                     onAdvance={setConfirmingTrip}
+                    onViewDetails={setViewingTrip}
                   />
                 ))
               )
@@ -725,7 +795,14 @@ export default function DriverPortalPage({ user }: Props) {
               </Text>
             ) : (
               historyTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} theme={theme} busy={false} onAdvance={setConfirmingTrip} />
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  theme={theme}
+                  busy={false}
+                  onAdvance={setConfirmingTrip}
+                  onViewDetails={setViewingTrip}
+                />
               ))
             )}
           </>
@@ -843,6 +920,245 @@ export default function DriverPortalPage({ user }: Props) {
                 </View>
               </>
             )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Trip Details — full booking info (same fields as the admin's View
+          Trip Details modal) plus a single Get Directions button that
+          routes pickup → drop-off in Google Maps. */}
+      <Modal
+        visible={!!viewingTrip}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewingTrip(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setViewingTrip(null)}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              width: "100%",
+              maxWidth: 380,
+              maxHeight: "85%",
+              backgroundColor: theme.surface,
+              borderRadius: 16,
+              padding: 20,
+            }}
+          >
+            {viewingTrip && (() => {
+              const pickupCoords = findLocationCoords(viewingTrip.pickupLocationId, locations);
+              const dropoffCoords = findLocationCoords(viewingTrip.dropoffLocationId, locations);
+
+              const detailRows: [string, string][] = [
+                ["Requestor", viewingTrip.requestorName],
+                ["Departure", formatSchedule(viewingTrip.departureDatetime)],
+                ["Return", viewingTrip.returnDatetime ? formatSchedule(viewingTrip.returnDatetime) : "—"],
+                ["Trip type", viewingTrip.tripType === "oneway" ? "One way" : "Round trip"],
+                ["Passengers", String(viewingTrip.passengerCount)],
+                ["Purpose", viewingTrip.purpose || "—"],
+                ...(viewingTrip.status === "pending"
+                  ? []
+                  : ([
+                      ["Vehicle", viewingTrip.vehiclePlate ?? "Not assigned"],
+                      ["Driver", viewingTrip.driverName ?? "Not assigned"],
+                      ["Approved by", viewingTrip.approvedByName ?? "—"],
+                      [
+                        "Approved at",
+                        viewingTrip.approvedAt ? formatSchedule(viewingTrip.approvedAt) : "—",
+                      ],
+                    ] as [string, string][])),
+              ];
+
+              return (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <Text
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 16,
+                        color: theme.textActive ?? theme.text,
+                        flex: 1,
+                        marginRight: 8,
+                      }}
+                    >
+                      {viewingTrip.pickupLabel} → {viewingTrip.dropoffLabel}
+                    </Text>
+                    <StatusBadge status={viewingTrip.status} theme={theme} />
+                  </View>
+                  <Text
+                    style={{
+                      fontFamily: "Outfit",
+                      fontSize: 12,
+                      color: theme.subtext,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {viewingTrip.tripRef}
+                  </Text>
+
+                  <View
+                    style={{
+                      borderTopWidth: 1,
+                      borderTopColor: theme.border,
+                      paddingTop: 14,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {detailRows.map(([label, value]) => (
+                      <View
+                        key={label}
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <Text style={{ fontFamily: "Outfit", fontSize: 11.5, color: theme.subtext }}>
+                          {label}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 12.5,
+                            color: theme.textActive ?? theme.text,
+                            textAlign: "right",
+                            flexShrink: 1,
+                            marginLeft: 12,
+                          }}
+                        >
+                          {value}
+                        </Text>
+                      </View>
+                    ))}
+                    {viewingTrip.status === "rejected" && viewingTrip.rejectedReason ? (
+                      <View style={{ marginTop: 4 }}>
+                        <Text style={{ fontFamily: "Outfit", fontSize: 11.5, color: theme.subtext, marginBottom: 4 }}>
+                          Rejection reason
+                        </Text>
+                        <Text style={{ fontFamily: "Outfit", fontSize: 12.5, color: theme.textActive ?? theme.text }}>
+                          {viewingTrip.rejectedReason}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {viewingTrip.statusHistory && viewingTrip.statusHistory.length > 0 && (
+                    <View
+                      style={{
+                        borderTopWidth: 1,
+                        borderTopColor: theme.border,
+                        paddingTop: 14,
+                        marginBottom: 16,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 12.5,
+                          color: theme.textActive ?? theme.text,
+                          marginBottom: 8,
+                        }}
+                      >
+                        Status history
+                      </Text>
+                      {[...viewingTrip.statusHistory]
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                        .map((entry, idx) => (
+                          <View
+                            key={`${entry.status}-${entry.timestamp}-${idx}`}
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              marginBottom: 6,
+                            }}
+                          >
+                            <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text }}>
+                              {STATUS_DISPLAY[entry.status]}
+                            </Text>
+                            <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
+                              {formatSchedule(entry.timestamp)}
+                            </Text>
+                          </View>
+                        ))}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      openTripDirections(
+                        pickupCoords,
+                        viewingTrip.pickupLabel,
+                        dropoffCoords,
+                        viewingTrip.dropoffLabel,
+                      )
+                    }
+                    activeOpacity={0.85}
+                    style={{
+                      backgroundColor: "#3D6FE0",
+                      borderRadius: 8,
+                      paddingVertical: 11,
+                      alignItems: "center",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                      Get Directions (Pickup → Drop-off)
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Same next-action button the trip card shows (Start Trip /
+                      Arrived / Start Return / Complete) — tapping it here just
+                      hands off to the existing confirm modal, so the actual
+                      mutation call still only lives in handleConfirmAdvance. */}
+                  {nextDriverAction(viewingTrip) && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setConfirmingTrip(viewingTrip);
+                        setViewingTrip(null);
+                      }}
+                      activeOpacity={0.85}
+                      style={{
+                        backgroundColor: nextDriverAction(viewingTrip)!.color,
+                        borderRadius: 8,
+                        paddingVertical: 11,
+                        alignItems: "center",
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                        {nextDriverAction(viewingTrip)!.label}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => setViewingTrip(null)}
+                    activeOpacity={0.8}
+                    style={{
+                      paddingVertical: 11,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              );
+            })()}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>

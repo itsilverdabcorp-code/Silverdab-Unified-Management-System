@@ -514,7 +514,7 @@ function LeftPanel({
             </Text>
           </TouchableOpacity>
 
-          {/* <TouchableOpacity
+          <TouchableOpacity
             onPress={onNewTrip}
             activeOpacity={0.8}
             {...hoverHandlers("trip")}
@@ -553,7 +553,7 @@ function LeftPanel({
             >
               Book a Trip
             </Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
 

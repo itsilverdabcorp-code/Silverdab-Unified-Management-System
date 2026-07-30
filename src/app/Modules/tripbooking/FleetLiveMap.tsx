@@ -479,9 +479,6 @@ function switchLayer(key: LayerKey) {
       `}</style>
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div>
-          <h2 style={{ color: TEXT }} className="text-sm font-semibold">
-            Live Fleet Map
-          </h2>
           <p style={{ color: SUBTEXT }} className="text-[11px] mt-0.5">
             {locations.length} vehicle{locations.length !== 1 ? "s" : ""} reporting
           </p>
