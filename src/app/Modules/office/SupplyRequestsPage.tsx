@@ -58,11 +58,11 @@ function statusBadgeClass(status: string): string {
     case "resolved":
       return "bg-emerald-100 text-emerald-700";
     case "failed_delivery":
-      return "bg-rose-100 text-rose-700";
+      return "bg-orange-100 text-orange-700";
     case "rejected":
       return "bg-rose-100 text-rose-700";
     case "cancelled":
-      return "bg-slate-200 text-slate-600";
+      return "bg-purple-100 text-purple-700";
     default:
       return "bg-gray-100 text-gray-700";
   }

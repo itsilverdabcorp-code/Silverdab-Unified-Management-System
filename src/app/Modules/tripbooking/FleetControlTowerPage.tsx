@@ -17,8 +17,11 @@
 // tables' columns (camelCased). Swap the import path for ThemeContext to
 // match wherever this file actually lives in your tree.
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../../theme/ThemeContext";
+// Adjust this path if it doesn't match — ITInventoryPage.tsx imports the
+// same hook to power its assignee SearchableSelect.
+import { useEmployees } from "../../../hooks/useEmployees";
 import FleetLiveMap from "./FleetLiveMap";
 import FleetLocationPickerMap from "./FleetLocationPickerMap";
 import {
@@ -26,6 +29,7 @@ import {
   getAllFleetVehicles,
   getAllFleetDrivers,
   getAllFleetLocations,
+  getTramigoDevices,
   approveFleetTrip,
   rejectFleetTrip,
   markTripArrived,
@@ -40,6 +44,7 @@ import {
   deleteFleetDriver,
   updateFleetLocation,
   deleteFleetLocation,
+  TramigoDevice,
 } from "../../../services/fleetOps";
 import {
   ADUser,
@@ -66,7 +71,12 @@ const POLL_INTERVAL_MS = 5_000;
 
 function formatDateTime(iso?: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso);
+  // mysql2's dateStrings option returns "YYYY-MM-DD HH:MM:SS" (space-
+  // separated, no timezone). Swapping the space for "T" makes the Date
+  // constructor parse it as local wall-clock time per spec, instead of
+  // browser-dependent guessing — this must stay in sync with dateStrings:
+  // true on the MySQL pool in server.js.
+  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T"));
   if (isNaN(d.getTime())) return "—";
   return (
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
@@ -77,7 +87,7 @@ function formatDateTime(iso?: string | null): string {
 
 function isToday(iso?: string | null): boolean {
   if (!iso) return false;
-  const d = new Date(iso);
+  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T"));
   const now = new Date();
   return (
     d.getFullYear() === now.getFullYear() &&
@@ -86,6 +96,39 @@ function isToday(iso?: string | null): boolean {
   );
 }
 
+// Flags a trip as delayed once it's past its expected departure (still
+// pending/approved) or expected return (still out on a round trip), past a
+// 15-minute grace period to avoid flagging trips that just barely slipped.
+// Recomputed on every render — the page already re-fetches trips every 5s
+// (POLL_INTERVAL_MS), so this naturally stays current without its own timer.
+const DELAY_GRACE_MS = 15 * 60 * 1000;
+
+function getDelayInfo(trip: FleetTrip): { label: string } | null {
+  function lateBy(iso?: string | null): string | null {
+    if (!iso) return null;
+    const target = new Date(iso).getTime();
+    if (isNaN(target)) return null;
+    const diffMs = Date.now() - target;
+    if (diffMs <= DELAY_GRACE_MS) return null;
+    const hrs = diffMs / (60 * 60 * 1000);
+    return hrs < 1 ? `${Math.round(diffMs / 60000)}m` : `${hrs.toFixed(hrs < 10 ? 1 : 0)}h`;
+  }
+
+  if (trip.status === "pending" || trip.status === "approved") {
+    const late = lateBy(trip.departureDatetime);
+    if (late) return { label: `Departure ${late} late` };
+  }
+
+  if (
+    (trip.status === "ongoing" || trip.status === "arrived" || trip.status === "returning") &&
+    trip.returnDatetime
+  ) {
+    const late = lateBy(trip.returnDatetime);
+    if (late) return { label: `Return ${late} late` };
+  }
+
+  return null;
+}
 
 
 function getInitials(name: string): string {
@@ -109,6 +152,18 @@ function avatarColor(name: string) {
   for (let i = 0; i < name.length; i++)
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// Tramigo device names come formatted as "Model - Plate" (e.g. "BYD -
+// NOY1168"). Splitting on " - " lets us auto-fill plate/model from
+// whichever device the admin picks, instead of asking them to retype
+// info Tramigo already has.
+function parseTramigoDeviceName(name: string): { model: string; plate: string } {
+  const parts = name.split(" - ");
+  if (parts.length >= 2) {
+    return { model: parts[0].trim(), plate: parts.slice(1).join(" - ").trim() };
+  }
+  return { model: name.trim(), plate: "" };
 }
 
 // ─── Status config (same visual family as StockBadge in OfficeDashboardPage) ─
@@ -156,30 +211,25 @@ const VEHICLE_STATUS_CONFIG: Record<
   VehicleStatus,
   { label: string; bg: string; text: string }
 > = {
-  idle: { label: "Inactive", bg: "#e2e8f0", text: "#334155" },
-  active: { label: "Active", bg: "#dcfce7", text: "#166534" },
-  maintenance: { label: "Maintenance", bg: "#fee2e2", text: "#991b1b" },
+  idle: { label: "Available", bg: "#dcfce7", text: "#166534" },
+  active: { label: "On Trip", bg: "#dbeafe", text: "#1d4ed8" },
+  maintenance: { label: "Parked", bg: "#fee2e2", text: "#991b1b" },
   personal: { label: "Personal use", bg: "#fef3c7", text: "#92400e" },
   off_duty: { label: "Off duty", bg: "#f1f5f9", text: "#64748b" },
 };
 
-// Tramigo's own dashboard has no per-device status field (confirmed via
-// GET /fleet/tramigo-devices) — "Parked" vs "Inactive" there is derived
-// purely from how recently a device last reported in. Both are the 'idle'
-// status in our own DB (server.js's GPS write-back only ever toggles
-// idle/active); this splits the *display* of 'idle' the same way, using
-// last_ping_at, which server.js already stamps on every live-locations poll.
-const PARKED_STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
-const PARKED_CONFIG = { label: "Parked", bg: "#dbeafe", text: "#1d4ed8" };
-
+// Vehicle status badge is driven entirely by the booked trip's own status,
+// not by vehicle.status (which reflects Tramigo/GPS state) — a vehicle can
+// be physically moving without an ongoing booked trip attached to it, and
+// that shouldn't show as "Active" here. 'maintenance' still takes priority
+// since that's an explicit admin state unrelated to trips or GPS.
 function getVehicleDisplayStatus(
   v: FleetVehicle,
+  onTripVehicleIds: Set<string>,
 ): { label: string; bg: string; text: string } {
-  if (v.status !== "idle") return VEHICLE_STATUS_CONFIG[v.status];
-  if (!v.lastPingAt) return VEHICLE_STATUS_CONFIG.idle; // never reported at all
-  const age = Date.now() - new Date(v.lastPingAt).getTime();
-  if (isNaN(age) || age > PARKED_STALE_THRESHOLD_MS) return VEHICLE_STATUS_CONFIG.idle;
-  return PARKED_CONFIG;
+  if (v.status === "maintenance") return VEHICLE_STATUS_CONFIG.maintenance;
+  if (onTripVehicleIds.has(v.id)) return VEHICLE_STATUS_CONFIG.active;
+  return VEHICLE_STATUS_CONFIG.idle;
 }
 
 const DUTY_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -293,6 +343,97 @@ function StatusBadge({
   );
 }
 
+// ─── Employee searchable select (Add Driver) ───────────────────────────────
+// Single-input pattern — same as LocationSelect in TripBookingModal.tsx.
+// The visible field IS the search box (type to filter directly); no
+// separate trigger + nested search input.
+type EmployeeOption = { label: string; value: string };
+
+function EmployeeSearchableSelect({
+  value,
+  displayName,
+  options,
+  placeholder = "Type or select an employee",
+  theme,
+  onChange,
+  onTextChange,
+}: {
+  value: string;
+  displayName: string;
+  options: EmployeeOption[];
+  placeholder?: string;
+  theme: any;
+  onChange: (value: string, label: string) => void;
+  onTextChange: (text: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const filtered = displayName.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(displayName.trim().toLowerCase()))
+    : options;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <input
+        type="text"
+        value={displayName}
+        placeholder={placeholder}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          onTextChange(e.target.value);
+          setOpen(true);
+        }}
+        style={{
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+        className="w-full text-sm px-3 py-2 border rounded-lg"
+      />
+
+      {open && filtered.length > 0 && (
+        <div
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          className="absolute left-0 right-0 mt-1 rounded-lg shadow-lg border z-50 overflow-hidden"
+        >
+          <ul className="max-h-44 overflow-y-auto">
+            {filtered.map((o) => (
+              <li
+                key={o.value}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(o.value, o.label);
+                  setOpen(false);
+                }}
+                style={{ color: o.value === value ? theme.primary : theme.text }}
+                className={
+                  "px-3 py-1.5 text-xs cursor-pointer " +
+                  (o.value === value ? "font-medium" : "")
+                }
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FleetControlTowerPage({ user, onNavigate }: Props) {
@@ -365,18 +506,69 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     type: "sedan" as VehicleType,
     model: "",
     seatingCapacity: "4",
+    tramigoDeviceId: "",
   });
   const [addVehicleError, setAddVehicleError] = useState("");
+  const [addVehicleWarning, setAddVehicleWarning] = useState("");
   const [addVehicleSubmitting, setAddVehicleSubmitting] = useState(false);
 
   const [addDriverOpen, setAddDriverOpen] = useState(false);
   const [addDriverForm, setAddDriverForm] = useState({
-    username: "", // TODO: replace with a real user picker
-    licenseNumber: "",
+    username: "",
+    displayName: "",
     contactNumber: "",
   });
   const [addDriverError, setAddDriverError] = useState("");
+  const [addDriverWarning, setAddDriverWarning] = useState("");
   const [addDriverSubmitting, setAddDriverSubmitting] = useState(false);
+
+  // AD employee directory for the Add Driver picker — same source
+  // ITInventoryPage.tsx uses for its assignee SearchableSelect.
+  const { employees } = useEmployees();
+  const employeeOptions = useMemo(
+    () => employees.map((e) => ({ label: e.name, value: e.id })),
+    [employees],
+  );
+
+  // Names already registered as drivers, for the client-side "already
+  // added" warning shown as soon as a matching name is picked. Matched by
+  // name (case-insensitive) since FleetDriver.userId is the numeric
+  // fleet_drivers user id, not the AD username the employee picker uses —
+  // the backend's own 409 check is still the source of truth on submit.
+  const existingDriverNames = useMemo(
+    () => new Set(drivers.map((d) => d.name?.trim().toLowerCase()).filter(Boolean)),
+    [drivers],
+  );
+
+  // Plate numbers already registered, for the client-side "already added"
+  // warning shown as soon as a matching plate is picked/typed — mirrors
+  // existingDriverNames above. The backend's own 409 check on plateNumber
+  // is still the source of truth on submit.
+  const existingVehiclePlates = useMemo(
+    () => new Set(vehicles.map((v) => v.plateNumber?.trim().toLowerCase()).filter(Boolean)),
+    [vehicles],
+  );
+
+  // Devices from the Tramigo account, loaded on demand when Add/Edit
+  // Vehicle opens (not on every poll — the device list rarely changes and
+  // requires its own Tramigo login round trip on the backend).
+  const [tramigoDevices, setTramigoDevices] = useState<TramigoDevice[]>([]);
+  async function loadTramigoDevices() {
+    const devices = await getTramigoDevices();
+    setTramigoDevices(devices);
+  }
+  // Devices not already linked to a *different* vehicle. currentVehicleId
+  // lets the Edit Vehicle picker still show the device that vehicle is
+  // already linked to (otherwise it'd disappear from its own dropdown).
+  function unlinkedTramigoDevices(currentVehicleId?: string) {
+    const linked = new Set(
+      vehicles
+        .filter((v) => v.id !== currentVehicleId)
+        .map((v) => v.tramigoDeviceId)
+        .filter(Boolean),
+    );
+    return tramigoDevices.filter((d) => !linked.has(d.id));
+  }
 
   const [addLocationOpen, setAddLocationOpen] = useState(false);
   const [viewLocationsOpen, setViewLocationsOpen] = useState(false);
@@ -414,6 +606,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     type: "sedan" as VehicleType,
     model: "",
     seatingCapacity: "4",
+    tramigoDeviceId: "",
   });
   const [editVehicleError, setEditVehicleError] = useState("");
   const [editVehicleSubmitting, setEditVehicleSubmitting] = useState(false);
@@ -470,7 +663,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     // reflects Tramigo/GPS state) — a vehicle can be physically moving
     // without an ongoing booked trip attached to it, and that shouldn't
     // count here.
-    const vehiclesOnTrip = trips.filter((t) => t.status === "ongoing").length;
+    const vehiclesOnTrip = trips.filter((t) => t.status === "ongoing" && t.vehicleId).length;
     const pendingApproval = trips.filter((t) => t.status === "pending").length;
     const underMaintenance = vehicles.filter(
       (v) => v.status === "maintenance",
@@ -578,7 +771,45 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     [trips],
   );
 
-  
+  // A vehicle shows "Active" only while its booked trip is genuinely
+  // ongoing (not just approved/arrived/returning) — matches "Vehicles on
+  // trip" KPI above, independent of Tramigo/GPS-derived vehicle.status.
+  const onTripVehicleIds = useMemo(
+    () =>
+      new Set(
+        trips
+          .filter((t) => t.status === "ongoing")
+          .map((t) => t.vehicleId)
+          .filter(Boolean) as string[],
+      ),
+    [trips],
+  );
+
+  // Vehicle list order: Available, then Parked (maintenance), then Ongoing
+  // — surfaces dispatchable vehicles at the top of the list.
+  function vehicleRank(v: FleetVehicle): number {
+    if (v.status === "maintenance") return 1; // Parked
+    if (onTripVehicleIds.has(v.id)) return 2; // Ongoing
+    return 0; // Available
+  }
+  const sortedVehicles = useMemo(
+    () => [...vehicles].sort((a, b) => vehicleRank(a) - vehicleRank(b)),
+    [vehicles, onTripVehicleIds],
+  );
+
+  // Driver list order: Available, then Personal Use, then currently on a
+  // trip (shown with their vehicle plate), then Off Duty.
+  function driverRank(d: FleetDriver): number {
+    const onTrip = onTripDriverUserIds.has(d.userId) && !!d.vehiclePlate;
+    if (onTrip) return 2; // Plate (Ongoing)
+    if (d.dutyStatus === "active") return 0; // Available
+    if (d.dutyStatus === "personal") return 1; // Personal Use
+    return 3; // Off Duty
+  }
+  const sortedDrivers = useMemo(
+    () => [...drivers].sort((a, b) => driverRank(a) - driverRank(b)),
+    [drivers, onTripDriverUserIds],
+  );
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -679,9 +910,11 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
       type: v.type,
       model: v.model,
       seatingCapacity: String(v.seatingCapacity),
+      tramigoDeviceId: v.tramigoDeviceId ?? "",
     });
     setEditVehicleError("");
     setConfirmDeleteVehicle(false);
+    loadTramigoDevices();
   }
 
   async function handleUpdateVehicle() {
@@ -698,6 +931,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
         type: editVehicleForm.type,
         model: editVehicleForm.model.trim(),
         seatingCapacity: parseInt(editVehicleForm.seatingCapacity, 10) || 1,
+        tramigoDeviceId: editVehicleForm.tramigoDeviceId || null,
       });
       setEditingVehicle(null);
       await loadAll();
@@ -790,6 +1024,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
         type: addVehicleForm.type,
         model: addVehicleForm.model.trim(),
         seatingCapacity: parseInt(addVehicleForm.seatingCapacity, 10) || 1,
+        tramigoDeviceId: addVehicleForm.tramigoDeviceId || undefined,
       });
       setAddVehicleOpen(false);
       setAddVehicleForm({
@@ -797,6 +1032,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
         type: "sedan",
         model: "",
         seatingCapacity: "4",
+        tramigoDeviceId: "",
       });
       await loadAll();
     } catch (err) {
@@ -809,7 +1045,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
 
   async function handleAddDriver() {
     if (!addDriverForm.username.trim()) {
-      setAddDriverError("A username is required.");
+      setAddDriverError("Select an employee.");
       return;
     }
     setAddDriverSubmitting(true);
@@ -817,16 +1053,18 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     try {
       await createFleetDriver({
         username: addDriverForm.username.trim(),
-        licenseNumber: addDriverForm.licenseNumber.trim(),
         contactNumber: addDriverForm.contactNumber.trim(),
       });
       setAddDriverOpen(false);
-      setAddDriverForm({ username: "", licenseNumber: "", contactNumber: "" });
+      setAddDriverForm({ username: "", displayName: "", contactNumber: "" });
+      setAddDriverWarning("");
       await loadAll();
     } catch (err) {
       console.error("Add driver failed:", err);
+      // Surface the backend's actual message (e.g. its own 409 "already
+      // registered as a driver" check) instead of a generic string.
       setAddDriverError(
-        "Failed to add driver — check the username and try again.",
+        err instanceof Error ? err.message : "Failed to add driver — try again.",
       );
     } finally {
       setAddDriverSubmitting(false);
@@ -1049,7 +1287,11 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       </p>
                     </div>
                     <button
-                      onClick={() => setAddVehicleOpen(true)}
+                      onClick={() => {
+                        setAddVehicleOpen(true);
+                        setAddVehicleWarning("");
+                        loadTramigoDevices();
+                      }}
                       style={{
                         backgroundColor: theme.surface,
                         borderColor: theme.border,
@@ -1066,8 +1308,9 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
-                      {vehicles.map((v) => {
-                        const vCfg = getVehicleDisplayStatus(v);
+                      {sortedVehicles.map((v) => {
+                        const vCfg = getVehicleDisplayStatus(v, onTripVehicleIds);
+                        const isAvailable = v.status !== "maintenance" && !onTripVehicleIds.has(v.id);
                         return (
                           <div
                             key={v.id}
@@ -1076,8 +1319,9 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                               backgroundColor: theme.surface,
                               borderColor: theme.border,
                               cursor: "pointer",
+                              opacity: isAvailable ? 1 : 0.55,
                             }}
-                            className="rounded-xl border p-3.5"
+                            className="rounded-xl border p-3.5 transition-opacity"
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div>
@@ -1153,7 +1397,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                                 </span>
                               </div>
                             )}
-                            {v.status === "active" && (
+                            {onTripVehicleIds.has(v.id) && (
                               <div
                                 style={{
                                   color: theme.subtext,
@@ -1212,20 +1456,22 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
-                      {drivers.map((d) => {
+                      {sortedDrivers.map((d) => {
                         const onTrip = onTripDriverUserIds.has(d.userId);
                         const showPlate = onTrip && !!d.vehiclePlate;
                         const dutyCfg =
                           DUTY_STATUS_CONFIG[d.dutyStatus] ??
                           DUTY_STATUS_CONFIG.off_duty;
+                        const isAvailable = d.dutyStatus === "active" && !onTrip;
                         return (
                         <div
                           key={d.id}
                           style={{
                             backgroundColor: theme.surface,
                             borderColor: theme.border,
+                            opacity: isAvailable ? 1 : 0.55,
                           }}
-                          className="rounded-xl border p-3.5"
+                          className="rounded-xl border p-3.5 transition-opacity"
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <p
@@ -1273,12 +1519,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                               </button>
                             </div>
                           </div>
-                          <p
-                            style={{ color: theme.subtext }}
-                            className="text-[11px] mb-1.5"
-                          >
-                            {d.licenseNumber ?? "No license on file"}
-                          </p>
                           <div
                             style={{ color: theme.subtext }}
                             className="text-[11.5px] flex justify-between"
@@ -1427,6 +1667,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       };
                       const isBusy = busyTripId === trip.id;
                       const isTripToday = isToday(trip.departureDatetime);
+                      const delayInfo = getDelayInfo(trip);
 
                       return (
                         <div
@@ -1439,7 +1680,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                           }}
                           className="rounded-lg border p-3"
                         >
-                          <div className="flex items-center justify-between gap-3">
+                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div
                                 style={{
@@ -1480,7 +1721,19 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                           <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {delayInfo && (
+                                <span
+                                  style={{ backgroundColor: "#ef4444", color: "#fff" }}
+                                  className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1"
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 7v5l3 2" />
+                                  </svg>
+                                  {delayInfo.label}
+                                </span>
+                              )}
                               {isTripToday && (
                                 <span
                                   style={{ backgroundColor: "#f59e0b", color: "#fff" }}
@@ -1495,12 +1748,20 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                               />
                               <button
                                 onClick={() => setViewingTrip(trip)}
-                                style={{
-                                  backgroundColor: theme.surface,
-                                  borderColor: theme.border,
-                                  color: theme.subtext,
-                                }}
-                                className="text-[10px] font-semibold px-2 py-1 rounded-lg border whitespace-nowrap"
+                                style={
+                                  ACTIVE_STATUSES.includes(trip.status)
+                                    ? { backgroundColor: theme.primary, color: theme.primaryText }
+                                    : {
+                                        backgroundColor: theme.surface,
+                                        borderColor: theme.border,
+                                        color: theme.subtext,
+                                      }
+                                }
+                                className={
+                                  ACTIVE_STATUSES.includes(trip.status)
+                                    ? "text-[10.5px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap"
+                                    : "text-[10px] font-semibold px-2 py-1 rounded-lg border whitespace-nowrap"
+                                }
                               >
                                 {ACTIVE_STATUSES.includes(trip.status)
                                   ? "Review"
@@ -2161,25 +2422,132 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   style={{ color: theme.subtext }}
                   className="text-[11px] font-semibold block mb-1"
                 >
-                  Plate number
+                  Tramigo device (GPS tracker)
                 </label>
-                <input
-                  value={addVehicleForm.plateNumber}
-                  onChange={(e) =>
-                    setAddVehicleForm((f) => ({
-                      ...f,
-                      plateNumber: e.target.value,
-                    }))
-                  }
+                <select
+                  value={addVehicleForm.tramigoDeviceId}
+                  onChange={(e) => {
+                    const deviceId = e.target.value;
+                    const device = tramigoDevices.find((d) => d.id === deviceId);
+                    if (device) {
+                      const { model, plate } = parseTramigoDeviceName(device.name);
+                      setAddVehicleForm((f) => ({
+                        ...f,
+                        tramigoDeviceId: deviceId,
+                        model: model || f.model,
+                        plateNumber: plate || f.plateNumber,
+                      }));
+                      setAddVehicleWarning(
+                        plate && existingVehiclePlates.has(plate.trim().toLowerCase())
+                          ? `A vehicle with plate "${plate}" is already registered.`
+                          : "",
+                      );
+                    } else {
+                      setAddVehicleForm((f) => ({ ...f, tramigoDeviceId: deviceId }));
+                      setAddVehicleWarning("");
+                    }
+                  }}
                   style={{
                     backgroundColor: theme.surface,
                     borderColor: theme.border,
                     color: theme.text,
                   }}
                   className="w-full text-sm px-3 py-2 border rounded-lg"
-                  placeholder="e.g. NGP 4521"
-                />
+                >
+                  <option value="">Not linked yet</option>
+                  {unlinkedTramigoDevices().map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} — {d.imei}
+                    </option>
+                  ))}
+                </select>
+                {tramigoDevices.length > 0 && unlinkedTramigoDevices().length === 0 && (
+                  <p style={{ color: theme.subtext }} className="text-[10.5px] mt-1">
+                    Every Tramigo device on the account is already linked to a vehicle.
+                  </p>
+                )}
+                {addVehicleWarning && (
+                  <p
+                    style={{ color: "#d97706" }}
+                    className="text-[11px] mt-1.5 flex items-center gap-1"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    {addVehicleWarning}
+                  </p>
+                )}
               </div>
+
+              {addVehicleForm.tramigoDeviceId ? (
+                <div
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  className="rounded-lg border px-3 py-2.5"
+                >
+                  <p style={{ color: theme.subtext }} className="text-[10.5px] mb-1">
+                    From Tramigo device
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: theme.text }} className="text-[13px] font-semibold">
+                      {addVehicleForm.model || "—"}
+                    </span>
+                    <span style={{ color: theme.text }} className="text-[13px] font-mono font-semibold">
+                      {addVehicleForm.plateNumber || "—"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label
+                      style={{ color: theme.subtext }}
+                      className="text-[11px] font-semibold block mb-1"
+                    >
+                      Plate number
+                    </label>
+                    <input
+                      value={addVehicleForm.plateNumber}
+                      onChange={(e) =>
+                        setAddVehicleForm((f) => ({
+                          ...f,
+                          plateNumber: e.target.value,
+                        }))
+                      }
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                      className="w-full text-sm px-3 py-2 border rounded-lg"
+                      placeholder="e.g. NGP 4521"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{ color: theme.subtext }}
+                      className="text-[11px] font-semibold block mb-1"
+                    >
+                      Model
+                    </label>
+                    <input
+                      value={addVehicleForm.model}
+                      onChange={(e) =>
+                        setAddVehicleForm((f) => ({ ...f, model: e.target.value }))
+                      }
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                      className="w-full text-sm px-3 py-2 border rounded-lg"
+                      placeholder="e.g. Toyota HiAce"
+                    />
+                  </div>
+                </>
+              )}
+
               <div>
                 <label
                   style={{ color: theme.subtext }}
@@ -2207,27 +2575,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   <option value="suv">SUV</option>
                   <option value="truck">Truck</option>
                 </select>
-              </div>
-              <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  Model
-                </label>
-                <input
-                  value={addVehicleForm.model}
-                  onChange={(e) =>
-                    setAddVehicleForm((f) => ({ ...f, model: e.target.value }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                  placeholder="e.g. Toyota HiAce"
-                />
               </div>
               <div>
                 <label
@@ -2265,6 +2612,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                 onClick={() => {
                   setAddVehicleOpen(false);
                   setAddVehicleError("");
+                  setAddVehicleWarning("");
                 }}
                 style={{
                   backgroundColor: theme.surface,
@@ -2320,47 +2668,47 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   style={{ color: theme.subtext }}
                   className="text-[11px] font-semibold block mb-1"
                 >
-                  Username
+                  Employee
                 </label>
-                <input
+                <EmployeeSearchableSelect
                   value={addDriverForm.username}
-                  onChange={(e) =>
+                  displayName={addDriverForm.displayName}
+                  options={employeeOptions}
+                  theme={theme}
+                  onTextChange={(text) => {
                     setAddDriverForm((f) => ({
                       ...f,
-                      username: e.target.value,
-                    }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
+                      username: "",
+                      displayName: text,
+                    }));
+                    setAddDriverWarning("");
                   }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                  placeholder="AD username, e.g. jreyes"
-                />
-              </div>
-              <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  License number
-                </label>
-                <input
-                  value={addDriverForm.licenseNumber}
-                  onChange={(e) =>
+                  onChange={(value, label) => {
                     setAddDriverForm((f) => ({
                       ...f,
-                      licenseNumber: e.target.value,
-                    }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
+                      username: value,
+                      displayName: label,
+                    }));
+                    setAddDriverWarning(
+                      existingDriverNames.has(label.trim().toLowerCase())
+                        ? `${label} is already registered as a driver.`
+                        : "",
+                    );
                   }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
                 />
+                {addDriverWarning && (
+                  <p
+                    style={{ color: "#d97706" }}
+                    className="text-[11px] mt-1.5 flex items-center gap-1"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    {addDriverWarning}
+                  </p>
+                )}
               </div>
               <div>
                 <label
@@ -2396,6 +2744,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                 onClick={() => {
                   setAddDriverOpen(false);
                   setAddDriverError("");
+                  setAddDriverWarning("");
                 }}
                 style={{
                   backgroundColor: theme.surface,
@@ -2586,24 +2935,106 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   style={{ color: theme.subtext }}
                   className="text-[11px] font-semibold block mb-1"
                 >
-                  Plate number
+                  Tramigo device (GPS tracker)
                 </label>
-                <input
-                  value={editVehicleForm.plateNumber}
-                  onChange={(e) =>
-                    setEditVehicleForm((f) => ({
-                      ...f,
-                      plateNumber: e.target.value,
-                    }))
-                  }
+                <select
+                  value={editVehicleForm.tramigoDeviceId}
+                  onChange={(e) => {
+                    const deviceId = e.target.value;
+                    const device = tramigoDevices.find((d) => d.id === deviceId);
+                    if (device) {
+                      const { model, plate } = parseTramigoDeviceName(device.name);
+                      setEditVehicleForm((f) => ({
+                        ...f,
+                        tramigoDeviceId: deviceId,
+                        model: model || f.model,
+                        plateNumber: plate || f.plateNumber,
+                      }));
+                    } else {
+                      setEditVehicleForm((f) => ({ ...f, tramigoDeviceId: deviceId }));
+                    }
+                  }}
                   style={{
                     backgroundColor: theme.surface,
                     borderColor: theme.border,
                     color: theme.text,
                   }}
                   className="w-full text-sm px-3 py-2 border rounded-lg"
-                />
+                >
+                  <option value="">Not linked</option>
+                  {unlinkedTramigoDevices(editingVehicle?.id).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} — {d.imei}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {editVehicleForm.tramigoDeviceId ? (
+                <div
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  className="rounded-lg border px-3 py-2.5"
+                >
+                  <p style={{ color: theme.subtext }} className="text-[10.5px] mb-1">
+                    From Tramigo device
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: theme.text }} className="text-[13px] font-semibold">
+                      {editVehicleForm.model || "—"}
+                    </span>
+                    <span style={{ color: theme.text }} className="text-[13px] font-mono font-semibold">
+                      {editVehicleForm.plateNumber || "—"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label
+                      style={{ color: theme.subtext }}
+                      className="text-[11px] font-semibold block mb-1"
+                    >
+                      Plate number
+                    </label>
+                    <input
+                      value={editVehicleForm.plateNumber}
+                      onChange={(e) =>
+                        setEditVehicleForm((f) => ({
+                          ...f,
+                          plateNumber: e.target.value,
+                        }))
+                      }
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                      className="w-full text-sm px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{ color: theme.subtext }}
+                      className="text-[11px] font-semibold block mb-1"
+                    >
+                      Model
+                    </label>
+                    <input
+                      value={editVehicleForm.model}
+                      onChange={(e) =>
+                        setEditVehicleForm((f) => ({ ...f, model: e.target.value }))
+                      }
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                      className="w-full text-sm px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </>
+              )}
+
               <div>
                 <label
                   style={{ color: theme.subtext }}
@@ -2631,26 +3062,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   <option value="suv">SUV</option>
                   <option value="truck">Truck</option>
                 </select>
-              </div>
-              <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  Model
-                </label>
-                <input
-                  value={editVehicleForm.model}
-                  onChange={(e) =>
-                    setEditVehicleForm((f) => ({ ...f, model: e.target.value }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                />
               </div>
               <div>
                 <label

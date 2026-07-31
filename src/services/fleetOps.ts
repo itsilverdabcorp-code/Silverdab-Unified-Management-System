@@ -142,7 +142,30 @@ function mapVehicleRow(row: any): FleetVehicle {
     assignedDriverId: row.assignedDriverId ?? null,
     assignedDriverName: row.assignedDriverName ?? null,
     lastPingAt: row.lastPingAt ?? null,
+    tramigoDeviceId: row.tramigoDeviceId ?? null,
   };
+}
+
+// A device from the Tramigo account that isn't yet linked to any of our
+// fleet_vehicles rows — pulled from GET /tramigo/devices (your existing
+// backend proxy to Tramigo Cloud's device list).
+export type TramigoDevice = { id: string; imei: string; name: string };
+
+export async function getTramigoDevices(): Promise<TramigoDevice[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/fleet/tramigo-devices`, {
+      headers: await authHeaders(false),
+    });
+    const data = await readJsonResponse<{ success?: boolean; devices?: any[]; message?: string }>(res);
+    if (!res.ok || !data?.success || !Array.isArray(data.devices)) {
+      console.warn("Tramigo devices endpoint unavailable, returning empty list.");
+      return [];
+    }
+    return data.devices.map((d) => ({ id: String(d.ID), imei: d.IMEI, name: d.Name }));
+  } catch (err) {
+    console.warn("getTramigoDevices error:", err);
+    return [];
+  }
 }
 
 function mapDriverRow(row: any): FleetDriver {
@@ -183,7 +206,7 @@ export async function startFleetTrip(tripId: string): Promise<void> {
 
 export async function updateFleetVehicle(
   vehicleId: string,
-  payload: Partial<{ plateNumber: string; type: VehicleType; model: string; seatingCapacity: number }>,
+  payload: Partial<{ plateNumber: string; type: VehicleType; model: string; seatingCapacity: number; tramigoDeviceId: string | null }>,
 ): Promise<void> {
   const res = await fetch(`${BACKEND_URL}/fleet/vehicles/${encodeURIComponent(vehicleId)}`, {
     method: "PATCH",
@@ -460,6 +483,7 @@ export async function createFleetVehicle(payload: {
   type: VehicleType;
   model: string;
   seatingCapacity: number;
+  tramigoDeviceId?: string;
 }): Promise<void> {
   const res = await fetch(`${BACKEND_URL}/fleet/vehicles`, {
     method: "POST",

@@ -120,4 +120,6 @@ const darkTheme = {
   badgeBg: "#E24B4A",
 };
 
-export type Theme = typeof lightTheme;
+// Widened to the actual union so darkTheme (mode: "dark") satisfies the type —
+// `typeof lightTheme` alone would lock `mode` to the literal "light".
+export type Theme = Omit<typeof lightTheme, "mode"> & { mode: "light" | "dark" };

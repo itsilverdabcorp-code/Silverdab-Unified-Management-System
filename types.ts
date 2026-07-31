@@ -308,6 +308,7 @@ export type FleetVehicle = {
   assignedDriverId?: string | null;
   assignedDriverName?: string | null;
   lastPingAt?: string | null;
+  tramigoDeviceId?: string | null;
 };
 
 export type DriverDutyStatus = "off_duty" | "active" | "personal";

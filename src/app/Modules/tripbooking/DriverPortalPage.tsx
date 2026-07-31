@@ -124,6 +124,25 @@ function formatSchedule(iso?: string | null): string {
   );
 }
 
+// A trip is "late" once its scheduled time has passed but the driver
+// hasn't advanced past that step yet — scheduled departure for a trip
+// still sitting in "approved" (Start Trip not tapped), or scheduled
+// return time for a round trip sitting in "arrived" (Start Return not
+// tapped). Ongoing/returning/completed trips are already moving, so
+// they're never flagged late no matter how long they've been running.
+function isTripLate(trip: FleetTrip): boolean {
+  const now = Date.now();
+  if (trip.status === "approved") {
+    const departure = new Date(trip.departureDatetime).getTime();
+    return !isNaN(departure) && now > departure;
+  }
+  if (trip.status === "arrived" && trip.tripType === "roundtrip" && trip.returnDatetime) {
+    const ret = new Date(trip.returnDatetime).getTime();
+    return !isNaN(ret) && now > ret;
+  }
+  return false;
+}
+
 const STATUS_DISPLAY: Record<TripStatus, string> = {
   pending: "Pending",
   approved: "Approved — Ready",
@@ -256,6 +275,23 @@ function StatusBadge({ status, theme }: { status: TripStatus; theme: any }) {
     >
       <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: c.text, textTransform: "uppercase", letterSpacing: 0.3 }}>
         {STATUS_DISPLAY[status]}
+      </Text>
+    </View>
+  );
+}
+
+function LateBadge() {
+  return (
+    <View
+      style={{
+        backgroundColor: "#fee2e2",
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: 999,
+      }}
+    >
+      <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#dc2626", textTransform: "uppercase", letterSpacing: 0.3 }}>
+        Late
       </Text>
     </View>
   );
@@ -398,6 +434,7 @@ function TripCard({
   onViewDetails: (trip: FleetTrip) => void;
 }) {
   const action = nextDriverAction(trip);
+  const late = isTripLate(trip);
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -421,7 +458,10 @@ function TripCard({
             {trip.passengerCount === 1 ? "" : "s"} · {trip.tripType === "oneway" ? "One way" : "Round trip"}
           </Text>
         </View>
-        <StatusBadge status={trip.status} theme={theme} />
+        <View style={{ alignItems: "flex-end", gap: 5 }}>
+          <StatusBadge status={trip.status} theme={theme} />
+          {late && <LateBadge />}
+        </View>
       </View>
 
       {trip.requestorName ? (

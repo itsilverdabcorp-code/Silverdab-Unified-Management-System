@@ -23,8 +23,8 @@ import { FleetLocation } from "../../../../types";
 
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
 const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";
-const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
-const SEARCH_DEBOUNCE_MS = 450;
+const PHOTON_SEARCH_URL = "https://photon.komoot.io/api/";
+const SEARCH_DEBOUNCE_MS = 300;
 
 declare global {
   interface Window {
@@ -59,27 +59,65 @@ function loadMapLibre(): Promise<any> {
   });
 }
 
-type NominatimResult = {
-  display_name: string;
-  lat: string;
-  lon: string;
+type PlaceResult = {
+  displayName: string;
+  lat: number;
+  lon: number;
 };
 
-// Biased (not restricted) toward the Philippines via countrycodes -- remove
-// this param if this admin tool ever needs to search addresses elsewhere.
-async function searchAddress(query: string): Promise<NominatimResult[]> {
+// Photon (komoot.io) instead of Nominatim: built for autocomplete-as-you-type
+// rather than exact address lookup, so it matches partial words, place
+// names, and POIs the way Google Maps search does -- Nominatim by contrast
+// wants something closer to a full, well-formed address to return anything.
+// `lat`/`lon` bias ranking toward whatever the map is currently centered on
+// (same effect as Google Maps preferring nearby results), without
+// restricting results to that area the way a hard country/bbox filter would.
+async function searchAddress(
+  query: string,
+  bias?: { lat: number; lon: number },
+): Promise<PlaceResult[]> {
   const params = new URLSearchParams({
-    format: "json",
     q: query,
-    limit: "6",
-    addressdetails: "0",
-    countrycodes: "ph",
+    limit: "8",
+    lang: "en",
   });
-  const res = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`, {
+  if (bias) {
+    params.set("lat", String(bias.lat));
+    params.set("lon", String(bias.lon));
+  }
+  const res = await fetch(`${PHOTON_SEARCH_URL}?${params.toString()}`, {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) throw new Error("Address search failed");
-  return res.json();
+  const data = await res.json();
+
+  const features = Array.isArray(data?.features) ? data.features : [];
+  return features
+    .map((f: any) => {
+      const [lon, lat] = f?.geometry?.coordinates ?? [];
+      if (typeof lat !== "number" || typeof lon !== "number") return null;
+      const p = f.properties ?? {};
+
+      // Photon splits an address into parts rather than one display string
+      // like Nominatim -- assemble something readable, e.g.
+      // "SM Megamall, EDSA, Mandaluyong, Metro Manila, Philippines",
+      // de-duping consecutive parts that repeat the same text.
+      const streetLine = [p.housenumber, p.street].filter(Boolean).join(" ");
+      const rawParts = [p.name, streetLine, p.city, p.state, p.country];
+      const seen = new Set<string>();
+      const displayName = rawParts
+        .filter(Boolean)
+        .filter((part) => {
+          const key = String(part).toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .join(", ");
+
+      return { displayName: displayName || "Unnamed location", lat, lon };
+    })
+    .filter((r: PlaceResult | null): r is PlaceResult => r !== null);
 }
 
 // Same default center/style as FleetLiveMap's "streets" layer, kept in sync
@@ -131,11 +169,16 @@ export default function FleetLocationPickerMap({
 
   // -- Address search state --------------------------------------------
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
+  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set right before setSearchQuery() inside handleSelectResult, so the
+  // search effect below (which also fires on searchQuery changes) knows to
+  // skip that one resulting run instead of re-searching the picked name and
+  // reopening the dropdown immediately after the person just closed it.
+  const suppressNextSearchRef = useRef(false);
 
   // Keep a ref to the latest onPick so the map's one-time click listener
   // (registered before first render's onPick closure) always calls the
@@ -160,6 +203,33 @@ export default function FleetLocationPickerMap({
         map.on("click", (e: any) => {
           onPickRef.current({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
         });
+
+        // Default cursor is a crosshair (signals "click to pin"), and only
+        // swaps to a grab/grabbing hand while the person is actually
+        // holding the mouse down to pan the map -- not on every hover.
+        const canvas = map.getCanvas();
+        canvas.style.cursor = "crosshair";
+        map.on("mousedown", () => {
+          canvas.style.cursor = "grabbing";
+        });
+        map.on("mouseup", () => {
+          canvas.style.cursor = "crosshair";
+        });
+        map.on("dragstart", () => {
+          canvas.style.cursor = "grabbing";
+        });
+        map.on("dragend", () => {
+          canvas.style.cursor = "crosshair";
+        });
+        // Touch devices don't fire mousedown/mouseup, so mirror the same
+        // behavior for touch-based panning.
+        map.on("touchstart", () => {
+          canvas.style.cursor = "grabbing";
+        });
+        map.on("touchend", () => {
+          canvas.style.cursor = "crosshair";
+        });
+
         map.on("load", () => {
           if (cancelled) return;
           mapRef.current = map;
@@ -238,13 +308,27 @@ export default function FleetLocationPickerMap({
         .addTo(mapRef.current);
     }
 
-    mapRef.current.easeTo({ center: [value.longitude, value.latitude], duration: 400 });
+    // Only zoom in when a pin is first placed/moved via search or click —
+    // don't fight the person's own zoom level if they're just nudging an
+    // existing pin they've already zoomed in on manually.
+    const currentZoom = mapRef.current.getZoom?.() ?? 0;
+    mapRef.current.easeTo({
+      center: [value.longitude, value.latitude],
+      zoom: currentZoom < 16 ? 17 : currentZoom,
+      duration: 500,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, value?.latitude, value?.longitude]);
 
   // -- Debounced address search --------------------------------------------
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (suppressNextSearchRef.current) {
+      suppressNextSearchRef.current = false;
+      setSearching(false);
+      return;
+    }
 
     const query = searchQuery.trim();
     if (query.length < 3) {
@@ -258,7 +342,9 @@ export default function FleetLocationPickerMap({
     setSearchError("");
     debounceRef.current = setTimeout(async () => {
       try {
-        const results = await searchAddress(query);
+        const center = mapRef.current?.getCenter?.();
+        const bias = center ? { lat: center.lat, lon: center.lng } : undefined;
+        const results = await searchAddress(query, bias);
         setSearchResults(results);
         setShowDropdown(true);
       } catch (err) {
@@ -275,18 +361,24 @@ export default function FleetLocationPickerMap({
     };
   }, [searchQuery]);
 
-  function handleSelectResult(result: NominatimResult) {
-    const lat = parseFloat(result.lat);
-    const lon = parseFloat(result.lon);
-    if (isNaN(lat) || isNaN(lon)) return;
-
-    onPickRef.current({ latitude: lat, longitude: lon });
+  function handleSelectResult(result: PlaceResult) {
+    onPickRef.current({ latitude: result.lat, longitude: result.lon });
     if (mapRef.current) {
-      mapRef.current.flyTo({ center: [lon, lat], zoom: 16, duration: 700 });
+      // Zoom in tight and noticeably (18 = building-level) regardless of
+      // the map's current zoom, so the person can actually see the pin
+      // land on the right building/street rather than a blurry area view.
+      mapRef.current.flyTo({
+        center: [result.lon, result.lat],
+        zoom: 18,
+        duration: 900,
+        essential: true,
+      });
     }
-    setSearchQuery(result.display_name);
-    setShowDropdown(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    suppressNextSearchRef.current = true;
     setSearchResults([]);
+    setShowDropdown(false);
+    setSearchQuery(result.displayName);
   }
 
   return (
@@ -368,7 +460,7 @@ export default function FleetLocationPickerMap({
                     idx !== searchResults.length - 1 ? "border-b" : ""
                   }`}
                 >
-                  {r.display_name}
+                  {r.displayName}
                 </button>
               ))}
             {!searching && !searchError && searchResults.length === 0 && (

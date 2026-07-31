@@ -270,6 +270,7 @@ function buildDashboardConsumptionRows(
         id: itemId,
         name: item?.name ?? "Unknown item",
         category: item?.category ?? "other",
+        unit: item?.unit ?? "units",
         totalConsumed: v.consumed,
         consumptionAmount: v.amount,
       };
@@ -288,6 +289,7 @@ function buildDashboardTopItems(
       name: r.name,
       consumed: r.totalConsumed,
       category: r.category,
+      unit: r.unit,
     }));
 }
 
@@ -340,7 +342,7 @@ function buildDashboardMonthlyTrend(
 function buildDashboardItemOptions(items: OfficeInventoryItem[]) {
   return [...items]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((i) => ({ id: i.id, name: i.name, itemCode: i.itemCode }));
+    .map((i) => ({ id: i.id, name: i.name, itemCode: i.itemCode, unit: i.unit }));
 }
 
 // ─── Sub-components (unchanged) ───────────────────────────────────────────────
@@ -1115,7 +1117,10 @@ const [activeMobileTab, setActiveMobileTab] =
                         }}
                         labelStyle={{ color: theme.text }}
                         itemStyle={{ color: theme.text }}
-                        formatter={(value: any) => [`${Number(value)} units`, "Consumed"]}
+                        formatter={(value: any, name: any, props: any) => [
+                          `${Number(value)} ${props?.payload?.unit ?? "units"}`,
+                          "Consumed",
+                        ]}
                       />
                       <Bar dataKey="consumed" radius={[3, 3, 0, 0]}>
                         {graphTopItemsPage.map((entry, idx) => (
@@ -1356,7 +1361,12 @@ const [activeMobileTab, setActiveMobileTab] =
                       }}
                       labelStyle={{ color: theme.text }}
                       itemStyle={{ color: theme.text }}
-                      formatter={(value: any, name: any) => [`${Number(value)} units`, name]}
+                      formatter={(value: any, name: any, props: any) => {
+                        const matched = selectedTrendItems.find(
+                          (i) => i.id === props?.dataKey,
+                        );
+                        return [`${Number(value)} ${matched?.unit ?? "units"}`, name];
+                      }}
                     />
                     {selectedTrendItems.length > 0 && <Legend wrapperStyle={{ fontSize: 10 }} />}
                     {selectedTrendItems.length === 0 ? (
