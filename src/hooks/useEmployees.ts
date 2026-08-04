@@ -8,7 +8,7 @@ export interface EmployeeOption {
   name: string; // displayName shown in dropdowns
 }
 
-const BACKEND_URL = "http://10.10.100.112:3000";
+const BACKEND_URL = "https://ums.silvergraph.ai";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;

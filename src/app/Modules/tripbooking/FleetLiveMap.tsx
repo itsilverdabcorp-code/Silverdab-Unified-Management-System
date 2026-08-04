@@ -403,7 +403,7 @@ function switchLayer(key: LayerKey) {
   return (
     <div
       style={{ backgroundColor: SURFACE, borderColor: BORDER }}
-      className="rounded-xl border flex flex-col"
+      className="rounded-xl border flex flex-col h-full"
     >
    <style>{`
         .maplibregl-ctrl-top-right {
@@ -477,34 +477,13 @@ function switchLayer(key: LayerKey) {
           border: 2px solid #fff;
         }
       `}</style>
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <div>
-          <p style={{ color: SUBTEXT }} className="text-[11px] mt-0.5">
-            {locations.length} vehicle{locations.length !== 1 ? "s" : ""} reporting
-          </p>
-        </div>
-        {pollFailed && (
+      {pollFailed && (
+        <div className="px-4 pt-4 pb-3 flex items-center justify-end">
           <span className="text-[11px] font-semibold" style={{ color: "#dc2626" }}>
             Live updates unavailable
           </span>
-        )}
-      </div>
-      <div className="flex flex-nowrap items-center gap-3 px-4 pb-3 -mt-1">
-        {VISIBLE_LEGEND_KEYS.map((key) => (
-          <div key={key} className="flex items-center gap-1.5 flex-shrink-0">
-            <span
-              style={{ backgroundColor: LEGEND_CONFIG[key].color, width: 7, height: 7 }}
-              className="inline-block rounded-full flex-shrink-0"
-            />
-            <span style={{ color: SUBTEXT }} className="text-[11px] font-medium whitespace-nowrap">
-              {LEGEND_CONFIG[key].label}
-            </span>
-            <span style={{ color: TEXT }} className="text-[11px] font-semibold">
-              {statusCounts[key]}
-            </span>
-          </div>
-        ))}
-      </div>
+        </div>
+      )}
       {loadError ? (
         <div className="px-4 pb-4">
           <p className="text-xs" style={{ color: SUBTEXT }}>
@@ -513,10 +492,10 @@ function switchLayer(key: LayerKey) {
           </p>
         </div>
       ) : (
-        <div className="relative">
+        <div className="relative flex-1 min-h-0">
           <div
             ref={containerRef}
-            style={{ height: 370, width: "100%", backgroundColor: "#2A2E33" }}
+            style={{ position: "absolute", inset: 0, backgroundColor: "#2A2E33" }}
             className="rounded-b-xl overflow-hidden"
           />
           {ready && followedVehicleId && (

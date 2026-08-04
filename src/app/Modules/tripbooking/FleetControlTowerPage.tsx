@@ -690,7 +690,14 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     );
     if (statusFilter !== "all")
       result = result.filter((t) => t.status === statusFilter);
-    return [...result].sort((a, b) => {      const aActive = ACTIVE_STATUSES.includes(a.status) ? 0 : 1;
+    return [...result].sort((a, b) => {
+      // Today's trips always float to the top, ahead of the active/not-
+      // active grouping below — a today trip that's merely "approved"
+      // still outranks a tomorrow trip that's "ongoing".
+      const aToday = isToday(a.departureDatetime) ? 0 : 1;
+      const bToday = isToday(b.departureDatetime) ? 0 : 1;
+      if (aToday !== bToday) return aToday - bToday;
+      const aActive = ACTIVE_STATUSES.includes(a.status) ? 0 : 1;
       const bActive = ACTIVE_STATUSES.includes(b.status) ? 0 : 1;
       if (aActive !== bActive) return aActive - bActive;
       return (
@@ -784,6 +791,17 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
       ),
     [trips],
   );
+
+  // Vehicle id -> its currently-ongoing trip, so the vehicle card can show
+  // the trip's purpose alongside the assigned driver. Only ongoing trips
+  // matter here — same status set onTripVehicleIds itself is built from.
+  const ongoingTripByVehicleId = useMemo(() => {
+    const map: Record<string, FleetTrip> = {};
+    trips.forEach((t) => {
+      if (t.status === "ongoing" && t.vehicleId) map[t.vehicleId] = t;
+    });
+    return map;
+  }, [trips]);
 
   // Vehicle list order: Available, then Parked (maintenance), then Ongoing
   // — surfaces dispatchable vehicles at the top of the list.
@@ -1412,6 +1430,17 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                                 >
                                   {v.assignedDriverName ?? "Unassigned"}
                                 </span>
+                                {ongoingTripByVehicleId[v.id]?.purpose && (
+                                  <div className="mt-1">
+                                    Purpose:{" "}
+                                    <span
+                                      style={{ color: theme.text }}
+                                      className="font-semibold"
+                                    >
+                                      {ongoingTripByVehicleId[v.id].purpose}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1482,16 +1511,22 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                             </p>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {showPlate ? (
-                                <span
-                                  style={{
-                                    backgroundColor: theme.background,
-                                    color: theme.subtext,
-                                    borderColor: theme.border,
-                                  }}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono whitespace-nowrap"
-                                >
-                                  {d.vehiclePlate}
-                                </span>
+                                <>
+                                  <StatusBadge
+                                    config={{ label: "On Trip", bg: "#dbeafe", text: "#1d4ed8" }}
+                                    size="sm"
+                                  />
+                                  <span
+                                    style={{
+                                      backgroundColor: theme.background,
+                                      color: theme.subtext,
+                                      borderColor: theme.border,
+                                    }}
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono whitespace-nowrap"
+                                  >
+                                    {d.vehiclePlate}
+                                  </span>
+                                </>
                               ) : (
                                 <StatusBadge config={dutyCfg} size="sm" />
                               )}

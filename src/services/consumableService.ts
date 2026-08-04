@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ADUser, ITConsumable } from "../../types";
 import { logAudit } from "./auditlogs";
 
-const BACKEND_URL = "http://10.10.100.112:3000";
+const BACKEND_URL = "https://ums.silvergraph.ai";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;

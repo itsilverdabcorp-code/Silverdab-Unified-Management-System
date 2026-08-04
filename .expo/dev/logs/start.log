@@ -5944,3 +5944,198 @@
 {"_e":"devserver:start","_t":1785306628628,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
 {"_e":"metro:config","_t":1785306629921,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
 {"_e":"expo:dev-tools-plugin:load","_t":1785306630505,"plugins":[]}
+{"_e":"root:init","_t":1785828414825,"format":"v0-jsonl","version":"57.0.6"}
+{"_e":"env:mode","_t":1785828414829,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1785828414835,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1785828416354,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1785828418012,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1785828418849,"plugins":[]}
+{"_e":"metro:instantiate","_t":1785828427089,"atlas":false,"workers":14,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1785828445154,"id":"2","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828445155,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1785828445165,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1785828446130,"id":"2","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1785828446230,"id":"2","progress":0.010000000000000002,"total":2,"current":1}
+{"_e":"metro:bundling:progress","_t":1785828446252,"id":"2","progress":0.04000000000000001,"total":2,"current":2}
+{"_e":"metro:bundling:progress","_t":1785828446354,"id":"2","progress":0.25,"total":10,"current":5}
+{"_e":"metro:bundling:progress","_t":1785828447147,"id":"2","progress":0.36,"total":10,"current":6}
+{"_e":"metro:bundling:progress","_t":1785828447249,"id":"2","progress":0.36,"total":96,"current":19}
+{"_e":"metro:bundling:progress","_t":1785828447349,"id":"2","progress":0.36,"total":138,"current":22}
+{"_e":"metro:bundling:progress","_t":1785828447450,"id":"2","progress":0.36,"total":177,"current":42}
+{"_e":"metro:bundling:progress","_t":1785828447551,"id":"2","progress":0.36,"total":214,"current":75}
+{"_e":"metro:bundling:progress","_t":1785828447660,"id":"2","progress":0.36,"total":229,"current":92}
+{"_e":"metro:bundling:progress","_t":1785828447764,"id":"2","progress":0.36,"total":230,"current":94}
+{"_e":"metro:bundling:progress","_t":1785828447868,"id":"2","progress":0.36,"total":233,"current":100}
+{"_e":"metro:bundling:progress","_t":1785828447977,"id":"2","progress":0.36,"total":235,"current":101}
+{"_e":"metro:bundling:progress","_t":1785828448110,"id":"2","progress":0.36,"total":235,"current":102}
+{"_e":"metro:bundling:progress","_t":1785828448214,"id":"2","progress":0.36,"total":240,"current":104}
+{"_e":"metro:bundling:progress","_t":1785828448340,"id":"2","progress":0.36,"total":248,"current":109}
+{"_e":"metro:bundling:progress","_t":1785828448468,"id":"2","progress":0.36,"total":248,"current":110}
+{"_e":"metro:bundling:progress","_t":1785828448575,"id":"2","progress":0.36,"total":249,"current":115}
+{"_e":"metro:bundling:progress","_t":1785828448692,"id":"2","progress":0.36,"total":249,"current":116}
+{"_e":"metro:bundling:progress","_t":1785828448872,"id":"2","progress":0.36,"total":249,"current":117}
+{"_e":"metro:bundling:progress","_t":1785828448972,"id":"2","progress":0.36,"total":259,"current":121}
+{"_e":"metro:bundling:progress","_t":1785828449079,"id":"2","progress":0.36,"total":270,"current":134}
+{"_e":"metro:bundling:progress","_t":1785828449188,"id":"2","progress":0.36,"total":293,"current":162}
+{"_e":"metro:bundling:progress","_t":1785828449289,"id":"2","progress":0.3701678868047046,"total":309,"current":188}
+{"_e":"metro:bundling:progress","_t":1785828449390,"id":"2","progress":0.45835423016087334,"total":322,"current":218}
+{"_e":"metro:bundling:progress","_t":1785828449490,"id":"2","progress":0.45835423016087334,"total":345,"current":231}
+{"_e":"metro:bundling:progress","_t":1785828449591,"id":"2","progress":0.47315312907213747,"total":346,"current":238}
+{"_e":"metro:bundling:progress","_t":1785828449690,"id":"2","progress":0.48310137664533265,"total":364,"current":253}
+{"_e":"metro:bundling:progress","_t":1785828449792,"id":"2","progress":0.48310137664533265,"total":463,"current":271}
+{"_e":"metro:bundling:progress","_t":1785828449892,"id":"2","progress":0.48310137664533265,"total":482,"current":312}
+{"_e":"metro:bundling:progress","_t":1785828449995,"id":"2","progress":0.48310137664533265,"total":503,"current":325}
+{"_e":"metro:bundling:progress","_t":1785828450097,"id":"2","progress":0.48310137664533265,"total":531,"current":355}
+{"_e":"metro:bundling:progress","_t":1785828450308,"id":"2","progress":0.48310137664533265,"total":601,"current":380}
+{"_e":"metro:bundling:progress","_t":1785828450443,"id":"2","progress":0.48310137664533265,"total":602,"current":380}
+{"_e":"metro:bundling:progress","_t":1785828450557,"id":"2","progress":0.48310137664533265,"total":2351,"current":381}
+{"_e":"metro:bundling:progress","_t":1785828450665,"id":"2","progress":0.48310137664533265,"total":2403,"current":404}
+{"_e":"metro:bundling:progress","_t":1785828450765,"id":"2","progress":0.48310137664533265,"total":2463,"current":436}
+{"_e":"metro:bundling:progress","_t":1785828450865,"id":"2","progress":0.48310137664533265,"total":2496,"current":478}
+{"_e":"metro:bundling:progress","_t":1785828450966,"id":"2","progress":0.48310137664533265,"total":2544,"current":539}
+{"_e":"metro:bundling:progress","_t":1785828451066,"id":"2","progress":0.48310137664533265,"total":2564,"current":554}
+{"_e":"metro:bundling:progress","_t":1785828451515,"id":"2","progress":0.48310137664533265,"total":2564,"current":555}
+{"_e":"metro:bundling:progress","_t":1785828451614,"id":"2","progress":0.48310137664533265,"total":2565,"current":555}
+{"_e":"metro:bundling:progress","_t":1785828451724,"id":"2","progress":0.48310137664533265,"total":2565,"current":556}
+{"_e":"metro:bundling:progress","_t":1785828451824,"id":"2","progress":0.48310137664533265,"total":2595,"current":573}
+{"_e":"metro:bundling:progress","_t":1785828451910,"id":"2","progress":0.48310137664533265,"total":2595,"current":574}
+{"_e":"metro:bundling:progress","_t":1785828452012,"id":"2","progress":0.48310137664533265,"total":2631,"current":591}
+{"_e":"metro:bundling:progress","_t":1785828452155,"id":"2","progress":0.48310137664533265,"total":2641,"current":610}
+{"_e":"metro:bundling:progress","_t":1785828452259,"id":"2","progress":0.48310137664533265,"total":2641,"current":659}
+{"_e":"metro:bundling:progress","_t":1785828452359,"id":"2","progress":0.48310137664533265,"total":2641,"current":744}
+{"_e":"metro:bundling:progress","_t":1785828452459,"id":"2","progress":0.48310137664533265,"total":2641,"current":826}
+{"_e":"metro:bundling:progress","_t":1785828452559,"id":"2","progress":0.48310137664533265,"total":2641,"current":897}
+{"_e":"metro:bundling:progress","_t":1785828452659,"id":"2","progress":0.48310137664533265,"total":2641,"current":976}
+{"_e":"metro:bundling:progress","_t":1785828452760,"id":"2","progress":0.48310137664533265,"total":2641,"current":1061}
+{"_e":"metro:bundling:progress","_t":1785828452861,"id":"2","progress":0.48310137664533265,"total":2641,"current":1137}
+{"_e":"metro:bundling:progress","_t":1785828452961,"id":"2","progress":0.48310137664533265,"total":2641,"current":1205}
+{"_e":"metro:bundling:progress","_t":1785828453062,"id":"2","progress":0.48310137664533265,"total":2641,"current":1292}
+{"_e":"metro:bundling:progress","_t":1785828453162,"id":"2","progress":0.48310137664533265,"total":2641,"current":1364}
+{"_e":"metro:bundling:progress","_t":1785828453262,"id":"2","progress":0.48310137664533265,"total":2641,"current":1443}
+{"_e":"metro:bundling:progress","_t":1785828453362,"id":"2","progress":0.48310137664533265,"total":2641,"current":1509}
+{"_e":"metro:bundling:progress","_t":1785828453462,"id":"2","progress":0.48310137664533265,"total":2641,"current":1590}
+{"_e":"metro:bundling:progress","_t":1785828453563,"id":"2","progress":0.48310137664533265,"total":2641,"current":1671}
+{"_e":"metro:bundling:progress","_t":1785828453700,"id":"2","progress":0.48310137664533265,"total":2641,"current":1688}
+{"_e":"metro:bundling:progress","_t":1785828453800,"id":"2","progress":0.48310137664533265,"total":2641,"current":1744}
+{"_e":"metro:bundling:progress","_t":1785828453901,"id":"2","progress":0.48310137664533265,"total":2641,"current":1831}
+{"_e":"metro:bundling:progress","_t":1785828454001,"id":"2","progress":0.5252270253786409,"total":2641,"current":1914}
+{"_e":"metro:bundling:progress","_t":1785828454101,"id":"2","progress":0.5740601165812005,"total":2641,"current":2001}
+{"_e":"metro:bundling:progress","_t":1785828454201,"id":"2","progress":0.6190907056335442,"total":2641,"current":2078}
+{"_e":"metro:bundling:progress","_t":1785828454301,"id":"2","progress":0.67574500554203,"total":2641,"current":2171}
+{"_e":"metro:bundling:progress","_t":1785828454401,"id":"2","progress":0.7322848948964148,"total":2641,"current":2260}
+{"_e":"metro:bundling:progress","_t":1785828454501,"id":"2","progress":0.7933392134962615,"total":2644,"current":2355}
+{"_e":"metro:bundling:progress","_t":1785828454607,"id":"2","progress":0.8016341394296418,"total":2704,"current":2421}
+{"_e":"metro:bundling:progress","_t":1785828454707,"id":"2","progress":0.8275301053667945,"total":2746,"current":2498}
+{"_e":"metro:bundling:progress","_t":1785828454807,"id":"2","progress":0.8357307839831878,"total":2785,"current":2546}
+{"_e":"metro:bundling:progress","_t":1785828454907,"id":"2","progress":0.8435846208884824,"total":2821,"current":2591}
+{"_e":"metro:bundling:progress","_t":1785828455007,"id":"2","progress":0.8458347312817951,"total":2864,"current":2634}
+{"_e":"metro:bundling:progress","_t":1785828455107,"id":"2","progress":0.8554803241558757,"total":2877,"current":2661}
+{"_e":"metro:bundling:progress","_t":1785828455209,"id":"2","progress":0.8554803241558757,"total":2968,"current":2715}
+{"_e":"metro:bundling:progress","_t":1785828455311,"id":"2","progress":0.8554803241558757,"total":3025,"current":2780}
+{"_e":"metro:bundling:progress","_t":1785828455413,"id":"2","progress":0.8554803241558757,"total":3042,"current":2813}
+{"_e":"metro:bundling:progress","_t":1785828455513,"id":"2","progress":0.8861035079277756,"total":3051,"current":2872}
+{"_e":"metro:bundling:progress","_t":1785828455613,"id":"2","progress":0.912934602699281,"total":3077,"current":2940}
+{"_e":"metro:bundling:progress","_t":1785828455713,"id":"2","progress":0.9392549613074194,"total":3112,"current":3016}
+{"_e":"metro:bundling:progress","_t":1785828455813,"id":"2","progress":0.9392549613074194,"total":3162,"current":3047}
+{"_e":"metro:bundling:progress","_t":1785828455913,"id":"2","progress":0.9403492919623044,"total":3170,"current":3074}
+{"_e":"metro:bundling:progress","_t":1785828456013,"id":"2","progress":0.9403492919623044,"total":3279,"current":3115}
+{"_e":"metro:bundling:progress","_t":1785828456114,"id":"2","progress":0.9403492919623044,"total":3289,"current":3165}
+{"_e":"metro:bundling:progress","_t":1785828456214,"id":"2","progress":0.9615997685883884,"total":3301,"current":3237}
+{"_e":"metro:bundling:progress","_t":1785828456314,"id":"2","progress":0.9909815581510891,"total":3319,"current":3304}
+{"_e":"metro:bundling:progress","_t":1785828456419,"id":"2","progress":0.999,"total":3326,"current":3326}
+{"_e":"metro:bundling:done","_t":1785828456502,"id":"2","total":3326,"ms":11347.2317}
+{"_e":"metro:client_log","_t":1785828456835,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828456836,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828456985,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828456985,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828456985,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828458600,"level":"error","data":["Restore auth error:","[Error: Session expired.]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 196 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 197 |\u001b[39m   \u001b[36mconst\u001b[39m verifyData \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m verifyRes\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 198 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mverifyData\u001b[33m.\u001b[39msuccess) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"Session expired.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 199 |\u001b[39m\n \u001b[90m 200 |\u001b[39m   \u001b[90m// Pull role + permissions from MySQL (source of truth), falling back\u001b[39m\n \u001b[90m 201 |\u001b[39m   \u001b[90m// to the previously cached role only if the user isn't in MySQL.\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:198:34)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1785828464436,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1785828464935,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:client_log","_t":1785828465293,"level":"log","data":["MapLibre: container size","633","370"]}
+{"_e":"metro:client_log","_t":1785828466558,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1785828517470,"id":"f","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828517470,"id":"f","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828517547,"id":"f","total":1,"ms":77.018}
+{"_e":"metro:client_log","_t":1785828517865,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828517866,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828517989,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828517990,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828517990,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828518308,"level":"log","data":["MapLibre: container size","633","370"]}
+{"_e":"metro:client_log","_t":1785828518324,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:bundling:started","_t":1785828519332,"id":"n","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828519332,"id":"n","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828519388,"id":"n","total":1,"ms":55.8038}
+{"_e":"metro:client_log","_t":1785828519654,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828519655,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828519684,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828519685,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828519685,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828519840,"level":"log","data":["MapLibre: container size","633","370"]}
+{"_e":"metro:client_log","_t":1785828520062,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1785828520098,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:bundling:failed","_t":1785828554319,"id":null,"message":"SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}","importStack":null,"filename":"src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:client_log","_t":1785828554321,"level":"error","data":["[TransformError: SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}]"]}
+{"_e":"metro:bundling:failed","_t":1785828554498,"id":null,"message":"SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}","importStack":null,"filename":"src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:client_log","_t":1785828554499,"level":"error","data":["[TransformError: SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}]"]}
+{"_e":"metro:bundling:failed","_t":1785828562378,"id":null,"message":"SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative flex-1 min-h-0\">\n  405 |           <div\n  406 |             ref={containerRef}","importStack":null,"filename":"src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:client_log","_t":1785828562379,"level":"error","data":["[TransformError: SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative flex-1 min-h-0\">\n  405 |           <div\n  406 |             ref={containerRef}]"]}
+{"_e":"metro:bundling:failed","_t":1785828568572,"id":null,"message":"SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}","importStack":null,"filename":"src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:client_log","_t":1785828568574,"level":"error","data":["[TransformError: SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetLiveMap.tsx: Unexpected token (403:2)\n\n  401 |   const PRIMARY_TEXT = theme.primaryText;\n  402 |\n> 403 |   ) : (\n      |   ^\n  404 |         <div className=\"relative\">\n  405 |           <div\n  406 |             ref={containerRef}]"]}
+{"_e":"metro:bundling:started","_t":1785828576547,"id":"10","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828576547,"id":"10","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828576597,"id":"10","total":1,"ms":49.6396}
+{"_e":"metro:client_log","_t":1785828576853,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828576853,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828576883,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828576883,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828576883,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828577165,"level":"log","data":["MapLibre: container size","633","370"]}
+{"_e":"metro:client_log","_t":1785828577183,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:client_log","_t":1785828578003,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1785828588648,"level":"log","data":["MapLibre: container size","711","370"]}
+{"_e":"metro:client_log","_t":1785828595477,"level":"log","data":["MapLibre: container size","711","448"]}
+{"_e":"metro:bundling:started","_t":1785828602157,"id":"19","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828602157,"id":"19","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828602207,"id":"19","total":1,"ms":49.7755}
+{"_e":"metro:client_log","_t":1785828602494,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828602494,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828602611,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828602611,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828602611,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828602880,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:client_log","_t":1785828605826,"level":"log","data":["MapLibre: container size","633","448"]}
+{"_e":"metro:client_log","_t":1785828607981,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1785828742257,"level":"log","data":["MapLibre: container size","711","370"]}
+{"_e":"metro:client_log","_t":1785828744597,"level":"log","data":["MapLibre: container size","711","448"]}
+{"_e":"metro:client_log","_t":1785828767393,"level":"log","data":["MapLibre: container size","711","448"]}
+{"_e":"metro:bundling:failed","_t":1785828768702,"id":null,"message":"SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetControlTowerPage.tsx: Identifier 'ongoingTripByVehicleId' has already been declared. (802:8)\n\n  800 |   // the trip's purpose alongside the assigned driver. Only ongoing trips\n  801 |   // matter here — same status set onTripVehicleIds itself is built from.\n> 802 |   const ongoingTripByVehicleId = useMemo(() => {\n      |         ^\n  803 |     const map: Record<string, FleetTrip> = {};\n  804 |     trips.forEach((t) => {\n  805 |       if (t.status === \"ongoing\" && t.vehicleId) map[t.vehicleId] = t;","importStack":null,"filename":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:client_log","_t":1785828768704,"level":"error","data":["[TransformError: SyntaxError: C:\\Users\\hpatenio\\Documents\\Silverdab-Unified-Management-System\\src\\app\\Modules\\tripbooking\\FleetControlTowerPage.tsx: Identifier 'ongoingTripByVehicleId' has already been declared. (802:8)\n\n  800 |   // the trip's purpose alongside the assigned driver. Only ongoing trips\n  801 |   // matter here — same status set onTripVehicleIds itself is built from.\n> 802 |   const ongoingTripByVehicleId = useMemo(() => {\n      |         ^\n  803 |     const map: Record<string, FleetTrip> = {};\n  804 |     trips.forEach((t) => {\n  805 |       if (t.status === \"ongoing\" && t.vehicleId) map[t.vehicleId] = t;]"]}
+{"_e":"metro:bundling:started","_t":1785828774377,"id":"1l","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828774377,"id":"1l","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828774428,"id":"1l","total":1,"ms":51.2905}
+{"_e":"metro:client_log","_t":1785828774725,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828774725,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828774843,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828774844,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828774844,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828775099,"level":"log","data":["MapLibre: container size","633","448"]}
+{"_e":"metro:client_log","_t":1785828775147,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:client_log","_t":1785828784891,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1785828789744,"id":"1u","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1785828789745,"id":"1u","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1785828789797,"id":"1u","total":1,"ms":52.0471}
+{"_e":"metro:client_log","_t":1785828790085,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1785828790085,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1785828790196,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828790196,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828790196,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785828790406,"level":"log","data":["MapLibre: container size","633","448"]}
+{"_e":"metro:client_log","_t":1785828790441,"level":"log","data":["✅ Push notifications subscribed"]}
+{"_e":"metro:client_log","_t":1785828790484,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1785833768719,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785833768719,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785833768719,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1785833769704,"level":"log","data":["MapLibre: container size","633","448"]}
+{"_e":"metro:client_log","_t":1785833769718,"level":"log","data":["✅ Push notifications subscribed"]}
