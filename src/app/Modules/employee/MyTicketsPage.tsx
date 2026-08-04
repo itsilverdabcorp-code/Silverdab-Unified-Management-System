@@ -1961,7 +1961,7 @@ export default function TicketHubPage({ user }: Props) {
   const primary = theme.primary ?? "#4169E1";
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const canBookTrip = user.role === "admin" || user.role === "superadmin";
+  const canBookTrip = user.role === "superadmin";
 
   // ── Ticket list state ──
   const [unified, setUnified] = useState<UnifiedTicket[]>([]);

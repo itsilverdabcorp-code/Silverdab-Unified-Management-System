@@ -284,6 +284,7 @@ export type FleetTrip = {
   returnDatetime?: string | null;
   purpose?: string;
   passengerCount: number;
+  passengerNames?: string[];
   vehicleId?: string | null;
   vehiclePlate?: string | null;
   driverId?: string | null;

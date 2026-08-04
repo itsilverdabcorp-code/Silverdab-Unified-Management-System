@@ -818,7 +818,12 @@ export default function FleetAllTripsPage({ user }: Props) {
                   "Trip type",
                   viewingTrip.tripType === "oneway" ? "One way" : "Round trip",
                 ],
-                ["Passengers", String(viewingTrip.passengerCount)],
+                [
+                  "Passengers",
+                  viewingTrip.passengerNames && viewingTrip.passengerNames.length > 0
+                    ? `${viewingTrip.passengerCount} (${viewingTrip.passengerNames.join(", ")})`
+                    : String(viewingTrip.passengerCount),
+                ],
                 ["Purpose", viewingTrip.purpose || "—"],
                 ...(viewingTrip.status === "pending"
                   ? []

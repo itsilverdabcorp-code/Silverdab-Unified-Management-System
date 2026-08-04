@@ -116,6 +116,7 @@ function mapTripRow(row: any): FleetTrip {
     returnDatetime: row.returnDatetime ?? null,
     purpose: row.purpose ?? "",
     passengerCount: Number(row.passengerCount ?? 1),
+    passengerNames: Array.isArray(row.passengerNames) ? row.passengerNames : [],
     vehicleId: row.vehicleId ?? null,
     vehiclePlate: row.vehiclePlate ?? null,
     driverId: row.driverId ?? null,
