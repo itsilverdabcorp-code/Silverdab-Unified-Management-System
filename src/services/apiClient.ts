@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const BACKEND_URL = "https://ums.silvergraph.ai";
+export const BACKEND_URL = "https://api.silvergraph.ai";
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = await AsyncStorage.getItem("AD_AUTH_TOKEN");

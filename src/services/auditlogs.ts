@@ -1,7 +1,7 @@
 // Services/auditLog.ts — MySQL implementation
 // Same auth/fetch pattern as your other Services/*.ts files.
 
-const BACKEND_URL = "https://ums.silvergraph.ai";
+const BACKEND_URL = "https://api.silvergraph.ai";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;

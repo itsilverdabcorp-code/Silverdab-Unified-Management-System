@@ -2,7 +2,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ADUser, UserPermissions, UserRole } from "../../types";
 
-const BACKEND_URL = "https://ums.silvergraph.ai";
+const BACKEND_URL = "https://api.silvergraph.ai";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 const CACHE_MINUTES = 10;
 const LAST_SYNC_KEY = "USERS_LAST_SYNC";

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ADUser, UserPermissions } from "../../../types";
 
 // Same backend that /users, /users/sync, /auth/login, /auth/verify live on.
-const BACKEND_URL = "https://ums.silvergraph.ai";
+const BACKEND_URL = "https://api.silvergraph.ai";
 
 // Separate from AuthScreen's own "AD_USER_DATA" cache — this is the JWT
 // issued by /auth/login, needed as a Bearer token for every other call.

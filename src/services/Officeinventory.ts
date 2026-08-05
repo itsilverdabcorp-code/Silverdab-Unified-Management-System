@@ -26,7 +26,7 @@ import {
   StockTransaction,
 } from "../../types";
 
-const BACKEND_URL = "https://ums.silvergraph.ai";
+const BACKEND_URL = "https://api.silvergraph.ai";
 const INTERNAL_SECRET = "silverdab_internal_2024";
 
 let _serviceToken: string | null = null;
