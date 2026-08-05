@@ -120,6 +120,40 @@ async function searchAddress(
     .filter((r: PlaceResult | null): r is PlaceResult => r !== null);
 }
 
+// Reverse geocode: given a lat/lng (e.g. from a raw map click), ask Photon
+// what address sits there. Used so a click-to-pin drop still ends up with
+// a real address string, not just coordinates — same service as the
+// forward search above, just Photon's /reverse endpoint instead of /api.
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  const params = new URLSearchParams({ lon: String(lon), lat: String(lat), lang: "en" });
+  try {
+    const res = await fetch(`https://photon.komoot.io/reverse?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const f = Array.isArray(data?.features) ? data.features[0] : null;
+    if (!f) return null;
+    const p = f.properties ?? {};
+    const streetLine = [p.housenumber, p.street].filter(Boolean).join(" ");
+    const rawParts = [p.name, streetLine, p.city, p.state, p.country];
+    const seen = new Set<string>();
+    const displayName = rawParts
+      .filter(Boolean)
+      .filter((part) => {
+        const key = String(part).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .join(", ");
+    return displayName || null;
+  } catch (err) {
+    console.error("Reverse geocode failed:", err);
+    return null;
+  }
+}
+
 // Same default center/style as FleetLiveMap's "streets" layer, kept in sync
 // so the picker map looks like part of the same product.
 const DEFAULT_CENTER: [number, number] = [121.0, 14.6]; // [lng, lat]
@@ -143,7 +177,7 @@ const STREETS_STYLE: any = {
   layers: [{ id: "raster-layer", type: "raster", source: "raster-tiles" }],
 };
 
-type PickedPoint = { latitude: number; longitude: number };
+type PickedPoint = { latitude: number; longitude: number; address?: string };
 
 type Props = {
   presets: FleetLocation[]; // existing saved locations, shown as reference dots
@@ -174,6 +208,9 @@ export default function FleetLocationPickerMap({
   const [searchError, setSearchError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against an older map-click's reverse-geocode response landing
+  // after a newer click and overwriting that pin's address with stale data.
+  const clickRequestIdRef = useRef(0);
   // Set right before setSearchQuery() inside handleSelectResult, so the
   // search effect below (which also fires on searchQuery changes) knows to
   // skip that one resulting run instead of re-searching the picked name and
@@ -201,7 +238,18 @@ export default function FleetLocationPickerMap({
         });
         map.addControl(new maplibregl.NavigationControl(), "top-right");
         map.on("click", (e: any) => {
-          onPickRef.current({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
+          const latitude = e.lngLat.lat;
+          const longitude = e.lngLat.lng;
+          // Drop the pin immediately (snappy, no waiting on the network),
+          // then backfill the address once reverse geocoding resolves. A
+          // request token guards against a fast second click resolving
+          // out of order and overwriting the newer pin's address.
+          const requestId = ++clickRequestIdRef.current;
+          onPickRef.current({ latitude, longitude });
+          reverseGeocode(latitude, longitude).then((address) => {
+            if (!address || clickRequestIdRef.current !== requestId) return;
+            onPickRef.current({ latitude, longitude, address });
+          });
         });
 
         // Default cursor is a crosshair (signals "click to pin"), and only
@@ -362,7 +410,7 @@ export default function FleetLocationPickerMap({
   }, [searchQuery]);
 
   function handleSelectResult(result: PlaceResult) {
-    onPickRef.current({ latitude: result.lat, longitude: result.lon });
+    onPickRef.current({ latitude: result.lat, longitude: result.lon, address: result.displayName });
     if (mapRef.current) {
       // Zoom in tight and noticeably (18 = building-level) regardless of
       // the map's current zoom, so the person can actually see the pin

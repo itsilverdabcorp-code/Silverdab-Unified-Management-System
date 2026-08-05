@@ -150,6 +150,48 @@ function StatusBadge({
   );
 }
 
+// ─── Truncated text with a themed hover tooltip ────────────────────────────
+// Used anywhere a long address/purpose gets clipped (table cells, trip
+// list rows, modal header) — swaps the slow/plain native `title` tooltip
+// for one that pops instantly and matches the app's surface/border colors.
+// The tooltip only renders while hovered, positioned via CSS (no JS
+// measurement needed) directly above the truncated text.
+function Truncated({
+  text,
+  className,
+  style,
+  theme,
+}: {
+  text: string;
+  className?: string;
+  style?: React.CSSProperties;
+  theme: any;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <span
+      className="relative inline-block max-w-full align-bottom"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span style={style} className={`block truncate ${className ?? ""}`}>
+        {text}
+      </span>
+      {hovered && text && (
+        <span
+          style={{
+            backgroundColor: theme.text,
+            color: theme.background,
+          }}
+          className="absolute left-0 bottom-full mb-1.5 z-50 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-[11px] font-medium shadow-lg pointer-events-none"
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 const ACTIVE_STATUSES: TripStatus[] = [
   "pending",
   "approved",
@@ -623,29 +665,29 @@ export default function FleetAllTripsPage({ user }: Props) {
                         cursor: "pointer",
                       }}
                     >
-                      <td className="px-4 py-2.5">
-                        <p
+                      <td className="px-4 py-2.5 max-w-[180px]">
+                        <Truncated
+                          text={trip.pickupLabel}
+                          theme={theme}
                           style={{ color: theme.text }}
                           className="text-[12.5px] font-semibold"
-                        >
-                          {trip.pickupLabel}
-                        </p>
+                        />
                       </td>
-                      <td className="px-4 py-2.5">
-                        <p
+                      <td className="px-4 py-2.5 max-w-[180px]">
+                        <Truncated
+                          text={trip.dropoffLabel}
+                          theme={theme}
                           style={{ color: theme.text }}
                           className="text-[12.5px] font-semibold"
-                        >
-                          {trip.dropoffLabel}
-                        </p>
+                        />
                       </td>
-                      <td className="px-4 py-2.5">
-                        <p
+                      <td className="px-4 py-2.5 max-w-[160px]">
+                        <Truncated
+                          text={trip.purpose || "—"}
+                          theme={theme}
                           style={{ color: theme.subtext }}
                           className="text-[12px]"
-                        >
-                          {trip.purpose || "—"}
-                        </p>
+                        />
                       </td>
                       <td
                         style={{ color: theme.text }}
@@ -723,7 +765,7 @@ export default function FleetAllTripsPage({ user }: Props) {
             >
               Reject Trip Request
             </p>
-            <p style={{ color: theme.subtext }} className="text-xs mb-4">
+            <p style={{ color: theme.subtext }} className="text-xs mb-4 truncate" title={`${rejectingTrip.pickupLabel} → ${rejectingTrip.dropoffLabel}`}>
               {rejectingTrip.pickupLabel} → {rejectingTrip.dropoffLabel} ·{" "}
               {rejectingTrip.requestorName}
             </p>
@@ -784,16 +826,34 @@ export default function FleetAllTripsPage({ user }: Props) {
             className="rounded-2xl p-6 w-full max-w-[420px] border"
           >
             <div className="flex items-start justify-between gap-2 mb-4">
-              <div>
-                <p
-                  style={{ color: theme.text }}
-                  className="text-base font-bold"
-                >
-                  {viewingTrip.pickupLabel} → {viewingTrip.dropoffLabel}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    style={{ backgroundColor: "#22c55e", width: 7, height: 7, borderRadius: 4 }}
+                    className="flex-shrink-0"
+                  />
+                  <Truncated
+                    text={viewingTrip.pickupLabel}
+                    theme={theme}
+                    style={{ color: theme.text }}
+                    className="text-[13.5px] font-bold leading-snug"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0 mt-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <Truncated
+                    text={viewingTrip.dropoffLabel}
+                    theme={theme}
+                    style={{ color: theme.text }}
+                    className="text-[13.5px] font-bold leading-snug"
+                  />
+                </div>
                 <p
                   style={{ color: theme.subtext }}
-                  className="text-[11px] mt-0.5"
+                  className="text-[11px] mt-1.5"
                 >
                   {viewingTrip.tripRef}
                 </p>

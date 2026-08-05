@@ -255,8 +255,7 @@ export type VehicleStatus =
   | "idle"
   | "active"
   | "maintenance"
-  | "personal"
-  | "off_duty";
+  | "personal";
 
 export type VehicleType = "sedan" | "van" | "suv" | "truck";
 

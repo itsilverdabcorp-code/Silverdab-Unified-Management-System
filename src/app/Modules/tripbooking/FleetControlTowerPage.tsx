@@ -23,12 +23,10 @@ import { useTheme } from "../../../theme/ThemeContext";
 // same hook to power its assignee SearchableSelect.
 import { useEmployees } from "../../../hooks/useEmployees";
 import FleetLiveMap from "./FleetLiveMap";
-import FleetLocationPickerMap from "./FleetLocationPickerMap";
 import {
   getAllFleetTrips,
   getAllFleetVehicles,
   getAllFleetDrivers,
-  getAllFleetLocations,
   getTramigoDevices,
   approveFleetTrip,
   rejectFleetTrip,
@@ -37,13 +35,11 @@ import {
   completeFleetTrip,
   createFleetVehicle,
   createFleetDriver,
-  createFleetLocation,
   updateFleetVehicle,
   deleteFleetVehicle,
   updateFleetDriver,
   deleteFleetDriver,
-  updateFleetLocation,
-  deleteFleetLocation,
+  setVehicleStatus,
   TramigoDevice,
 } from "../../../services/fleetOps";
 import {
@@ -51,7 +47,6 @@ import {
   FleetTrip,
   FleetVehicle,
   FleetDriver,
-  FleetLocation,
   TripStatus,
   VehicleStatus,
   VehicleType,
@@ -213,9 +208,8 @@ const VEHICLE_STATUS_CONFIG: Record<
 > = {
   idle: { label: "Available", bg: "#dcfce7", text: "#166534" },
   active: { label: "On Trip", bg: "#dbeafe", text: "#1d4ed8" },
-  maintenance: { label: "Parked", bg: "#fee2e2", text: "#991b1b" },
+  maintenance: { label: "Maintenance", bg: "#fee2e2", text: "#991b1b" },
   personal: { label: "Personal use", bg: "#fef3c7", text: "#92400e" },
-  off_duty: { label: "Off duty", bg: "#f1f5f9", text: "#64748b" },
 };
 
 // Vehicle status badge is driven entirely by the booked trip's own status,
@@ -227,9 +221,14 @@ function getVehicleDisplayStatus(
   v: FleetVehicle,
   onTripVehicleIds: Set<string>,
 ): { label: string; bg: string; text: string } {
-  if (v.status === "maintenance") return VEHICLE_STATUS_CONFIG.maintenance;
+  // "On Trip" always wins — it reflects a genuinely ongoing booked trip,
+  // which should outrank any manually-set status (maintenance, personal,
+  // off duty) shown elsewhere.
   if (onTripVehicleIds.has(v.id)) return VEHICLE_STATUS_CONFIG.active;
-  return VEHICLE_STATUS_CONFIG.idle;
+  // Otherwise defer to whatever status is actually stored on the vehicle
+  // (idle/maintenance/personal/off_duty) instead of collapsing everything
+  // that isn't "maintenance" down to "Available".
+  return VEHICLE_STATUS_CONFIG[v.status] ?? VEHICLE_STATUS_CONFIG.idle;
 }
 
 const DUTY_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -442,7 +441,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
   const [trips, setTrips] = useState<FleetTrip[]>([]);
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
-  const [locations, setLocations] = useState<FleetLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [statusFilter, setStatusFilter] = useState<"all" | TripStatus>("all");
@@ -457,6 +455,8 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
    const [rowError, setRowError] = useState<Record<string, string>>({});
   const [busyTripId, setBusyTripId] = useState<string | null>(null);
   const [reassignOpen, setReassignOpen] = useState<Record<string, boolean>>({});
+
+  
 
   async function handleReassign(trip: FleetTrip) {
     const draft = assignDrafts[trip.id];
@@ -570,36 +570,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     return tramigoDevices.filter((d) => !linked.has(d.id));
   }
 
-  const [addLocationOpen, setAddLocationOpen] = useState(false);
-  const [viewLocationsOpen, setViewLocationsOpen] = useState(false);
-  const [deletingLocationId, setDeletingLocationId] = useState<string | null>(
-    null,
-  );
-  const [locationDeleteError, setLocationDeleteError] = useState("");
-  const [addLocationForm, setAddLocationForm] = useState<{
-    name: string;
-    latitude: number | null;
-    longitude: number | null;
-  }>({
-    name: "",
-    latitude: null,
-    longitude: null,
-  });
-  const [addLocationError, setAddLocationError] = useState("");
-  const [addLocationSubmitting, setAddLocationSubmitting] = useState(false);
-
-  const [editingLocation, setEditingLocation] = useState<FleetLocation | null>(null);
-  const [editLocationForm, setEditLocationForm] = useState<{
-    name: string;
-    latitude: number | null;
-    longitude: number | null;
-  }>({ name: "", latitude: null, longitude: null });
-  const [editLocationError, setEditLocationError] = useState("");
-  const [editLocationSubmitting, setEditLocationSubmitting] = useState(false);
-  const [confirmDeleteLocation, setConfirmDeleteLocation] = useState(false);
-
-  const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(
-    null,
+   const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(    null,
   );
   const [editVehicleForm, setEditVehicleForm] = useState({
     plateNumber: "",
@@ -607,6 +578,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     model: "",
     seatingCapacity: "4",
     tramigoDeviceId: "",
+    status: "idle" as VehicleStatus,
   });
   const [editVehicleError, setEditVehicleError] = useState("");
   const [editVehicleSubmitting, setEditVehicleSubmitting] = useState(false);
@@ -623,21 +595,18 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
 
   const isFirstLoad = React.useRef(true);
 
-  const loadAll = useCallback(async () => {
+   const loadAll = useCallback(async () => {
     if (isFirstLoad.current) setLoading(true);
     try {
-      const [t, v, d, l] = await Promise.all([
+      const [t, v, d] = await Promise.all([
         getAllFleetTrips(),
         getAllFleetVehicles(),
         getAllFleetDrivers(),
-        getAllFleetLocations(),
       ]);
       setTrips(t);
       setVehicles(v);
       setDrivers(d);
-      setLocations(l);
-    } catch (err) {
-      console.error("Control Tower load error:", err);
+    } catch (err) {      console.error("Control Tower load error:", err);
     } finally {
       isFirstLoad.current = false;
       setLoading(false);
@@ -803,11 +772,14 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     return map;
   }, [trips]);
 
-  // Vehicle list order: Available, then Parked (maintenance), then Ongoing
-  // — surfaces dispatchable vehicles at the top of the list.
+  // Vehicle list order: Available first, then On Trip, then Personal Use /
+  // Off Duty, then Maintenance last — surfaces genuinely dispatchable
+  // vehicles at the top without lumping personal/off-duty vehicles in
+  // with them.
   function vehicleRank(v: FleetVehicle): number {
-    if (v.status === "maintenance") return 1; // Parked
-    if (onTripVehicleIds.has(v.id)) return 2; // Ongoing
+    if (onTripVehicleIds.has(v.id)) return 1; // On Trip
+    if (v.status === "personal") return 2; // Personal / Off Duty
+    if (v.status === "maintenance") return 3; // Maintenance
     return 0; // Available
   }
   const sortedVehicles = useMemo(
@@ -929,6 +901,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
       model: v.model,
       seatingCapacity: String(v.seatingCapacity),
       tramigoDeviceId: v.tramigoDeviceId ?? "",
+      status: v.status,
     });
     setEditVehicleError("");
     setConfirmDeleteVehicle(false);
@@ -951,6 +924,12 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
         seatingCapacity: parseInt(editVehicleForm.seatingCapacity, 10) || 1,
         tramigoDeviceId: editVehicleForm.tramigoDeviceId || null,
       });
+      // Status lives on its own endpoint (PATCH /fleet/vehicles/:id/status)
+      // — same one the driver-facing duty toggle already uses — rather than
+      // being folded into the generic vehicle-fields update above.
+      if (editVehicleForm.status !== editingVehicle.status) {
+        await setVehicleStatus(editingVehicle.id, editVehicleForm.status);
+      }
       setEditingVehicle(null);
       await loadAll();
     } catch (err) {
@@ -1089,101 +1068,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     }
   }
 
-  async function handleDeleteLocation(locationId: string) {
-    setDeletingLocationId(locationId);
-    setLocationDeleteError("");
-    try {
-      await deleteFleetLocation(locationId);
-      await loadAll();
-    } catch (err) {
-      console.error("Delete location failed:", err);
-      setLocationDeleteError(
-        err instanceof Error ? err.message : "Failed to delete location.",
-      );
-    } finally {
-      setDeletingLocationId(null);
-    }
-  }
-
-  function openEditLocation(l: FleetLocation) {
-    setEditingLocation(l);
-    setEditLocationForm({
-      name: l.name,
-      latitude: l.latitude ?? null,
-      longitude: l.longitude ?? null,
-    });
-    setEditLocationError("");
-    setConfirmDeleteLocation(false);
-  }
-
-  async function handleUpdateLocation() {
-    if (!editingLocation) return;
-    if (!editLocationForm.name.trim()) {
-      setEditLocationError("Name is required.");
-      return;
-    }
-    setEditLocationSubmitting(true);
-    setEditLocationError("");
-    try {
-      await updateFleetLocation(editingLocation.id, {
-        name: editLocationForm.name.trim(),
-        latitude: editLocationForm.latitude,
-        longitude: editLocationForm.longitude,
-      });
-      setEditingLocation(null);
-      await loadAll();
-    } catch (err) {
-      console.error("Update location failed:", err);
-      setEditLocationError(
-        err instanceof Error ? err.message : "Failed to update location.",
-      );
-    } finally {
-      setEditLocationSubmitting(false);
-    }
-  }
-
-  async function handleDeleteLocationFromEdit() {
-    if (!editingLocation) return;
-    setEditLocationSubmitting(true);
-    setEditLocationError("");
-    try {
-      await deleteFleetLocation(editingLocation.id);
-      setEditingLocation(null);
-      await loadAll();
-    } catch (err) {
-      console.error("Delete location failed:", err);
-      setEditLocationError(
-        err instanceof Error ? err.message : "Failed to delete location.",
-      );
-    } finally {
-      setEditLocationSubmitting(false);
-    }
-  }
-
-  async function handleAddLocation() {
-    if (!addLocationForm.name.trim()) {
-      setAddLocationError("Name is required.");
-      return;
-    }
-    setAddLocationSubmitting(true);
-    setAddLocationError("");
-    try {
-      await createFleetLocation({
-        name: addLocationForm.name.trim(),
-        latitude: addLocationForm.latitude,
-        longitude: addLocationForm.longitude,
-      });
-      setAddLocationOpen(false);
-      setAddLocationForm({ name: "", latitude: null, longitude: null });
-      await loadAll();
-    } catch (err) {
-      console.error("Add location failed:", err);
-      setAddLocationError("Failed to add location — try again.");
-    } finally {
-      setAddLocationSubmitting(false);
-    }
-  }
-
   // ── Render ──────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -1242,22 +1126,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
               Overview for {today}
             </p>
           </div>
-          <button
-            onClick={() => setViewLocationsOpen(true)}
-            style={{
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border whitespace-nowrap flex-shrink-0 flex items-center gap-1.5"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            Locations ({locations.length})
-          </button>
-        </div>
+              </div>
 
       <div className="flex flex-col gap-6">
               {/* ── Section 1: 4-column grid — Map (col 1-2) · Vehicles (col 3) · Drivers (col 4) ── */}
@@ -1328,7 +1197,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                     <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
                       {sortedVehicles.map((v) => {
                         const vCfg = getVehicleDisplayStatus(v, onTripVehicleIds);
-                        const isAvailable = v.status !== "maintenance" && !onTripVehicleIds.has(v.id);
+                        const isAvailable = v.status === "idle" && !onTripVehicleIds.has(v.id);
                         return (
                           <div
                             key={v.id}
@@ -1730,15 +1599,40 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                                 {getInitials(trip.requestorName)}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p
-                                  style={{ color: isTripToday ? "#78350f" : theme.text }}
-                                  className="text-sm font-semibold leading-tight truncate"
-                                >
-                                  {trip.pickupLabel} → {trip.dropoffLabel}
-                                </p>
+                                {/* Stacked pickup/drop-off — same visual pattern as the
+                                    trip details modal (dot + pin icon), so long addresses
+                                    truncate independently instead of both being squeezed
+                                    into one "A → B" line that either overflows or cuts off
+                                    the drop-off entirely. */}
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span
+                                    style={{ backgroundColor: "#22c55e", width: 6, height: 6, borderRadius: 3 }}
+                                    className="flex-shrink-0"
+                                  />
+                                  <p
+                                    style={{ color: isTripToday ? "#78350f" : theme.text }}
+                                    className="text-[12.5px] font-semibold leading-tight truncate"
+                                    title={trip.pickupLabel}
+                                  >
+                                    {trip.pickupLabel}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                  </svg>
+                                  <p
+                                    style={{ color: isTripToday ? "#78350f" : theme.text }}
+                                    className="text-[12.5px] font-semibold leading-tight truncate"
+                                    title={trip.dropoffLabel}
+                                  >
+                                    {trip.dropoffLabel}
+                                  </p>
+                                </div>
                                 <p
                                   style={{ color: isTripToday ? "#92400e" : theme.subtext }}
-                                  className="text-[11px] mt-0.5 truncate"
+                                  className="text-[11px] mt-1 truncate"
                                 >
                                   {trip.requestorName} ·{" "}
                                   {formatDateTime(trip.departureDatetime)} ·{" "}
@@ -1895,16 +1789,35 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
             className="rounded-2xl p-6 w-full max-w-[420px] border"
           >
             <div className="flex items-start justify-between gap-2 mb-4">
-              <div>
-                <p
-                  style={{ color: theme.text }}
-                  className="text-base font-bold"
-                >
-                  {viewingTrip.pickupLabel} → {viewingTrip.dropoffLabel}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    style={{ backgroundColor: "#22c55e", width: 7, height: 7, borderRadius: 4, flexShrink: 0 }}
+                  />
+                  <p
+                    style={{ color: theme.text }}
+                    className="text-[13.5px] font-bold leading-snug truncate"
+                    title={viewingTrip.pickupLabel}
+                  >
+                    {viewingTrip.pickupLabel}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 min-w-0 mt-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <p
+                    style={{ color: theme.text }}
+                    className="text-[13.5px] font-bold leading-snug truncate"
+                    title={viewingTrip.dropoffLabel}
+                  >
+                    {viewingTrip.dropoffLabel}
+                  </p>
+                </div>
                 <p
                   style={{ color: theme.subtext }}
-                  className="text-[11px] mt-0.5"
+                  className="text-[11px] mt-1.5"
                 >
                   {viewingTrip.tripRef}
                 </p>
@@ -2807,145 +2720,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
         </div>
       )}
 
-      {/* Add Location modal */}
-      {addLocationOpen && (
-        <div
-          className="absolute inset-0 items-center justify-center p-6 flex"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <div
-            style={{
-              backgroundColor: theme.background,
-              borderColor: theme.border,
-            }}
-            className="rounded-2xl p-6 w-full max-w-[400px] border"
-          >
-            <p
-              style={{ color: theme.text }}
-              className="text-base font-bold mb-1"
-            >
-              Add Location Preset
-            </p>
-            <p style={{ color: theme.subtext }} className="text-[11px] mb-4">
-              Tap the map to drop a pin for this location. Grey dots are
-              existing presets.
-            </p>
-            <div className="flex flex-col gap-3 mb-4">
-              <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  Name
-                </label>
-                <input
-                  value={addLocationForm.name}
-                  onChange={(e) =>
-                    setAddLocationForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                  placeholder="e.g. Ortigas Center"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label
-                    style={{ color: theme.subtext }}
-                    className="text-[11px] font-semibold"
-                  >
-                    Pin location
-                  </label>
-                  {addLocationForm.latitude != null && (
-                    <button
-                      onClick={() =>
-                        setAddLocationForm((f) => ({
-                          ...f,
-                          latitude: null,
-                          longitude: null,
-                        }))
-                      }
-                      style={{ color: theme.subtext }}
-                      className="text-[10.5px] font-semibold underline"
-                    >
-                      Clear pin
-                    </button>
-                  )}
-                </div>
-                <FleetLocationPickerMap
-                  presets={locations}
-                  value={
-                    addLocationForm.latitude != null &&
-                    addLocationForm.longitude != null
-                      ? {
-                          latitude: addLocationForm.latitude,
-                          longitude: addLocationForm.longitude,
-                        }
-                      : null
-                  }
-                  onPick={(pt) =>
-                    setAddLocationForm((f) => ({
-                      ...f,
-                      latitude: pt.latitude,
-                      longitude: pt.longitude,
-                    }))
-                  }
-                  theme={theme}
-                />
-                {addLocationForm.latitude != null && (
-                  <p
-                    style={{ color: theme.subtext }}
-                    className="text-[10.5px] mt-1"
-                  >
-                    {addLocationForm.latitude.toFixed(5)},{" "}
-                    {addLocationForm.longitude!.toFixed(5)}
-                  </p>
-                )}
-              </div>
-            </div>
-            {addLocationError && (
-              <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
-                {addLocationError}
-              </p>
-            )}
-            <div className="flex gap-2.5">
-              <button
-                onClick={() => {
-                  setAddLocationOpen(false);
-                  setAddLocationError("");
-                  setAddLocationForm({ name: "", latitude: null, longitude: null });
-                }}
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.text,
-                }}
-                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddLocation}
-                disabled={addLocationSubmitting}
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.primaryText,
-                  opacity: addLocationSubmitting ? 0.6 : 1,
-                }}
-                className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
-              >
-                {addLocationSubmitting ? "Adding…" : "Add Location"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Vehicle modal */}
+       {/* Edit Vehicle modal */}
       {editingVehicle && (
         <div
           className="absolute inset-0 items-center justify-center p-6 flex"
@@ -3123,6 +2898,39 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                   className="w-full text-sm px-3 py-2 border rounded-lg"
                 />
               </div>
+              <div>
+                <label
+                  style={{ color: theme.subtext }}
+                  className="text-[11px] font-semibold block mb-1"
+                >
+                  Status
+                </label>
+                {editingVehicle && onTripVehicleIds.has(editingVehicle.id) ? (
+                  <p style={{ color: theme.subtext }} className="text-[11px]">
+                    Status is locked while this vehicle is out on a trip.
+                  </p>
+                ) : (
+                  <select
+                    value={editVehicleForm.status}
+                    onChange={(e) =>
+                      setEditVehicleForm((f) => ({
+                        ...f,
+                        status: e.target.value as VehicleStatus,
+                      }))
+                    }
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    }}
+                    className="w-full text-sm px-3 py-2 border rounded-lg"
+                  >
+                    <option value="idle">Available</option>
+                    <option value="personal">Personal use</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                )}
+              </div>
             </div>
             {editVehicleError && (
               <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
@@ -3183,309 +2991,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
           </div>
         </div>
       )}
-      {/* View Locations modal */}
-      {viewLocationsOpen && (
-        <div
-          className="absolute inset-0 items-center justify-center p-6 flex"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <div
-            style={{
-              backgroundColor: theme.background,
-              borderColor: theme.border,
-            }}
-            className="rounded-2xl p-6 w-full max-w-[400px] border"
-          >
-            <div className="flex items-start justify-between gap-2 mb-4">
-              <div>
-                <p
-                  style={{ color: theme.text }}
-                  className="text-base font-bold"
-                >
-                  Location Presets
-                </p>
-                <p
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] mt-0.5"
-                >
-                  Reusable pickup / drop-off points.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setViewLocationsOpen(false);
-                  setAddLocationOpen(true);
-                }}
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.text,
-                }}
-                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border whitespace-nowrap flex-shrink-0"
-              >
-                + Add
-              </button>
-            </div>
-            <div
-              style={{
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              }}
-              className="rounded-xl border divide-y max-h-[360px] overflow-y-auto"
-            >
-              {locations.length === 0 ? (
-                <p
-                  style={{ color: theme.subtext }}
-                  className="text-xs px-4 py-4"
-                >
-                  No location presets yet.
-                </p>
-              ) : (
-                locations.map((l) => (
-                  <div
-                    key={l.id}
-                    style={{ borderColor: theme.border }}
-                    className="flex items-center justify-between gap-2 px-4 py-2.5"
-                  >
-                    <p
-                      style={{ color: theme.text }}
-                      className="text-[13px] font-medium truncate"
-                    >
-                      {l.name}
-                    </p>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setViewLocationsOpen(false);
-                          openEditLocation(l);
-                        }}
-                        style={{
-                          color: theme.subtext,
-                          borderColor: theme.border,
-                        }}
-                        className="p-1 rounded-md border"
-                        aria-label="Edit location"
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLocation(l.id)}
-                        disabled={deletingLocationId === l.id}
-                        style={{
-                          color: "#991b1b",
-                          opacity: deletingLocationId === l.id ? 0.5 : 1,
-                        }}
-                        className="p-1 rounded-md"
-                        aria-label="Delete location"
-                      >
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            {locationDeleteError && (
-              <p style={{ color: "#dc2626" }} className="text-[11px] mt-2">
-                {locationDeleteError}
-              </p>
-            )}
-            <button
-              onClick={() => setViewLocationsOpen(false)}
-              style={{
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                color: theme.text,
-              }}
-              className="w-full rounded-xl py-2.5 border text-sm font-semibold mt-4"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Location modal */}
-      {editingLocation && (
-        <div
-          className="absolute inset-0 items-center justify-center p-6 flex"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <div
-            style={{
-              backgroundColor: theme.background,
-              borderColor: theme.border,
-            }}
-            className="rounded-2xl p-6 w-full max-w-[420px] border"
-          >
-            <p
-              style={{ color: theme.text }}
-              className="text-base font-bold mb-1"
-            >
-              Edit Location
-            </p>
-            <p style={{ color: theme.subtext }} className="text-[11px] mb-4">
-              Tap the map or search to move this location's pin.
-            </p>
-            <div className="flex flex-col gap-3 mb-4">
-              <div>
-                <label
-                  style={{ color: theme.subtext }}
-                  className="text-[11px] font-semibold block mb-1"
-                >
-                  Name
-                </label>
-                <input
-                  value={editLocationForm.name}
-                  onChange={(e) =>
-                    setEditLocationForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }}
-                  className="w-full text-sm px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label
-                    style={{ color: theme.subtext }}
-                    className="text-[11px] font-semibold"
-                  >
-                    Pin location
-                  </label>
-                  {editLocationForm.latitude != null && (
-                    <button
-                      onClick={() =>
-                        setEditLocationForm((f) => ({
-                          ...f,
-                          latitude: null,
-                          longitude: null,
-                        }))
-                      }
-                      style={{ color: theme.subtext }}
-                      className="text-[10.5px] font-semibold underline"
-                    >
-                      Clear pin
-                    </button>
-                  )}
-                </div>
-                <FleetLocationPickerMap
-                  presets={locations.filter((l) => l.id !== editingLocation.id)}
-                  value={
-                    editLocationForm.latitude != null &&
-                    editLocationForm.longitude != null
-                      ? {
-                          latitude: editLocationForm.latitude,
-                          longitude: editLocationForm.longitude,
-                        }
-                      : null
-                  }
-                  onPick={(pt) =>
-                    setEditLocationForm((f) => ({
-                      ...f,
-                      latitude: pt.latitude,
-                      longitude: pt.longitude,
-                    }))
-                  }
-                  theme={theme}
-                />
-                {editLocationForm.latitude != null && (
-                  <p
-                    style={{ color: theme.subtext }}
-                    className="text-[10.5px] mt-1"
-                  >
-                    {editLocationForm.latitude.toFixed(5)},{" "}
-                    {editLocationForm.longitude!.toFixed(5)}
-                  </p>
-                )}
-              </div>
-            </div>
-            {editLocationError && (
-              <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
-                {editLocationError}
-              </p>
-            )}
-            <div className="flex gap-2.5 mb-2.5">
-              <button
-                onClick={() => {
-                  setEditingLocation(null);
-                  setEditLocationError("");
-                  setConfirmDeleteLocation(false);
-                }}
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.text,
-                }}
-                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateLocation}
-                disabled={editLocationSubmitting}
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.primaryText,
-                  opacity: editLocationSubmitting ? 0.6 : 1,
-                }}
-                className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
-              >
-                {editLocationSubmitting ? "Saving…" : "Save Changes"}
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                if (!confirmDeleteLocation) {
-                  setConfirmDeleteLocation(true);
-                  return;
-                }
-                handleDeleteLocationFromEdit();
-              }}
-              disabled={editLocationSubmitting}
-              style={{
-                backgroundColor: confirmDeleteLocation ? "#ef4444" : "#fee2e2",
-                color: confirmDeleteLocation ? "#fff" : "#991b1b",
-                opacity: editLocationSubmitting ? 0.6 : 1,
-              }}
-              className="w-full rounded-xl py-2.5 text-sm font-semibold"
-            >
-              {editLocationSubmitting
-                ? "Deleting…"
-                : confirmDeleteLocation
-                  ? "Click again to confirm delete"
-                  : "Delete Location"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Driver modal */}
+    {/* Edit Driver modal */}
       {editingDriver && (
         <div
           className="absolute inset-0 items-center justify-center p-6 flex"

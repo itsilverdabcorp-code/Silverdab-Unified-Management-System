@@ -215,10 +215,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   // by tapping/searching the map when no preset matches what was typed.
   // activeMapField controls which side's pin the shared map below is
   // currently showing/editing.
-  type PickedPoint = { latitude: number; longitude: number };
+  type PickedPoint = { latitude: number; longitude: number; address?: string };
   const [pickupPoint, setPickupPoint] = useState<PickedPoint | null>(null);
   const [dropoffPoint, setDropoffPoint] = useState<PickedPoint | null>(null);
   const [activeMapField, setActiveMapField] = useState<"pickup" | "dropoff">("pickup");
+  // True once the requestor has typed their own custom label for a side —
+  // once set, dropping a new pin no longer overwrites it with the
+  // reverse-geocoded address, since a person's own wording wins.
+  const [pickupLabelEdited, setPickupLabelEdited] = useState(false);
+  const [dropoffLabelEdited, setDropoffLabelEdited] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -302,6 +307,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setPickupPoint(null);
     setDropoffPoint(null);
     setActiveMapField("pickup");
+    setPickupLabelEdited(false);
+    setDropoffLabelEdited(false);
     setTripType("roundtrip");
     setDepartureDate("");
     setDepartureTime("");
@@ -328,8 +335,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   async function handleSubmit() {
     setError("");
 
-    if (!pickupText.trim() || !dropoffText.trim()) {
-      setError("Pickup and drop-off locations are required.");
+    if (!pickupPoint || !dropoffPoint) {
+      setError("Set both a pickup and drop-off point on the map.");
       return;
     }
     if (!departureDate.trim() || !departureTime.trim()) {
@@ -353,9 +360,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
 
       const tripRef = await submitTripRequest({
         pickupLocationId: pickupLocationId ?? undefined,
-        pickupLocationText: pickupText.trim(),
+        pickupLocationText:
+          pickupText.trim() ||
+          pickupPoint.address ||
+          `${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`,
         dropoffLocationId: dropoffLocationId ?? undefined,
-        dropoffLocationText: dropoffText.trim(),
+        dropoffLocationText:
+          dropoffText.trim() ||
+          dropoffPoint.address ||
+          `${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`,
         tripType,
         departureDatetime,
         returnDatetime,
@@ -572,112 +585,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               </View>
             )}
 
-            {/* Pickup / Dropoff */}
-            <View style={{ flexDirection: "row", gap: 12, zIndex: 30, position: "relative" }}>
-              <View style={{ flex: 1 }}>
-                <Field label="Pickup location" required theme={theme}>
-                  <LocationSelect
-                    text={pickupText}
-                    locations={locations}
-                    loading={loadingLocations}
-                    placeholder="Type or select pickup location"
-                    theme={theme}
-                    webInputStyle={webInputStyle}
-                    onTextChange={(t) => {
-                      setPickupText(t);
-                      // Only drop the pin if it was tied to a preset — a
-                      // manually-placed custom pin should survive further
-                      // typing (e.g. fixing a typo in the label).
-                      if (pickupLocationId) setPickupPoint(null);
-                      setPickupLocationId(null);
-                      setActiveMapField("pickup");
-                    }}
-                    onSelect={(loc) => {
-                      setPickupText(loc.name);
-                      setPickupLocationId(loc.id);
-                      setActiveMapField("pickup");
-                      setPickupPoint(
-                        loc.latitude != null && loc.longitude != null
-                          ? { latitude: loc.latitude, longitude: loc.longitude }
-                          : null,
-                      );
-                    }}
-                  />
-                </Field>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Field label="Drop-off location" required theme={theme}>
-                  <LocationSelect
-                    text={dropoffText}
-                    locations={locations}
-                    loading={loadingLocations}
-                    placeholder="Type or select drop-off location"
-                    theme={theme}
-                    webInputStyle={webInputStyle}
-                    onTextChange={(t) => {
-                      setDropoffText(t);
-                      if (dropoffLocationId) setDropoffPoint(null);
-                      setDropoffLocationId(null);
-                      setActiveMapField("dropoff");
-                    }}
-                    onSelect={(loc) => {
-                      setDropoffText(loc.name);
-                      setDropoffLocationId(loc.id);
-                      setActiveMapField("dropoff");
-                      setDropoffPoint(
-                        loc.latitude != null && loc.longitude != null
-                          ? { latitude: loc.latitude, longitude: loc.longitude }
-                          : null,
-                      );
-                    }}
-                  />
-                </Field>
-              </View>
-            </View>
-
-            {/* Route preview */}
-            {Boolean(pickupText.trim() || dropoffText.trim()) && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: theme.background,
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  borderRadius: 10,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  marginBottom: 14,
-                  gap: 8,
-                }}
-              >
-                <Text
-                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
-                  numberOfLines={1}
-                >
-                  {pickupText || "Pickup"}
-                </Text>
-                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#22c55e", flexShrink: 0 }} />
-                <View style={{ flex: 1, height: 1, borderStyle: "dashed", borderWidth: 1, borderColor: theme.border }} />
-                <MapPin size={12} color="#ef4444" />
-                <Text
-                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
-                  numberOfLines={1}
-                >
-                  {dropoffText || "Drop-off"}
-                </Text>
-              </View>
-            )}
-
-            {/* Pickup / Drop-off pin map — reuses the same click-to-pin +
-                address-search map the admin's Add Location modal uses, so
-                the requestor can see exactly where a selected preset sits,
-                or drop/search a custom pin when the location they need
-                isn't in the list. Tabs switch which side's pin the map is
-                currently editing; existing presets always show as grey
-                reference dots so a custom pin doesn't duplicate one by
-                accident. */}
-            <Field label="Confirm location on map" theme={theme}>
+            {/* Pickup / Drop-off pin map — the actual source of truth for
+                where the trip starts and ends. Tap the map, search an
+                address, or pick an existing preset (grey dots). Tabs
+                switch which side's pin the map is currently editing. */}
+            <Field label="Pickup & drop-off location" required theme={theme}>
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
                 {(["pickup", "dropoff"] as const).map((key) => {
                   const active = activeMapField === key;
@@ -715,13 +627,18 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               <FleetLocationPickerMap
                 presets={locations}
                 value={activeMapField === "pickup" ? pickupPoint : dropoffPoint}
-                onPick={(pt) => {
+                onPick={(pt: PickedPoint) => {
                   if (activeMapField === "pickup") {
                     setPickupPoint(pt);
                     setPickupLocationId(null);
+                    // Prefill the optional label with the map's own
+                    // address as soon as it's picked — only while the
+                    // requestor hasn't already typed their own wording.
+                    if (!pickupLabelEdited && pt.address) setPickupText(pt.address);
                   } else {
                     setDropoffPoint(pt);
                     setDropoffLocationId(null);
+                    if (!dropoffLabelEdited && pt.address) setDropoffText(pt.address);
                   }
                 }}
                 theme={theme}
@@ -747,11 +664,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 >
                   {activeMapField === "pickup"
                     ? pickupPoint
-                      ? `Pickup pin: ${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`
-                      : "Tap the map, search, or pick a preset above to set the pickup pin."
+                      ? (pickupPoint.address ?? `Pickup pin: ${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`)
+                      : "Tap the map, search an address, or pick a preset to set the pickup pin."
                     : dropoffPoint
-                      ? `Drop-off pin: ${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`
-                      : "Tap the map, search, or pick a preset above to set the drop-off pin."}
+                      ? (dropoffPoint.address ?? `Drop-off pin: ${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`)
+                      : "Tap the map, search an address, or pick a preset to set the drop-off pin."}
                 </Text>
                 {((activeMapField === "pickup" && pickupPoint) ||
                   (activeMapField === "dropoff" && dropoffPoint)) && (
@@ -776,6 +693,99 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 )}
               </View>
             </Field>
+
+            {/* Route preview */}
+            {Boolean(pickupPoint || dropoffPoint) && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: theme.background,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 10,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  marginBottom: 14,
+                  gap: 8,
+                }}
+              >
+                <Text
+                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
+                  numberOfLines={1}
+                >
+                  {pickupText || pickupPoint?.address || "Pickup"}
+                </Text>
+                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#22c55e", flexShrink: 0 }} />
+                <View style={{ flex: 1, height: 1, borderStyle: "dashed", borderWidth: 1, borderColor: theme.border }} />
+                <MapPin size={12} color="#ef4444" />
+                <Text
+                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
+                  numberOfLines={1}
+                >
+                  {dropoffText || dropoffPoint?.address || "Drop-off"}
+                </Text>
+              </View>
+            )}
+
+            {/* Custom labels — optional. Prefilled from the map address
+                (or a saved preset's name) picked above; only override it
+                if the requestor wants to call the place something else,
+                like "Main office" instead of the full street address. */}
+            <View style={{ flexDirection: "row", gap: 12, zIndex: 30, position: "relative" }}>
+              <View style={{ flex: 1 }}>
+                <Field label="Label this pickup (optional)" theme={theme}>
+                  <LocationSelect
+                    text={pickupText}
+                    locations={locations}
+                    loading={loadingLocations}
+                    placeholder="e.g. Main office"
+                    theme={theme}
+                    webInputStyle={webInputStyle}
+                    onTextChange={(t) => {
+                      setPickupText(t);
+                      setPickupLabelEdited(true);
+                      if (pickupLocationId) setPickupLocationId(null);
+                    }}
+                    onSelect={(loc) => {
+                      setPickupText(loc.name);
+                      setPickupLocationId(loc.id);
+                      setPickupLabelEdited(true);
+                      setActiveMapField("pickup");
+                      if (loc.latitude != null && loc.longitude != null) {
+                        setPickupPoint({ latitude: loc.latitude, longitude: loc.longitude, address: loc.name });
+                      }
+                    }}
+                  />
+                </Field>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field label="Label this drop-off (optional)" theme={theme}>
+                  <LocationSelect
+                    text={dropoffText}
+                    locations={locations}
+                    loading={loadingLocations}
+                    placeholder="e.g. Client site"
+                    theme={theme}
+                    webInputStyle={webInputStyle}
+                    onTextChange={(t) => {
+                      setDropoffText(t);
+                      setDropoffLabelEdited(true);
+                      if (dropoffLocationId) setDropoffLocationId(null);
+                    }}
+                    onSelect={(loc) => {
+                      setDropoffText(loc.name);
+                      setDropoffLocationId(loc.id);
+                      setDropoffLabelEdited(true);
+                      setActiveMapField("dropoff");
+                      if (loc.latitude != null && loc.longitude != null) {
+                        setDropoffPoint({ latitude: loc.latitude, longitude: loc.longitude, address: loc.name });
+                      }
+                    }}
+                  />
+                </Field>
+              </View>
+            </View>
 
             {/* Trip type */}
             <Field label="Trip type" theme={theme}>
