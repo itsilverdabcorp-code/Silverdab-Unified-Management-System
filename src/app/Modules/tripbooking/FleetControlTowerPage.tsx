@@ -678,14 +678,18 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
 
   const getAvailableVehicles = useCallback(
     (excludeTripId?: string) => {
-      const active = trips.filter(
+      // Only lock out vehicles that are genuinely mid-trip — approved trips
+      // waiting to start don't count, so the same vehicle can be
+      // pre-assigned to multiple future-dated trips.
+      const inProgress = trips.filter(
         (t) =>
-          ACTIVE_STATUSES.includes(t.status) &&
-          t.status !== "pending" &&
+          (t.status === "ongoing" ||
+            t.status === "arrived" ||
+            t.status === "returning") &&
           t.id !== excludeTripId,
       );
       const busy = new Set(
-        active.map((t) => (t as any).vehicleId).filter(Boolean),
+        inProgress.map((t) => (t as any).vehicleId).filter(Boolean),
       );
       return vehicles.filter(
         (v) =>
@@ -697,22 +701,22 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     [vehicles, trips],
   );
 
-  const getAvailableDrivers = useCallback(
+ const getAvailableDrivers = useCallback(
     (excludeTripId?: string) => {
-      const active = trips.filter(
+      // Only lock out drivers that are genuinely mid-trip — approved trips
+      // waiting to start don't count, so the same driver can be
+      // pre-assigned to multiple future-dated trips.
+      const inProgress = trips.filter(
         (t) =>
-          ACTIVE_STATUSES.includes(t.status) &&
-          t.status !== "pending" &&
+          (t.status === "ongoing" ||
+            t.status === "arrived" ||
+            t.status === "returning") &&
           t.id !== excludeTripId,
       );
       const busy = new Set(
-        active.map((t) => (t as any).driverId).filter(Boolean),
+        inProgress.map((t) => t.driverId).filter(Boolean),
       );
-      // Drivers on "Personal Use" aren't dispatchable — mirrors the
-      // v.status !== "personal" check already applied to vehicles above.
-      return drivers.filter(
-        (d) => !busy.has(d.id) && d.dutyStatus !== "personal",
-      );
+      return drivers.filter((d) => !busy.has(d.userId));
     },
     [drivers, trips],
   );

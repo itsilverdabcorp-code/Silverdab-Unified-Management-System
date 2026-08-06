@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -27,13 +33,21 @@ import {
   Filter,
 } from "lucide-react-native";
 import { useTheme } from "../../../theme/ThemeContext";
-import { ADUser, ConcernTicket, SupplyRequest, FleetTrip } from "../../../../types";
+import {
+  ADUser,
+  ConcernTicket,
+  SupplyRequest,
+  FleetTrip,
+} from "../../../../types";
 import { getTicketsByRequester } from "../../../services/ticketService";
 import { getAllFleetTrips } from "../../../services/fleetOps";
 import SupplyRequestModal from "./Modal/SupplyRequestModal";
 import TripBookingModal from "./Modal/TripBookingModal";
 // import ITConcernModal from "./Modal/ITConcernModal";
-import { getAllSupplyRequests, cancelSupplyRequest } from "@/services/supplyRequest";
+import {
+  getAllSupplyRequests,
+  cancelSupplyRequest,
+} from "@/services/supplyRequest";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +180,7 @@ const STATUS_CONFIG: Record<
 > = {
   Pending: { bg: "#FEF9C3", border: "#FDE047", text: "#A16207" },
   "In Progress": { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
-   "Out for Delivery": { bg: "#FFEDD5", border: "#FDBA74", text: "#C2410C" },
+  "Out for Delivery": { bg: "#FFEDD5", border: "#FDBA74", text: "#C2410C" },
   "Failed Delivery": { bg: "#FFE4E6", border: "#FDA4AF", text: "#BE123C" },
   Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
@@ -421,7 +435,10 @@ function LeftPanel({
   primary,
   isMobile,
   canBookTrip,
-}: LeftPanelProps) {  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(null);
+}: LeftPanelProps) {
+  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(
+    null,
+  );
   const hoverHandlers = (key: "supplies" | "trip") =>
     Platform.OS === "web"
       ? {
@@ -515,7 +532,7 @@ function LeftPanel({
             </Text>
           </TouchableOpacity>
 
-           {canBookTrip && (
+          {canBookTrip && (
             <TouchableOpacity
               onPress={onNewTrip}
               activeOpacity={0.8}
@@ -627,28 +644,22 @@ function TicketRow({
         borderBottomColor: theme.border,
       }}
     >
-      {/* Col 1 — Ticket no. + source tag */}
-      <View
-        style={{
-          width: COL.ticketNo,
-          flexShrink: 0,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 5,
-          flexWrap: "wrap",
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "Outfit-medium",
-            fontSize: 11,
-            color: primary,
-            fontVariant: ["tabular-nums"],
-          }}
-        >
-          #{ticket.ticketNumber}
-        </Text>
-        <SourceTag source={ticket._source} />
+    {/* Col 1 — Ticket no. + source tag */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, minWidth: 70 }}>
+        <View>
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 11,
+              color: primary,
+            }}
+          >
+            #{ticket.ticketNumber.slice(-4)}
+          </Text>
+          <View style={{ marginTop: 3 }}>
+            <SourceTag source={ticket._source} />
+          </View>
+        </View>
       </View>
 
       {/* Col 2 — Title + subtitle (flex fill) */}
@@ -742,7 +753,7 @@ function TicketCard({
               color: primary,
             }}
           >
-            #{ticket.ticketNumber}
+            #{ticket.ticketNumber.slice(-4)}
           </Text>
           <SourceTag source={ticket._source} />
         </View>
@@ -1298,8 +1309,8 @@ function SupplyDetailContent({
                   lineHeight: 17,
                 }}
               >
-                This can't be undone. You'll need to submit a new request if
-                you still need these items.
+                This can't be undone. You'll need to submit a new request if you
+                still need these items.
               </Text>
 
               {cancelError ? (
@@ -1463,7 +1474,6 @@ function SupplyDetailContent({
             </View>
           </View>
         ))}
-        
       </View>
 
       {request.notes ? (
@@ -1536,7 +1546,11 @@ function TripDetailContent({
         >
           <Text style={{ fontSize: 20 }}>🚫</Text>
           <Text
-            style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#475569" }}
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 13,
+              color: "#475569",
+            }}
           >
             Trip Cancelled
           </Text>
@@ -1558,7 +1572,11 @@ function TripDetailContent({
           <Text style={{ fontSize: 20 }}>❌</Text>
           <View style={{ flex: 1 }}>
             <Text
-              style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#DC2626" }}
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 13,
+                color: "#DC2626",
+              }}
             >
               Trip Rejected
             </Text>
@@ -1587,16 +1605,24 @@ function TripDetailContent({
       <MetaCard
         fields={[
           { label: "Trip Ref", value: trip.tripRef },
-          { label: "Route", value: `${trip.pickupLabel} → ${trip.dropoffLabel}` },
+          {
+            label: "Route",
+            value: `${trip.pickupLabel} → ${trip.dropoffLabel}`,
+          },
           { label: "Departure", value: toReadableDate(trip.departureDatetime) },
           {
             label: "Return",
-            value: trip.returnDatetime ? toReadableDate(trip.returnDatetime) : "—",
+            value: trip.returnDatetime
+              ? toReadableDate(trip.returnDatetime)
+              : "—",
           },
           { label: "Passengers", value: String(trip.passengerCount ?? 1) },
           { label: "Vehicle", value: trip.vehiclePlate || "Not yet assigned" },
           { label: "Driver", value: trip.driverName || "Not yet assigned" },
-          { label: "Approved by", value: trip.approvedByName || "Pending review" },
+          {
+            label: "Approved by",
+            value: trip.approvedByName || "Pending review",
+          },
         ]}
         theme={theme}
       />
@@ -1714,7 +1740,7 @@ function DetailDrawer({
                     color: theme.subtext,
                   }}
                 >
-                  #{ticket.ticketNumber}
+                  #{ticket.ticketNumber.slice(-4)}
                 </Text>
                 <SourceTag source={ticket._source} />
               </View>
@@ -1750,7 +1776,10 @@ function DetailDrawer({
           </View>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ padding: isMobile ? 16 : 20, paddingBottom: 40 }}
+            contentContainerStyle={{
+              padding: isMobile ? 16 : 20,
+              paddingBottom: 40,
+            }}
           >
             {ticket._source === "it" && ticket.itTicket ? (
               <ITDetailContent
@@ -1957,7 +1986,7 @@ function StepBar({
 type Props = { user: ADUser };
 
 export default function TicketHubPage({ user }: Props) {
- const { theme } = useTheme();
+  const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -2013,10 +2042,7 @@ export default function TicketHubPage({ user }: Props) {
             user.username,
             user.displayName ?? user.username,
           ),
-          getFleetTripsByUser(
-            user.username,
-            user.displayName ?? user.username,
-          ),
+          getFleetTripsByUser(user.username, user.displayName ?? user.username),
         ]);
         setUnified(mergeTickets([], supplyRequests, trips));
       } catch (err) {
@@ -2872,7 +2898,9 @@ export default function TicketHubPage({ user }: Props) {
                       style={{
                         fontFamily: active ? "Outfit-medium" : "Outfit",
                         fontSize: 13,
-                        color: active ? primary : (theme.textActive ?? theme.text),
+                        color: active
+                          ? primary
+                          : (theme.textActive ?? theme.text),
                       }}
                     >
                       {opt.label}

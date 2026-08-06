@@ -59,6 +59,33 @@ function getTripSortDate(trip: FleetTrip): string {
     : trip.departureDatetime;
 }
 
+// Same "YYYY-MM-DD HH:MM:SS" -> local Date parsing used everywhere else in
+// this file (mysql2 dateStrings). Returns NaN for missing/invalid input.
+function parseLocalMs(s?: string | null): number {
+  if (!s) return NaN;
+  const d = new Date(s.includes("T") ? s : s.replace(" ", "T"));
+  return d.getTime();
+}
+
+// A trip's "busy window" for a vehicle/driver — from departure to return.
+// One-way trips have no return_datetime, so their window collapses to a
+// single point (the departure moment) rather than blocking the rest of
+// that vehicle's day.
+function getTripWindow(t: FleetTrip): [number, number] {
+  const start = parseLocalMs(t.departureDatetime);
+  const returnMs = parseLocalMs(t.returnDatetime);
+  const end = isNaN(returnMs) ? start : returnMs;
+  return [start, Math.max(start, end)];
+}
+
+// Two windows conflict if they overlap at all (inclusive) — a vehicle
+// scheduled to return at exactly the moment another trip departs is still
+// treated as available, matching normal scheduling conventions.
+function windowsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  if (isNaN(aStart) || isNaN(bStart)) return false; // can't tell — don't block
+  return aStart < bEnd && bStart < aEnd;
+}
+
 const TRIP_STATUS_CONFIG: Record<
   TripStatus,
   { label: string; bg: string; text: string; dot: string }
@@ -311,16 +338,30 @@ export default function FleetAllTripsPage({ user }: Props) {
     });
   }, [searchFilteredTrips, statusFilter]);
 
+  // A vehicle/driver only counts as "busy" for the trip being assigned if
+  // some OTHER active (approved/ongoing/arrived/returning) trip on that
+  // same vehicle/driver has a schedule window that actually overlaps this
+  // trip's window — not just because they're booked on *some* trip at all.
+  // This lets the same vehicle be assigned to multiple trips on different
+  // days without one booking blocking every other one indefinitely.
   const getAvailableVehicles = useCallback(
-    (excludeTripId?: string) => {
-      const active = trips.filter(
+    (forTrip: FleetTrip, excludeTripId?: string) => {
+      const [forStart, forEnd] = getTripWindow(forTrip);
+      const conflicting = trips.filter(
         (t) =>
           ACTIVE_STATUSES.includes(t.status) &&
           t.status !== "pending" &&
-          t.id !== excludeTripId,
+          t.id !== excludeTripId &&
+          t.id !== forTrip.id,
       );
       const busy = new Set(
-        active.map((t) => (t as any).vehicleId).filter(Boolean),
+        conflicting
+          .filter((t) => {
+            if (!t.vehicleId) return false;
+            const [tStart, tEnd] = getTripWindow(t);
+            return windowsOverlap(forStart, forEnd, tStart, tEnd);
+          })
+          .map((t) => t.vehicleId as string),
       );
       return vehicles.filter(
         (v) =>
@@ -333,30 +374,29 @@ export default function FleetAllTripsPage({ user }: Props) {
   );
 
   const getAvailableDrivers = useCallback(
-    (excludeTripId?: string) => {
-      const active = trips.filter(
+    (forTrip: FleetTrip, excludeTripId?: string) => {
+      const [forStart, forEnd] = getTripWindow(forTrip);
+      const conflicting = trips.filter(
         (t) =>
           ACTIVE_STATUSES.includes(t.status) &&
           t.status !== "pending" &&
-          t.id !== excludeTripId,
+          t.id !== excludeTripId &&
+          t.id !== forTrip.id,
       );
       const busy = new Set(
-        active.map((t) => (t as any).driverId).filter(Boolean),
+        conflicting
+          .filter((t) => {
+            if (!t.driverId) return false;
+            const [tStart, tEnd] = getTripWindow(t);
+            return windowsOverlap(forStart, forEnd, tStart, tEnd);
+          })
+          .map((t) => t.driverId as string),
       );
       return drivers.filter(
         (d) => !busy.has(d.id) && d.dutyStatus !== "personal",
       );
     },
     [drivers, trips],
-  );
-
-  const availableVehicles = useMemo(
-    () => getAvailableVehicles(),
-    [getAvailableVehicles],
-  );
-  const availableDrivers = useMemo(
-    () => getAvailableDrivers(),
-    [getAvailableDrivers],
   );
 
   function setDraft(
@@ -1019,7 +1059,7 @@ export default function FleetAllTripsPage({ user }: Props) {
                     className="w-full text-sm px-3 py-2 border rounded-lg"
                   >
                     <option value="">Assign vehicle…</option>
-                    {availableVehicles.map((v) => (
+                    {getAvailableVehicles(viewingTrip).map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.plateNumber} — {v.model}
                       </option>
@@ -1038,7 +1078,7 @@ export default function FleetAllTripsPage({ user }: Props) {
                     className="w-full text-sm px-3 py-2 border rounded-lg"
                   >
                     <option value="">Assign driver…</option>
-                    {availableDrivers.map((d) => (
+                    {getAvailableDrivers(viewingTrip).map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -1107,7 +1147,7 @@ export default function FleetAllTripsPage({ user }: Props) {
                         className="w-full text-sm px-3 py-2 border rounded-lg"
                       >
                         <option value="">Assign vehicle…</option>
-                        {getAvailableVehicles(viewingTrip.id).map((v) => (
+                        {getAvailableVehicles(viewingTrip, viewingTrip.id).map((v) => (
                           <option key={v.id} value={v.id}>
                             {v.plateNumber} — {v.model}
                           </option>
@@ -1126,7 +1166,7 @@ export default function FleetAllTripsPage({ user }: Props) {
                         className="w-full text-sm px-3 py-2 border rounded-lg"
                       >
                         <option value="">Assign driver…</option>
-                        {getAvailableDrivers(viewingTrip.id).map((d) => (
+                       {getAvailableDrivers(viewingTrip, viewingTrip.id).map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.name}
                           </option>
