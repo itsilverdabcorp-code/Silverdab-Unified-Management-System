@@ -138,9 +138,16 @@ type DisplayStatusKey =
 // Marker colors need an entry for every VehicleStatus value (including
 // personal/off_duty), so this stays the full map — VISIBLE_LEGEND_KEYS
 // below controls which of these actually show up in the on-map legend.
+// Colors mirror VEHICLE_STATUS_CONFIG in FleetControlTowerPage.tsx exactly:
+// idle/Available -> green, active/On Trip -> blue, maintenance -> red,
+// personal -> amber. "Parked" and "Inactive" are both sub-states of idle
+// (split by how recently the vehicle last reported in) — parked keeps the
+// same green as Available since it *is* available, just recently seen;
+// inactive uses a neutral gray since "haven't heard from it in a while"
+// isn't a real status, just missing data.
 const LEGEND_CONFIG: Record<DisplayStatusKey, { label: string; color: string }> = {
-  active: { label: "Active", color: "#22c55e" },
-  parked: { label: "Parked", color: "#3b82f6" },
+  active: { label: "On Trip", color: "#3b82f6" },
+  parked: { label: "Available", color: "#22c55e" },
   inactive: { label: "Inactive", color: "#64748b" },
   maintenance: { label: "Maintenance", color: "#ef4444" },
   personal: { label: "Personal Use", color: "#f59e0b" },

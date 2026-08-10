@@ -292,6 +292,7 @@ export default function FleetAllTripsPage({ user }: Props) {
 
   const [viewingTrip, setViewingTrip] = useState<FleetTrip | null>(null);
   const [rejectingTrip, setRejectingTrip] = useState<FleetTrip | null>(null);
+  const [dayTripsView, setDayTripsView] = useState<{ date: Date; trips: FleetTrip[] } | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [rejectReason, setRejectReason] = useState("");
   const [assignDrafts, setAssignDrafts] = useState<
@@ -698,6 +699,9 @@ export default function FleetAllTripsPage({ user }: Props) {
           <Calendar
             events={calendarEvents}
             onEventClick={(e) => setViewingTrip(e.data)}
+            onDateClick={(date, events) =>
+              setDayTripsView({ date, trips: events.map((e) => e.data) })
+            }
           />
         ) : (
           <div className="fatp-scroll h-full overflow-auto">
@@ -712,6 +716,7 @@ export default function FleetAllTripsPage({ user }: Props) {
               <thead>
                 <tr>
                   {[
+                    "Trip ID",
                     "Pickup",
                     "Drop-off",
                     "Purpose",
@@ -744,7 +749,7 @@ export default function FleetAllTripsPage({ user }: Props) {
                 {filteredTrips.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       style={{ color: theme.subtext }}
                       className="text-xs text-center px-4 py-6"
                     >
@@ -765,6 +770,12 @@ export default function FleetAllTripsPage({ user }: Props) {
                           cursor: "pointer",
                         }}
                       >
+                        <td
+                          style={{ color: theme.text }}
+                          className="px-4 py-2.5 text-[11.5px] font-mono whitespace-nowrap"
+                        >
+                          #{trip.tripRef.slice(-4)}
+                        </td>
                         <td className="px-4 py-2.5 max-w-[180px]">
                           <Truncated
                             text={trip.pickupLabel}
@@ -912,6 +923,81 @@ export default function FleetAllTripsPage({ user }: Props) {
               >
                 {busyTripId === rejectingTrip.id ? "Rejecting…" : "Reject Trip"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day trips list modal — shown when a calendar date is clicked */}
+      {dayTripsView && (
+        <div
+          className="absolute inset-0 items-center justify-center p-6 flex"
+          style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}
+        >
+          <div
+            style={{
+              backgroundColor: theme.background,
+              borderColor: theme.border,
+            }}
+            className="rounded-2xl p-6 w-full max-w-[420px] border max-h-[80vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div>
+                <p style={{ color: theme.text }} className="text-base font-bold">
+                  {dayTripsView.date.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+                <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
+                  {dayTripsView.trips.length} trip{dayTripsView.trips.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => setDayTripsView(null)}
+                style={{
+                  backgroundColor: theme.surface,
+                  color: theme.subtext,
+                }}
+                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 overflow-y-auto fatp-scroll">
+              {dayTripsView.trips.map((trip) => (
+                <button
+                  key={trip.id}
+                  onClick={() => {
+                    setViewingTrip(trip);
+                    setDayTripsView(null);
+                  }}
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                  }}
+                  className="rounded-lg border p-3 text-left"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p
+                      style={{ color: theme.text }}
+                      className="text-[12.5px] font-semibold truncate"
+                    >
+                      {trip.dropoffLabel}
+                    </p>
+                    <StatusBadge config={TRIP_STATUS_CONFIG[trip.status]} size="sm" />
+                  </div>
+                  <p style={{ color: theme.subtext }} className="text-[11px] truncate">
+                    from {trip.pickupLabel}
+                  </p>
+                  <p style={{ color: theme.subtext }} className="text-[11px] mt-1">
+                    {trip.requestorName} · {formatDateTime(trip.departureDatetime)}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
         </div>

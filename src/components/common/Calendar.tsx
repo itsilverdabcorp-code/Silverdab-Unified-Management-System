@@ -369,11 +369,13 @@ function MonthGridView({
   events,
   theme,
   onEventClick,
+  onDateClick,
 }: {
   anchor: Date;
   events: CalendarEvent[];
   theme: any;
   onEventClick: (e: CalendarEvent) => void;
+  onDateClick?: (date: Date, events: CalendarEvent[]) => void;
 }) {
   const todayKey = dateKeyLocal(new Date());
   const cells = buildMonthGrid(
@@ -402,13 +404,16 @@ function MonthGridView({
           const key = dateKeyLocal(day);
           const dayEvents = events.filter((e) => eventDateKey(e.start) === key);
           const isToday = key === todayKey;
+          const clickable = !!onDateClick && dayEvents.length > 0;
           return (
             <div
               key={i}
+              onClick={() => clickable && onDateClick!(day, dayEvents)}
               style={{
                 backgroundColor: theme.surface,
                 borderColor: isToday ? theme.primary : theme.border,
                 opacity: inMonth ? 1 : 0.4,
+                cursor: clickable ? "pointer" : "default",
               }}
               className="rounded-lg border p-1.5 flex flex-col gap-1 overflow-hidden"
             >
@@ -422,7 +427,10 @@ function MonthGridView({
                 {dayEvents.slice(0, 3).map((e) => (
                   <button
                     key={e.id}
-                    onClick={() => onEventClick(e)}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onEventClick(e);
+                    }}
                     style={{ backgroundColor: e.color.bg, color: e.color.text }}
                     className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded truncate text-left"
                     title={e.subtitle ? `${e.title} ${e.subtitle}` : e.title}
@@ -452,6 +460,7 @@ function MonthGridView({
 type CalendarProps<T> = {
   events: CalendarEvent<T>[];
   onEventClick?: (event: CalendarEvent<T>) => void;
+  onDateClick?: (date: Date, events: CalendarEvent<T>[]) => void;
   initialView?: CalendarView;
   initialDate?: Date;
   className?: string;
@@ -460,6 +469,7 @@ type CalendarProps<T> = {
 export default function Calendar<T>({
   events,
   onEventClick,
+  onDateClick,
   initialView = "month",
   initialDate,
   className,
@@ -475,6 +485,8 @@ export default function Calendar<T>({
   // Bridge back to the caller's typed handler (inner grids are type-erased).
   const handleClick = (e: CalendarEvent) =>
     onEventClick?.(e as CalendarEvent<T>);
+  const handleDateClick = (date: Date, dayEvents: CalendarEvent[]) =>
+    onDateClick?.(date, dayEvents as CalendarEvent<T>[]);
 
   return (
     <div className={`h-full w-full min-w-0 flex flex-col ${className ?? ""}`}>
@@ -609,6 +621,7 @@ export default function Calendar<T>({
           events={events}
           theme={theme}
           onEventClick={handleClick}
+          onDateClick={handleDateClick}
         />
       ) : (
         <TimeGridView
