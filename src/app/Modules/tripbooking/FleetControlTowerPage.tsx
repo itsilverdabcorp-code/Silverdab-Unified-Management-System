@@ -1947,16 +1947,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
               {[
                 ["Requestor", viewingTrip.requestorName],
                 ["Departure", formatDateTime(viewingTrip.departureDatetime)],
-                [
-                  "Return",
-                  viewingTrip.returnDatetime
-                    ? formatDateTime(viewingTrip.returnDatetime)
-                    : "—",
-                ],
-                [
-                  "Trip type",
-                  viewingTrip.tripType === "oneway" ? "One way" : "Round trip",
-                ],
                 ["Passengers", String(viewingTrip.passengerCount)],
                 ["Purpose", viewingTrip.purpose || "—"],
                 ...(viewingTrip.status === "pending"

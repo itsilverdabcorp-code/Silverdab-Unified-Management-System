@@ -1076,16 +1076,6 @@ export default function FleetAllTripsPage({ user }: Props) {
                 ["Date Booked", formatDateTime(viewingTrip.createdAt)],
                 ["Departure", formatDateTime(viewingTrip.departureDatetime)],
                 [
-                  "Return",
-                  viewingTrip.returnDatetime
-                    ? formatDateTime(viewingTrip.returnDatetime)
-                    : "—",
-                ],
-                [
-                  "Trip type",
-                  viewingTrip.tripType === "oneway" ? "One way" : "Round trip",
-                ],
-                [
                   "Passengers",
                   viewingTrip.passengerNames &&
                   viewingTrip.passengerNames.length > 0

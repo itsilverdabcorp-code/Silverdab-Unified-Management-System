@@ -1251,18 +1251,6 @@ export default function DriverPortalPage({ user }: Props) {
                 const detailRows: [string, string][] = [
                   ["Requestor", viewingTrip.requestorName],
                   ["Departure", formatSchedule(viewingTrip.departureDatetime)],
-                  [
-                    "Return",
-                    viewingTrip.returnDatetime
-                      ? formatSchedule(viewingTrip.returnDatetime)
-                      : "—",
-                  ],
-                  [
-                    "Trip type",
-                    viewingTrip.tripType === "oneway"
-                      ? "One way"
-                      : "Round trip",
-                  ],
                   ["Passengers", String(viewingTrip.passengerCount)],
                   ["Purpose", viewingTrip.purpose || "—"],
                   ...(viewingTrip.status === "pending"
@@ -1292,11 +1280,10 @@ export default function DriverPortalPage({ user }: Props) {
                     >
                      <View style={{ flex: 1, marginRight: 8 }}>
                     {/* Pickup */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0 }} />
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
+                      <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0, marginTop: 4 }} />
                       <Text
-                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }}
-                        numberOfLines={1}
+                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
                       >
                         {viewingTrip.pickupLabel}
                       </Text>
@@ -1304,11 +1291,10 @@ export default function DriverPortalPage({ user }: Props) {
                     {/* Connector line */}
                     <View style={{ marginLeft: 3, width: 1, height: 10, backgroundColor: theme.border, marginBottom: 3 }} />
                     {/* Dropoff */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0 }} />
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                      <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0, marginTop: 4 }} />
                       <Text
-                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }}
-                        numberOfLines={1}
+                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
                       >
                         {viewingTrip.dropoffLabel}
                       </Text>
