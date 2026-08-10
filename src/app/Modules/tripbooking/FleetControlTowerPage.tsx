@@ -23,7 +23,7 @@ import { useTheme } from "../../../theme/ThemeContext";
 // same hook to power its assignee SearchableSelect.
 import { useEmployees } from "../../../hooks/useEmployees";
 import FleetLiveMap from "./FleetLiveMap";
-import {
+import Calendar, { CalendarEvent } from "../../../components/common/Calendar";import {
   getAllFleetTrips,
   getAllFleetVehicles,
   getAllFleetDrivers,
@@ -174,7 +174,7 @@ const TRIP_STATUS_CONFIG: Record<
     text: "#1d4ed8",
     dot: "#3b82f6",
   },
-  ongoing: { label: "Ongoing", bg: "#dcfce7", text: "#166534", dot: "#22c55e" },
+  ongoing: { label: "Ongoing", bg: "#cffafe", text: "#155e75", dot: "#06b6d4" },
   arrived: { label: "Arrived", bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
   returning: {
     label: "Returning",
@@ -184,15 +184,16 @@ const TRIP_STATUS_CONFIG: Record<
   },
   completed: {
     label: "Completed",
-    bg: "#e2e8f0",
-    text: "#334155",
-    dot: "#64748b",
+    bg: "#dcfce7",
+    text: "#166534",
+    dot: "#15803d",
   },
+
   cancelled: {
     label: "Cancelled",
-    bg: "#fee2e2",
-    text: "#991b1b",
-    dot: "#ef4444",
+    bg: "#fef2f2",
+    text: "#7f1d1d",
+    dot: "#f87171",
   },
   rejected: {
     label: "Rejected",
@@ -242,10 +243,7 @@ const FILTER_TABS: { key: "all" | TripStatus; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
   { key: "ongoing", label: "Ongoing" },
-  { key: "arrived", label: "Arrived" },
-  { key: "returning", label: "Returning" },
 ];
-
 
 
 // ─── KPI card (stacked variant — full width within its column) ───────────────
@@ -721,6 +719,27 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
     [drivers, trips],
   );
 
+  // Maps every trip into the shared Calendar's neutral event shape — full
+  // trip history (not just filteredTrips), so completed/cancelled trips
+  // still show on their departure date for reference. Color reuses the
+  // exact same TRIP_STATUS_CONFIG the badges elsewhere on this page use.
+  const calendarEvents = useMemo<CalendarEvent<FleetTrip>[]>(
+    () =>
+      trips.map((t) => {
+        const cfg = TRIP_STATUS_CONFIG[t.status];
+        return {
+          id: t.id,
+          start: t.departureDatetime,
+          end: t.returnDatetime ?? null,
+          title: t.dropoffLabel,
+          subtitle: `from ${t.pickupLabel}`,
+          color: { bg: cfg.bg, text: cfg.text, dot: cfg.dot },
+          data: t,
+        };
+      }),
+    [trips],
+  );
+
   const availableVehicles = useMemo(
     () => getAvailableVehicles(),
     [getAvailableVehicles],
@@ -1115,7 +1134,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
       `}</style>
 
       <div
-        className="fct-scroll flex-1 overflow-y-auto px-5 pb-5"
+        className="fct-scroll flex-1 overflow-y-auto overflow-x-hidden px-5 pb-5"
         style={{ paddingBottom: 40 }}
       >
         <div className="pt-5 pb-4 flex items-start justify-between gap-3">
@@ -1447,11 +1466,30 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                 </div>
               </div>
 
-              {/* ── KPI column (left) + Trip Requests panel (right) — 1
-                   column × 4 rows, matched to the panel's 450px height ── */}
-              <div className="flex flex-col lg:flex-row gap-5">
-                <div style={{ height: 450 }} className="flex flex-col gap-2.5 w-full lg:w-64 flex-shrink-0">
-                  <div className="flex-1 min-h-0">
+              {/* ── Col 1: Calendar · Col 2: KPI row (top) + Trip Requests
+                   panel (bottom) — swapped from the old KPI-column layout
+                   to make room for the shared Calendar component. ── */}
+              <div className="flex flex-col lg:flex-row gap-5 min-w-0" style={{ minHeight: 600 }}>
+                {/* Column 1 — Calendar (matches Live Fleet Map's 2-of-4-column width above) */}
+                <div
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    height: 600,
+                  }}
+                  className="rounded-xl border p-4 w-full lg:w-1/2 flex-shrink-0"
+                >
+                  <Calendar
+                    events={calendarEvents}
+                    onEventClick={(e) => setViewingTrip(e.data)}
+                    initialView="month"
+                  />
+                </div>
+
+                {/* Column 2 — remaining 2-of-4-column width, matches Vehicles+Drivers width above */}
+                <div className="flex flex-col gap-3 w-full lg:w-1/2 min-w-0" style={{ height: 600 }}>
+                  {/* Row 1 — KPI cards, horizontal */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 flex-shrink-0">
                     <StackedKpiCard
                       icon={
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1464,8 +1502,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       sub="Departing or returning today"
                       theme={theme}
                     />
-                  </div>
-                  <div className="flex-1 min-h-0">
                     <StackedKpiCard
                       icon={
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1479,8 +1515,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       onClick={() => onNavigate?.("fleet_vehicles")}
                       theme={theme}
                     />
-                  </div>
-                  <div className="flex-1 min-h-0">
                     <StackedKpiCard
                       icon={
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1495,8 +1529,6 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       onClick={() => setStatusFilter("pending")}
                       theme={theme}
                     />
-                  </div>
-                  <div className="flex-1 min-h-0">
                     <StackedKpiCard
                       icon={
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1513,17 +1545,14 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       theme={theme}
                     />
                   </div>
-                </div>
 
-                {/* Trip Requests panel */}
-                <div
+                  {/* Row 2 — Trip Requests panel */}
+                  <div
                   style={{
                     backgroundColor: theme.surface,
                     borderColor: theme.border,
-                    height: 450,
-                    minHeight: 450,
                   }}
-                  className="rounded-xl border flex flex-col flex-1 min-w-0"
+                  className="rounded-xl border flex flex-col flex-1 min-h-0 min-w-0"
                 >
                 <div className="px-4 pt-4 pb-3">
                   <h2
@@ -1566,7 +1595,7 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                     </p>
                   </div>
                 ) : (
-                  <div className="fct-scroll flex flex-col gap-2 px-4 pb-4 overflow-y-auto flex-1 min-h-0">
+                  <div className="fct-scroll flex flex-col gap-2 px-4 pb-4 overflow-y-auto flex-1 min-h-0 min-w-0">
                     {filteredTrips.map((trip) => {
                       const colors = avatarColor(trip.requestorName);
                       const draft = assignDrafts[trip.id] ?? {
@@ -1706,9 +1735,10 @@ export default function FleetControlTowerPage({ user, onNavigate }: Props) {
                       );
                     })}
                   </div>
-                )}
+                 )}
               </div>
 
+                </div>
               </div>
             </div>
           </div>

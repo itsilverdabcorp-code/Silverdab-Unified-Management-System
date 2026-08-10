@@ -185,6 +185,14 @@ type Props = {
   onPick: (point: PickedPoint) => void;
   theme: any;
   height?: number;
+  // Optional — when provided, the search bar becomes controlled by the
+  // parent instead of managing its own independent text. Lets the search
+  // bar mirror whichever pickup/drop-off label field is currently active
+  // (TripBookingModal passes the matching label text + setter here), so
+  // typing in the map's search bar live-updates that label field too,
+  // and switching tabs shows the right text back in the search bar.
+  searchValue?: string;
+  onSearchChange?: (text: string) => void;
 };
 
 export default function FleetLocationPickerMap({
@@ -193,6 +201,8 @@ export default function FleetLocationPickerMap({
   onPick,
   theme,
   height = 220,
+  searchValue,
+  onSearchChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -409,6 +419,20 @@ export default function FleetLocationPickerMap({
     };
   }, [searchQuery]);
 
+  // -- Keep the search bar in sync with an externally-controlled value --
+  // Fires when the parent's active field changes (e.g. switching between
+  // the Pickup pin / Drop-off pin tabs) or its label text is edited
+  // directly in the field below the map — either way, the search bar
+  // should reflect that text without re-triggering a search/dropdown.
+  useEffect(() => {
+    if (searchValue !== undefined && searchValue !== searchQuery) {
+      suppressNextSearchRef.current = true;
+      setSearchQuery(searchValue);
+      setShowDropdown(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchValue]);
+
   function handleSelectResult(result: PlaceResult) {
     onPickRef.current({ latitude: result.lat, longitude: result.lon, address: result.displayName });
     if (mapRef.current) {
@@ -427,6 +451,7 @@ export default function FleetLocationPickerMap({
     setSearchResults([]);
     setShowDropdown(false);
     setSearchQuery(result.displayName);
+    onSearchChange?.(result.displayName);
   }
 
   return (
@@ -457,8 +482,10 @@ export default function FleetLocationPickerMap({
           <input
             value={searchQuery}
             onChange={(e) => {
-              setSearchQuery(e.target.value);
+              const val = e.target.value;
+              setSearchQuery(val);
               setShowDropdown(true);
+              onSearchChange?.(val);
             }}
             onFocus={() => {
               if (searchResults.length > 0) setShowDropdown(true);

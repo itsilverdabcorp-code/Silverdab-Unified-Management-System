@@ -54,13 +54,13 @@ import {
 type TicketSource = "it" | "supply" | "trip";
 type TicketType = "it" | "hr" | "supply";
 type Step = 1 | 2 | 3 | 4;
-type TabKey = "All" | "Pending" | "In Progress" | "Resolved" | "Rejected";
+type TabKey = "All" | "Pending" | "In Progress" | "Completed" | "Rejected";
 
 const TABS: TabKey[] = [
   "All",
   "Pending",
   "In Progress",
-  "Resolved",
+  "Completed",
   "Rejected",
 ];
 
@@ -99,6 +99,17 @@ type UnifiedTicket = {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
+// Long addresses ("South Supermarket, MacArthur Highway, Valenzuela, Metro
+// Manila, Philippines") get truncated to just their first segment for the
+// ticket list title — full addresses are still shown in the trip detail
+// drawer via TripDetailContent's Route field, this is purely a compact
+// label for the row/title context.
+function shortLocationLabel(label?: string | null): string {
+  if (!label) return "—";
+  const firstPart = label.split(",")[0]?.trim();
+  return firstPart || label;
+}
+
 const toReadableDate = (value: any): string => {
   if (!value) return "—";
   try {
@@ -122,7 +133,7 @@ const SUPPLY_STATUS_MAP: Record<string, string> = {
   awaiting_stock: "In Progress",
   out_for_delivery: "In Progress",
   failed_delivery: "Rejected",
-  resolved: "Resolved",
+  resolved: "Completed",
   rejected: "Rejected",
   cancelled: "Rejected",
 };
@@ -136,7 +147,7 @@ const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
   awaiting_stock: "In Progress",
   out_for_delivery: "Out for Delivery",
   failed_delivery: "Failed Delivery",
-  resolved: "Resolved",
+  resolved: "Completed",
   rejected: "Rejected",
   cancelled: "Cancelled",
 };
@@ -152,7 +163,7 @@ const TRIP_STATUS_MAP: Record<string, string> = {
   ongoing: "In Progress",
   arrived: "In Progress",
   returning: "In Progress",
-  completed: "Resolved",
+  completed: "Completed",
   rejected: "Rejected",
   cancelled: "Rejected",
 };
@@ -182,16 +193,13 @@ const STATUS_CONFIG: Record<
   "In Progress": { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
   "Out for Delivery": { bg: "#FFEDD5", border: "#FDBA74", text: "#C2410C" },
   "Failed Delivery": { bg: "#FFE4E6", border: "#FDA4AF", text: "#BE123C" },
-  Resolved: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
+  Completed: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
   Rejected: { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626" },
   Cancelled: { bg: "#F1F5F9", border: "#CBD5E1", text: "#475569" },
-  // Trip-management statuses — colors mirror FleetControlTowerPage's
-  // TRIP_STATUS_CONFIG so a trip looks the same in both places.
   Approved: { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
   Ongoing: { bg: "#DCFCE7", border: "#86EFAC", text: "#166534" },
   Arrived: { bg: "#DBEAFE", border: "#93C5FD", text: "#1D4ED8" },
   Returning: { bg: "#FEF3C7", border: "#FCD34D", text: "#92400E" },
-  Completed: { bg: "#DCFCE7", border: "#86EFAC", text: "#15803D" },
 };
 
 const SOURCE_CONFIG: Record<
@@ -263,7 +271,7 @@ function mergeTickets(
     _source: "trip",
     id: t.id,
     ticketNumber: t.tripRef,
-    title: `${t.pickupLabel} → ${t.dropoffLabel}`,
+    title: `${shortLocationLabel(t.pickupLabel)} → ${shortLocationLabel(t.dropoffLabel)}`,
     status: normaliseTripStatus(t.status),
     displayStatus: displayTripStatus(t.status),
     dateCreated: t.createdAt,
@@ -596,8 +604,8 @@ function LeftPanel({
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <StatCard
-          label="Resolved"
-          value={counts["Resolved"]}
+          label="Completed"
+          value={counts["Completed"]}
           sub="All time"
           dotColor="#639922"
           theme={theme}
@@ -644,8 +652,15 @@ function TicketRow({
         borderBottomColor: theme.border,
       }}
     >
-    {/* Col 1 — Ticket no. + source tag */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, minWidth: 70 }}>
+      {/* Col 1 — Ticket no. + source tag */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 70,
+        }}
+      >
         <View>
           <Text
             style={{
@@ -1043,7 +1058,7 @@ function ITDetailContent({
   return (
     <>
       <StatusTimeline
-        steps={["Pending", "In Progress", "Resolved"]}
+       steps={["Pending", "In Progress", "Completed"]}
         currentStatus={ticket.status}
         theme={theme}
       />
@@ -1605,10 +1620,8 @@ function TripDetailContent({
       <MetaCard
         fields={[
           { label: "Trip Ref", value: trip.tripRef },
-          {
-            label: "Route",
-            value: `${trip.pickupLabel} → ${trip.dropoffLabel}`,
-          },
+          { label: "Pickup", value: trip.pickupLabel || "—" },
+          { label: "Drop-off", value: trip.dropoffLabel || "—" },
           { label: "Departure", value: toReadableDate(trip.departureDatetime) },
           {
             label: "Return",
@@ -2069,7 +2082,7 @@ export default function TicketHubPage({ user }: Props) {
       All: base.length,
       Pending: 0,
       "In Progress": 0,
-      Resolved: 0,
+      Completed: 0,
       Rejected: 0,
     };
     base.forEach((t) => {

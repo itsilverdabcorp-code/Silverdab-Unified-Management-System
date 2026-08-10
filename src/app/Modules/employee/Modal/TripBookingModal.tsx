@@ -170,8 +170,6 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
 
   const departureDateRef = React.useRef<HTMLInputElement>(null);
   const departureTimeRef = React.useRef<HTMLInputElement>(null);
-  const returnDateRef = React.useRef<HTMLInputElement>(null);
-  const returnTimeRef = React.useRef<HTMLInputElement>(null);
   const passengerInputRef = React.useRef<TextInput>(null);
 
   // Hides the browser's own built-in calendar/clock icon on native
@@ -241,11 +239,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     };
   }, [visible]);
 
-  const [tripType, setTripType] = useState<TripType>("roundtrip");
-  const [departureDate, setDepartureDate] = useState("");
+    const [departureDate, setDepartureDate] = useState("");
   const [departureTime, setDepartureTime] = useState("");
-  const [returnDate, setReturnDate] = useState("");
-  const [returnTime, setReturnTime] = useState("");
   const [purpose, setPurpose] = useState("");
 
   const [error, setError] = useState("");
@@ -309,11 +304,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setActiveMapField("pickup");
     setPickupLabelEdited(false);
     setDropoffLabelEdited(false);
-    setTripType("roundtrip");
     setDepartureDate("");
     setDepartureTime("");
-    setReturnDate("");
-    setReturnTime("");
     setPurpose("");
     setError("");
   }
@@ -343,10 +335,6 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
       setError("Departure date and time are required.");
       return;
     }
-    if (tripType === "roundtrip" && (!returnDate.trim() || !returnTime.trim())) {
-      setError("Estimated return date and time are required for a round trip.");
-      return;
-    }
     if (!purpose.trim()) {
       setError("Purpose / remarks is required.");
       return;
@@ -354,9 +342,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
 
     setSubmitting(true);
     try {
-      const departureDatetime = `${departureDate}T${departureTime}:00`;
-      const returnDatetime =
-        tripType === "roundtrip" ? `${returnDate}T${returnTime}:00` : undefined;
+       // Build the departure datetime as an explicit Philippine-time (+08:00)
+       // ISO string. This guards against the *browser's* local timezone ever
+       // differing from PH time (e.g. testing from a different machine) —
+       // the backend still receives a fully explicit, unambiguous instant.
+       const departureDatetime = `${departureDate}T${departureTime}:00+08:00`;
 
       const tripRef = await submitTripRequest({
         pickupLocationId: pickupLocationId ?? undefined,
@@ -369,9 +359,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
           dropoffText.trim() ||
           dropoffPoint.address ||
           `${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`,
-        tripType,
+        tripType: "oneway",
         departureDatetime,
-        returnDatetime,
         purpose: purpose.trim(),
         passengerCount: passengers.length + 1, // +1 for the requestor
         passengerNames: passengers,
@@ -641,6 +630,18 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                     if (!dropoffLabelEdited && pt.address) setDropoffText(pt.address);
                   }
                 }}
+                searchValue={activeMapField === "pickup" ? pickupText : dropoffText}
+                onSearchChange={(text) => {
+                  if (activeMapField === "pickup") {
+                    setPickupText(text);
+                    setPickupLabelEdited(true);
+                    if (pickupLocationId) setPickupLocationId(null);
+                  } else {
+                    setDropoffText(text);
+                    setDropoffLabelEdited(true);
+                    if (dropoffLocationId) setDropoffLocationId(null);
+                  }
+                }}
                 theme={theme}
                 height={200}
               />
@@ -694,12 +695,13 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               </View>
             </Field>
 
-            {/* Route preview */}
+           {/* Route preview — stacked pickup/drop-off (dot + pin icon,
+                each on its own row) instead of squeezed onto one line, so
+                long addresses truncate independently. Matches the pattern
+                used for trip rows in FleetControlTowerPage.tsx. */}
             {Boolean(pickupPoint || dropoffPoint) && (
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
                   backgroundColor: theme.background,
                   borderWidth: 1,
                   borderColor: theme.border,
@@ -707,24 +709,27 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   marginBottom: 14,
-                  gap: 8,
+                  gap: 6,
                 }}
               >
-                <Text
-                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
-                  numberOfLines={1}
-                >
-                  {pickupText || pickupPoint?.address || "Pickup"}
-                </Text>
-                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#22c55e", flexShrink: 0 }} />
-                <View style={{ flex: 1, height: 1, borderStyle: "dashed", borderWidth: 1, borderColor: theme.border }} />
-                <MapPin size={12} color="#ef4444" />
-                <Text
-                  style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
-                  numberOfLines={1}
-                >
-                  {dropoffText || dropoffPoint?.address || "Drop-off"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#22c55e", flexShrink: 0 }} />
+                  <Text
+                    style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
+                    numberOfLines={1}
+                  >
+                    {pickupText || pickupPoint?.address || "Pickup"}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <MapPin size={10} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <Text
+                    style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text, flexShrink: 1 }}
+                    numberOfLines={1}
+                  >
+                    {dropoffText || dropoffPoint?.address || "Drop-off"}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -787,44 +792,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               </View>
             </View>
 
-            {/* Trip type */}
-            <Field label="Trip type" theme={theme}>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {(["roundtrip", "oneway"] as TripType[]).map((opt) => (
-                  <TouchableOpacity
-                    key={opt}
-                    onPress={() => setTripType(opt)}
-                    activeOpacity={0.7}
-                    style={{
-                      flex: 1,
-                      borderRadius: 8,
-                      paddingVertical: 10,
-                      alignItems: "center",
-                      backgroundColor: tripType === opt ? primary : theme.background,
-                      borderWidth: 1.5,
-                      borderColor: tripType === opt ? primary : theme.border,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: "Outfit-medium",
-                        fontSize: 12,
-                        color: tripType === opt ? "#fff" : theme.subtext,
-                      }}
-                    >
-                      {opt === "roundtrip" ? "Round trip — returning" : "One way"}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {tripType === "roundtrip" && (
-                <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext, marginTop: 6 }}>
-                  Provide your estimated return schedule below.
-                </Text>
-              )}
-            </Field>
-
-            {/* Departure — typing directly into the field (e.g. arrow keys
+           {/* Departure — typing directly into the field (e.g. arrow keys
                 or numbers) still works; the calendar/clock icon is a
                 separate click target that opens the native picker without
                 stealing focus from the segment being typed. */}
@@ -873,55 +841,6 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 </Field>
               </View>
             </View>
-
-            {/* Return — only for round trip */}
-            {tripType === "roundtrip" && (
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Field label="Estimated return date" required theme={theme}>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        ref={returnDateRef as any}
-                        type="date"
-                        className={DATE_INPUT_CLASS}
-                        value={returnDate}
-                        onChange={(e: any) => setReturnDate(e.target.value)}
-                        min={departureDate || new Date().toISOString().slice(0, 10)}
-                        style={webInputStyle}
-                      />
-                      <button
-                        type="button"
-                        style={pickerIconBtnStyle}
-                        onClick={() => returnDateRef.current?.showPicker?.()}
-                      >
-                        <CalendarIcon size={14} color={theme.subtext} />
-                      </button>
-                    </div>
-                  </Field>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Field label="Estimated return time" required theme={theme}>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        ref={returnTimeRef as any}
-                        type="time"
-                        className={DATE_INPUT_CLASS}
-                        value={returnTime}
-                        onChange={(e: any) => setReturnTime(e.target.value)}
-                        style={webInputStyle}
-                      />
-                      <button
-                        type="button"
-                        style={pickerIconBtnStyle}
-                        onClick={() => returnTimeRef.current?.showPicker?.()}
-                      >
-                        <ClockIcon size={14} color={theme.subtext} />
-                      </button>
-                    </div>
-                  </Field>
-                </View>
-              </View>
-            )}
 
             {/* Purpose */}
             <Field label="Purpose / remarks" required theme={theme}>
