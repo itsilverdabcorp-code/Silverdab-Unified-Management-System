@@ -1,26 +1,33 @@
 // Services/exportMonthlyReportExcel.ts
 //
 // Builds an .xlsx that matches the layout of the uploaded
-// "Office_Consumables_Monitoring" workbook:
-//   - One sheet per category (OFFICE SUPPLIES, CLEANING SUPPLIES, PPE, MEDICINE)
-//   - Row 2: big navy title ("<CATEGORY> ")
-//   - Row 3/4 (merged): ITEM / ITEM CODE / BRAND NAME-DESCRIPTION / Unit / PRICE /
-//     Beg. Invty / "<MONTH YEAR> - Daily Consumption" (spans one column per day,
-//     numbered 1..daysInMonth) / Monthly Total Consumption / Consumption Amount /
-//     Add: Delivery / Delivery Amount / Ending Invty.
-//   - One data row per item, with the SAME formulas as the template:
-//       Monthly Total Consumption = SUM(daily range)
-//       Consumption Amount        = TotalConsumption * Price
-//       Delivery Amount           = Delivery * Price
-//       Ending Invty.             = (Beg. Invty - TotalConsumption) + Delivery
-//   - Freeze panes under the header / past the static columns
+// "Office_Consumables_Monitoring" workbook (see buildSheet() below for the
+// full column/formula layout — unchanged from the original web-only file).
 //
-// Requires: `exceljs` and `file-saver` (web only — this page is web-only JSX).
+// PLATFORM HANDLING (this is the fix for the "Property 'HTMLAnchorElement'
+// doesn't exist" crash on native):
+//   file-saver's saveAs() only works in a browser — it creates a hidden
+//   <a> tag and clicks it. That API doesn't exist in React Native, and
+//   because `import { saveAs } from "file-saver"` used to sit at the top
+//   of this file, just importing this module anywhere in the native bundle
+//   crashed the screen, even before any export button was tapped.
+//
+//   Fix: file-saver is now dynamically imported (`await import(...)`)
+//   ONLY inside the web branch below, so it's never evaluated at all on
+//   native. Platform.OS decides which save path runs:
+//     - web:    file-saver -> browser download
+//     - native: expo-file-system (write to cache dir) + expo-sharing
+//               (hand off to the OS share sheet — the native equivalent
+//               of a "Save As" dialog: user can save it, AirDrop it,
+//               email it, open it in another app, etc.)
+//
+// Requires:
 //   npm install exceljs file-saver
 //   npm install --save-dev @types/file-saver
+//   npx expo install expo-file-system expo-sharing
 
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
+import { Platform } from "react-native";
+import type ExcelJS from "exceljs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,7 +113,7 @@ function daysInMonth(yyyymm: string): number {
   return new Date(y, m, 0).getDate();
 }
 
-// ─── Sheet builder ─────────────────────────────────────────────────────────────
+// ─── Sheet builder (unchanged from the original — platform-agnostic) ─────────
 
 function buildSheet(
   wb: ExcelJS.Workbook,
@@ -288,13 +295,71 @@ function buildSheet(
   }
 }
 
+// ─── Platform-specific save (the part that used to crash native) ─────────────
+
+async function saveOnWeb(workbook: ExcelJS.Workbook, fileName: string) {
+  // Dynamic import — this line never runs on native, so file-saver (which
+  // touches HTMLAnchorElement at call time) never gets evaluated there.
+  const { saveAs } = await import("file-saver");
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, fileName);
+}
+
+// Buffer isn't guaranteed to exist in the RN runtime the way it does in
+// Node/browser bundles. exceljs' writeBuffer() returns an ArrayBuffer-like
+// value; this converts it to base64 without assuming a Buffer polyfill.
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000; // avoid call-stack blowups on large files
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  // btoa is available on Hermes/JSC (RN's default JS engines). If your
+  // engine lacks it, swap this for base64-js's fromByteArray(bytes).
+  return btoa(binary);
+}
+
+async function saveOnNative(workbook: ExcelJS.Workbook, fileName: string) {
+  const { File, Paths } = await import("expo-file-system");
+  const Sharing = await import("expo-sharing");
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const file = new File(Paths.cache, fileName);
+file.write(new Uint8Array(buffer as ArrayBuffer));
+
+  const canShare = await Sharing.isAvailableAsync();
+  if (!canShare) {
+    console.warn(`Sharing unavailable — report saved at ${file.uri}`);
+    return;
+  }
+
+  await Sharing.shareAsync(file.uri, {
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    dialogTitle: fileName,
+    UTI: "org.openxmlformats.spreadsheetml.sheet", // iOS file-type hint
+  });
+}
+
 // ─── Entry point ────────────────────────────────────────────────────────────
 
 export async function exportMonthlyReportExcel(
   categories: ExcelExportCategory[],
   selectedMonth: string,
 ) {
-  const wb = new ExcelJS.Workbook();
+  if (Platform.OS !== "web") {
+    console.warn("Monthly report export is web-only — skipping on native.");
+    return;
+  }
+
+  // Dynamic import — exceljs never gets evaluated on native now.
+  const ExcelJSModule = (await import("exceljs")).default;
+
+  const wb = new ExcelJSModule.Workbook();
   wb.creator = "Silverdab Unified Management System";
   wb.created = new Date();
 
@@ -303,10 +368,8 @@ export async function exportMonthlyReportExcel(
     buildSheet(wb, category, selectedMonth);
   }
 
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
   const fileLabel = monthYearLabel(selectedMonth).replace(/\s+/g, "_");
-  saveAs(blob, `Office_Consumables_Monitoring_-_${fileLabel}.xlsx`);
+  const fileName = `Office_Consumables_Monitoring_-_${fileLabel}.xlsx`;
+
+  await saveOnWeb(wb, fileName);
 }

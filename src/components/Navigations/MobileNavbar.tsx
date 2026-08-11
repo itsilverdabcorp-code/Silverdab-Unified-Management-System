@@ -15,6 +15,7 @@ import { ADUser } from "../../../types";
 import { LogOut, Sun, Moon, Monitor, Settings, Menu, X } from "lucide-react-native";
 import LogoutModal from "../../app/Auth/LogoutModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const STORAGE_KEY = "AD_USER_DATA";
 
@@ -58,6 +59,7 @@ export default function MobileNavbar({
 
   const { theme, themeMode, setThemeMode } = useTheme();
   const C = getNavColors(theme);
+  const insets = useSafeAreaInsets();
 
   const normalizedUser: ADUser = {
     ...user,
@@ -213,7 +215,8 @@ export default function MobileNavbar({
           top: 0,
           left: 0,
           right: 0,
-          height: HEADER_H,
+          height: HEADER_H + insets.top,
+          paddingTop: insets.top,
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 12,
@@ -221,37 +224,27 @@ export default function MobileNavbar({
           borderBottomWidth: 0.5,
           borderBottomColor: theme.navBorder,
           zIndex: 100,
+          elevation: 100,
         }}
       >
-        {/* Left: hamburger (fixed width so the center block below stays truly centered) */}
-        <View style={{ width: 36, alignItems: "flex-start" }}>
-          <TouchableOpacity
-            onPress={openDrawer}
-            activeOpacity={0.7}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Menu color={C.iconActive} size={22} />
-          </TouchableOpacity>
-        </View>
-
         {/* Center: logo + title, absolutely centered on the header regardless of left/right content width */}
+        {/* Rendered BEFORE the hamburger below so it paints underneath it, not on top — a later
+            sibling in RN's render order draws over earlier ones regardless of pointerEvents,
+            and "none" isn't always reliably passed through to touch hit-testing on Android/web. */}
         <View
           style={{
             position: "absolute",
             left: 0,
             right: 0,
+            top: 0,
+            bottom: 0,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
+            zIndex: 0,
           }}
-          pointerEvents="none"
+          pointerEvents="box-none"
         >
           <Image
             source={require("../icons/silverdab-logo.png")}
@@ -270,8 +263,26 @@ export default function MobileNavbar({
           </Text>
         </View>
 
+        {/* Left: hamburger — rendered AFTER the center block so it's on top and always tappable */}
+        <View style={{ width: 36, alignItems: "flex-start", zIndex: 1 }}>
+          <TouchableOpacity
+            onPress={openDrawer}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Menu color={C.iconActive} size={22} />
+          </TouchableOpacity>
+        </View>
+
         {/* Right: empty spacer matching the hamburger's width to balance the row */}
-        <View style={{ width: 36 }} />
+        <View style={{ width: 36, zIndex: 1 }} />
       </View>
 
       {/* ── Backdrop ── */}
@@ -309,6 +320,7 @@ export default function MobileNavbar({
           borderRightColor: theme.navBorder,
           transform: [{ translateX }],
           zIndex: 102,
+          elevation: 102,
           flexDirection: "column",
         }}
       >
@@ -319,7 +331,8 @@ export default function MobileNavbar({
             alignItems: "center",
             justifyContent: "space-between",
             paddingHorizontal: 16,
-            height: HEADER_H,
+            height: HEADER_H + insets.top,
+            paddingTop: insets.top,
             borderBottomWidth: 0.5,
             borderBottomColor: theme.navBorder,
           }}
@@ -478,7 +491,8 @@ export default function MobileNavbar({
             borderTopWidth: 0.5,
             borderTopColor: theme.navBorder,
             paddingHorizontal: 12,
-            paddingVertical: 14,
+            paddingTop: 14,
+            paddingBottom: 14 + insets.bottom,
             flexDirection: "row",
             alignItems: "center",
             gap: 10,

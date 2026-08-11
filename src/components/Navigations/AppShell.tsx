@@ -5,7 +5,7 @@ import MonthlyReportPage from "@/app/Modules/office/MonthlyReportPage";
 import OfficeDashboardPage, {
   NavPayload,
 } from "@/app/Modules/office/OfficeDashboardPage";
-import SupplyRequestsPage from "@/app/Modules/office/SupplyRequestsPage";
+import SupplyRequestsPage from "@/app/Modules/office/SupplyRequestsPage/SupplyRequestsPage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
@@ -236,7 +236,13 @@ export default function AppShell({ user, onLogout }: Props) {
   }, [user.username]);
 
   const updateBrowserUrl = (key: string) => {
-    if (typeof window === "undefined" || !window.location) return;
+    if (
+      typeof window === "undefined" ||
+      !window.location ||
+      !window.history ||
+      typeof window.history.pushState !== "function"
+    )
+      return;
     const item = sections
       .flatMap((s) => s.items)
       .find((i) => i.key === key);
