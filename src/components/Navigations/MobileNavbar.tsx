@@ -26,8 +26,8 @@ type MobileNavbarProps = {
   onLogout: () => void;
 };
 
-const DRAWER_W = 260;
-const HEADER_H = 56;
+export const DRAWER_W = 260;
+export const HEADER_H = 56;
 
 const THEME_CYCLE = ["light", "dark", "system"] as const;
 type ThemeMode = (typeof THEME_CYCLE)[number];

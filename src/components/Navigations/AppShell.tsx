@@ -5,10 +5,11 @@ import MonthlyReportPage from "@/app/Modules/office/MonthlyReportPage";
 import OfficeDashboardPage, {
   NavPayload,
 } from "@/app/Modules/office/OfficeDashboardPage";
-import SupplyRequestsPage from "@/app/Modules/office/SupplyRequestsPage/SupplyRequestsPage";
+import SupplyRequestsPage from "@/app/Modules/office/SupplyRequestsPage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ADUser, OfficeInventoryItem } from "../../../types"; // adjust to your actual saved path
 import PlaceholderPage from "../../app/Modules/PlaceholderPage";
 import UsersPage, {
@@ -24,7 +25,8 @@ import AuditTrailPage from "@/app/Modules/it/AuditTrailPage";
 import ConsumablesPage from "@/app/Modules/it/consumables/ConsumablesPage";
 import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPage";
 import DriverPortalPage from "@/app/Modules/tripbooking/DriverPortalPage";
-import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPages";
+import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPage";
+import PageErrorBoundary from "../common/PageErrorBoundary";
 
 const LAST_PAGE_KEY = "SUMS_LAST_PAGE";
 
@@ -184,6 +186,7 @@ export default function AppShell({ user, onLogout }: Props) {
   const [restored, setRestored] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const insets = useSafeAreaInsets();
 
   // ── Cross-page state for the office module ──────────────────────────────
   // OfficeDashboardPage's KPI cards / quick actions don't render their own
@@ -310,14 +313,16 @@ export default function AppShell({ user, onLogout }: Props) {
           onLogout={onLogout}
         />
       )}
-      <View style={{ flex: 1, paddingTop: isMobile ? 56 : 0 }}>
-        {renderPage(activeKey, user, {
-          inventoryFilter,
-          deliverItem,
-          onDeliverModalOpened: handleDeliverModalOpened,
-          onOfficeNavigate: handleOfficeNavigate,
-          onOfficeNavigateWithPayload: handleOfficeNavigateWithPayload,
-        })}
+      <View style={{ flex: 1, paddingTop: isMobile ? 56 + insets.top : 0 }}>
+        <PageErrorBoundary key={activeKey}>
+          {renderPage(activeKey, user, {
+            inventoryFilter,
+            deliverItem,
+            onDeliverModalOpened: handleDeliverModalOpened,
+            onOfficeNavigate: handleOfficeNavigate,
+            onOfficeNavigateWithPayload: handleOfficeNavigateWithPayload,
+          })}
+        </PageErrorBoundary>
       </View>
     </View>
   );

@@ -34,7 +34,7 @@ async function getServiceToken(): Promise<string> {
   }
 }
 
-export async function setupPushNotifications() {
+export async function setupPushNotifications(userToken: string) {
   // Web push only works in a browser context with service worker support —
   // silently no-op on native (iOS/Android) builds.
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -59,15 +59,13 @@ export async function setupPushNotifications() {
       });
     }
 
-    const token = await getServiceToken();
-    if (!token) return;
+    if (!userToken) return;
 
     await fetch(`${BACKEND_URL}/push/subscribe`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        
+        Authorization: `Bearer ${userToken}`,
       },
       body: JSON.stringify({ subscription: subscription.toJSON() }),
     });

@@ -559,10 +559,10 @@ function RightPanel({ theme }: { theme: any }) {
 // All backend I/O is injected via props so this file has zero knowledge of
 // AD/LDAP, Firestore, or any specific server. Swap the backend by passing a
 // different `authenticate` (and optional session hooks) from the parent.
-type AuthResult = { success: boolean; user?: ADUser; message?: string };
+type AuthResult = { success: boolean; user?: ADUser; token?: string; message?: string };
 
 type Props = {
-  onLoginSuccess: (user: ADUser) => void;
+  onLoginSuccess: (user: ADUser, token?: string) => void;
   onLogout: () => void;
 
   // REQUIRED: perform the actual login however your new backend works.
@@ -623,7 +623,8 @@ export default function AuthScreen({
           }
 
           setUser(parsedUser);
-          onLoginSuccess(parsedUser);
+          const savedToken = await AsyncStorage.getItem("AD_USER_TOKEN");
+          onLoginSuccess(parsedUser, savedToken ?? undefined);
         }
       } catch (err) {
         console.error("Restore auth error:", err);
@@ -650,8 +651,11 @@ export default function AuthScreen({
       if (response.success && response.user) {
         setUser(response.user);
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(response.user));
+        if (response.token) {
+          await AsyncStorage.setItem("AD_USER_TOKEN", response.token);
+        }
         await onSessionStart?.(response.user);
-        onLoginSuccess(response.user);
+        onLoginSuccess(response.user, response.token);
       } else {
         setError(response.message || "Login failed. Please try again.");
       }

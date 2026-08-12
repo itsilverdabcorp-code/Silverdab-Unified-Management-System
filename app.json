@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.hpatenio.silverdabums"
+      "package": "com.hpatenio.silverdabums",
+      "versionCode": 1
     },
     "web": {
       "output": "single",
@@ -35,7 +36,8 @@
         }
       ],
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
