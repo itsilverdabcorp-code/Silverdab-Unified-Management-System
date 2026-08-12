@@ -25,6 +25,7 @@ interface Props {
 }
 
 const EMPTY_FORM = {
+  assetTag: "",
   company: "",
   serialNumber: "",
   model: "",
@@ -139,10 +140,10 @@ const EditAssetModal: React.FC<Props> = ({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
-
   useEffect(() => {
     if (selectedAsset) {
       setForm({
+        assetTag: selectedAsset.assetTag,
         company: selectedAsset.company,
         serialNumber: selectedAsset.serialNumber,
         model: selectedAsset.model,
@@ -165,10 +166,9 @@ const EditAssetModal: React.FC<Props> = ({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => setForm({ ...form, [e.target.name]: e.target.value });
-
   const handleSubmit = async () => {
-    if (!form.company || !form.brand) {
-      setError("Company and Brand are required.");
+    if (!form.company || !form.brand || !form.assetTag.trim()) {
+      setError("Asset tag, Company and Brand are required.");
       return;
     }
     if (!selectedAsset) return;
@@ -178,6 +178,7 @@ const EditAssetModal: React.FC<Props> = ({
 
     try {
       const original: Record<string, string> = {
+        assetTag: selectedAsset.assetTag ?? "",
         company: selectedAsset.company ?? "",
         serialNumber: selectedAsset.serialNumber ?? "",
         model: selectedAsset.model ?? "",
@@ -204,6 +205,7 @@ const EditAssetModal: React.FC<Props> = ({
         return;
       }
 
+      // updateAsset is keyed by the ORIGINAL asset tag, even if the tag itself changed
       await updateAsset(
         selectedAsset.assetTag,
         changed as Partial<EditAssetInput>,
@@ -331,6 +333,14 @@ const EditAssetModal: React.FC<Props> = ({
           )}
 
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Asset tag">
+              <ThemedInput
+                name="assetTag"
+                value={form.assetTag}
+                onChange={handleChange}
+                placeholder="Asset tag *"
+              />
+            </Field>
             <Field label="Serial number">
               <ThemedInput
                 name="serialNumber"
@@ -386,7 +396,10 @@ const EditAssetModal: React.FC<Props> = ({
               <BadgeSelect
                 value={form.company}
                 displayName={form.company}
-                options={[{ label: "—", value: "" }, ...dropdownOptions.company]}
+                options={[
+                  { label: "—", value: "" },
+                  ...dropdownOptions.company,
+                ]}
                 placeholder="Select company"
                 onChange={(val) => setForm((f) => ({ ...f, company: val }))}
                 className="w-full"
@@ -396,7 +409,10 @@ const EditAssetModal: React.FC<Props> = ({
               <BadgeSelect
                 value={form.category}
                 displayName={form.category}
-                options={[{ label: "—", value: "" }, ...dropdownOptions.category]}
+                options={[
+                  { label: "—", value: "" },
+                  ...dropdownOptions.category,
+                ]}
                 placeholder="Select category"
                 onChange={(val) =>
                   setForm((f) => ({
@@ -414,7 +430,10 @@ const EditAssetModal: React.FC<Props> = ({
               <BadgeSelect
                 value={form.location}
                 displayName={form.location}
-                options={[{ label: "—", value: "" }, ...dropdownOptions.location]}
+                options={[
+                  { label: "—", value: "" },
+                  ...dropdownOptions.location,
+                ]}
                 placeholder="Select location"
                 onChange={(val) =>
                   setForm((f) => ({
