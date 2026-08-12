@@ -24,7 +24,7 @@ type LoginApiResponse = {
   };
 };
 
-type AuthResult = { success: boolean; user?: ADUser; message?: string };
+type AuthResult = { success: boolean; user?: ADUser; token?: string; message?: string };
 
 const DEFAULT_PERMISSIONS: UserPermissions = {
   itAccess: false,
@@ -168,7 +168,7 @@ export async function authenticateWithAD(
       permissions: row?.permissions ?? DEFAULT_PERMISSIONS,
     };
 
-    return { success: true, user };
+   return { success: true, user, token: data.token };
   } catch (err) {
     console.error("AD login error:", err);
     return {

@@ -27,18 +27,18 @@ export default function HomeScreen() {
     return null; // or a splash/loading screen
   }
 
-  const handleLoginSuccess = (loggedInUser: ADUser, token?: string) => {
-    setUser(loggedInUser);
-    setShowEmailPrefModal(true);
-    if (
-      token &&
-      (loggedInUser.role === "superadmin" ||
-        loggedInUser.permissions?.officeSupplies)
-    ) {
-      setupPushNotifications(token);
-    }
-  };
-
+const handleLoginSuccess = (loggedInUser: ADUser, token?: string) => {
+  setUser(loggedInUser);
+  setShowEmailPrefModal(true);
+  console.log("PUSH DEBUG:", { hasToken: !!token, role: loggedInUser.role, officeSupplies: loggedInUser.permissions?.officeSupplies }); // ← add this
+  if (
+    token &&
+    (loggedInUser.role === "superadmin" ||
+      loggedInUser.permissions?.officeSupplies)
+  ) {
+    setupPushNotifications(token);
+  }
+};
   const handleLogout = () => {
     setUser(null);
   };
