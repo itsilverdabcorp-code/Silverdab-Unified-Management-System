@@ -625,6 +625,7 @@ function LeftPanel({
 // ─── Column widths (matches HTML reference grid) ──────────────────────────────
 // grid-template-columns: 90px 1fr 100px 90px 32px
 const COL = { ticketNo: 90, status: 150, date: 90, chev: 32 } as const;
+const TABLE_MAX_HEIGHT = 600;
 
 // ─── Ticket list row ──────────────────────────────────────────────────────────
 
@@ -3044,7 +3045,11 @@ export default function TicketHubPage({ user }: Props) {
               theme={theme}
             />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              style={{ maxHeight: TABLE_MAX_HEIGHT }}
+            >
               {displayed.map((t) =>
                 isMobile ? (
                   <TicketCard
