@@ -24,6 +24,63 @@ import {
   FILTER_TABS,
   ACTIVE_STATUSES,
 } from "./useFleetControlTowerData";
+import { syncTripToMyCalendar, removeTripFromCalendar } from "../../../../services/fleetOps";
+
+// Builds a minimal RFC 5545 .ics file for a trip and triggers a browser
+// download. Opening the downloaded file lets the user's own Outlook/Google/
+// Apple calendar add the event directly — no Graph API or extra login needed.
+function downloadTripIcs(trip: {
+  tripRef: string;
+  pickupLabel: string;
+  dropoffLabel: string;
+  requestorName: string;
+  purpose?: string | null;
+  departureDatetime: string;
+  returnDatetime?: string | null;
+}) {
+  const toIcsDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  };
+
+  const start = toIcsDate(trip.departureDatetime);
+  const end = trip.returnDatetime
+    ? toIcsDate(trip.returnDatetime)
+    : toIcsDate(new Date(new Date(trip.departureDatetime).getTime() + 60 * 60 * 1000).toISOString());
+
+  const descriptionLines = [
+    `Requestor: ${trip.requestorName}`,
+    trip.purpose ? `Purpose: ${trip.purpose}` : null,
+  ].filter(Boolean);
+
+  const escapeIcs = (s: string) => s.replace(/[\\,;]/g, (m) => "\\" + m).replace(/\n/g, "\\n");
+
+  const icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Silverdab UMS//Fleet Trips//EN",
+    "BEGIN:VEVENT",
+    `UID:${trip.tripRef}@silverdab-ums`,
+    `DTSTAMP:${toIcsDate(new Date().toISOString())}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${escapeIcs(`Trip #${trip.tripRef.slice(-4)}: ${trip.pickupLabel} → ${trip.dropoffLabel}`)}`,
+    `LOCATION:${escapeIcs(trip.pickupLabel)}`,
+    `DESCRIPTION:${escapeIcs(descriptionLines.join("\n"))}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${trip.tripRef}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 // ─── KPI card (stacked variant) ─────────────────────────────────────────────
 
@@ -474,7 +531,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
               style={{ backgroundColor: theme.surface, borderColor: theme.border, height: 600 }}
               className="rounded-xl border p-4 w-full lg:w-1/2 flex-shrink-0"
             >
-              <Calendar
+               <Calendar
                 events={calendarEvents}
                 onEventClick={(e) => setViewingTrip(e.data)}
                 onDateClick={(date, events) => setDayTripsView({ date, trips: events.map((e) => e.data) })}
@@ -806,6 +863,48 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                 </p>
               </div>
               <StatusBadge config={TRIP_STATUS_CONFIG[viewingTrip.status]} size="sm" />
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={async () => {
+                  try {
+                    await syncTripToMyCalendar(viewingTrip.id);
+                    alert("Added to your Outlook calendar!");
+                  } catch (err: any) {
+                    alert(`Failed to sync: ${err.message}`);
+                  }
+                }}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 text-[12px] font-semibold px-3 py-2 rounded-lg border flex items-center justify-center gap-1.5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                  <path d="M12 14v4M10 16h4" />
+                </svg>
+                Sync
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await removeTripFromCalendar(viewingTrip.id);
+                    alert("Removed from your Outlook calendar.");
+                  } catch (err: any) {
+                    alert(`Failed to remove: ${err.message}`);
+                  }
+                }}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 text-[12px] font-semibold px-3 py-2 rounded-lg border flex items-center justify-center gap-1.5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                  <line x1="9" y1="15" x2="15" y2="21" />
+                  <line x1="15" y1="15" x2="9" y2="21" />
+                </svg>
+                Remove
+              </button>
             </div>
 
             <div className="flex flex-col gap-2.5 mb-4">

@@ -267,6 +267,180 @@ export function SuperadminDashboard({ currentUser }: Props) {
   );
 }
 
+function PermissionsView({
+  users,
+  theme,
+  permissionLabels,
+  grantingUsername,
+  onOpenGrant,
+  onRevoke,
+}: {
+  users: EnrichedUser[];
+  theme: any;
+  permissionLabels: {
+    key: keyof EnrichedUser["permissions"];
+    label: string;
+  }[];
+  grantingUsername: string | null;
+  onOpenGrant: (module: {
+    key: keyof EnrichedUser["permissions"];
+    label: string;
+  }) => void;
+  onRevoke: (
+    user: EnrichedUser,
+    key: keyof EnrichedUser["permissions"],
+  ) => void;
+}) {
+  const [activeModuleKey, setActiveModuleKey] = useState(
+    permissionLabels[0]?.key as keyof EnrichedUser["permissions"],
+  );
+
+  const activeModule =
+    permissionLabels.find((m) => m.key === activeModuleKey) ??
+    permissionLabels[0];
+
+  const holders = activeModule
+    ? users.filter((u) => u.permissions?.[activeModule.key])
+    : [];
+
+  return (
+    <View className="flex-1">
+      {/* Module tabs — pill style, matches role filter tabs */}
+      <View className="flex-row flex-wrap gap-1.5 px-5 mb-3">
+        {permissionLabels.map((module) => {
+          const count = users.filter(
+            (u) => u.permissions?.[module.key],
+          ).length;
+          const active = activeModuleKey === module.key;
+          return (
+            <TouchableOpacity
+              key={module.key as string}
+              onPress={() => setActiveModuleKey(module.key)}
+              className="px-3 py-1.5 rounded-lg"
+              style={{
+                backgroundColor: active ? theme.iconActive : theme.bgActive,
+                borderWidth: 1,
+                borderColor: active ? theme.iconActive : theme.border,
+              }}
+            >
+              <Text
+                className="text-[11px] font-semibold"
+                style={{ color: active ? theme.primaryText : theme.subtext }}
+              >
+                {module.label} ({count})
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Add User button for the active module */}
+      <View className="px-5 mb-3 flex-row items-center justify-between">
+        <Text className="text-xs" style={{ color: theme.subtext }}>
+          {holders.length} user{holders.length !== 1 ? "s" : ""} with access
+          to {activeModule?.label}
+        </Text>
+        {activeModule && (
+          <TouchableOpacity
+            onPress={() => onOpenGrant(activeModule)}
+            className="flex-row items-center gap-1.5 rounded-xl px-3 py-1.5"
+            style={{ backgroundColor: theme.iconActive }}
+          >
+            <Text style={{ fontSize: 13 }}>➕</Text>
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: theme.primaryText }}
+            >
+              Add User
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Member list for active module */}
+      {holders.length === 0 ? (
+        <View className="items-center justify-center py-10">
+          <Text className="text-sm" style={{ color: theme.subtext }}>
+            No one has access yet.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={holders}
+          keyExtractor={(item) => item.username}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: 32,
+            gap: 8,
+          }}
+          renderItem={({ item: user }) => {
+            const role = getRoleStyle(user.role);
+            const isBusy = grantingUsername === user.username;
+            return (
+              <View
+                className="flex-row items-center rounded-xl p-3"
+                style={{
+                  backgroundColor: theme.bgActive,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                }}
+              >
+                <View
+                  className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                  style={{ backgroundColor: role.bg }}
+                >
+                  <Text
+                    className="text-xs font-bold"
+                    style={{ color: role.text }}
+                  >
+                    {getInitials(user.displayName || user.username)}
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{ color: theme.text }}
+                  >
+                    {user.displayName || user.username}
+                  </Text>
+                  <Text
+                    className="text-xs mt-0.5"
+                    style={{ color: theme.subtext }}
+                  >
+                    {user.username} · {role.label}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => activeModule && onRevoke(user, activeModule.key)}
+                  disabled={isBusy}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{
+                    backgroundColor: theme.background,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    opacity: isBusy ? 0.6 : 1,
+                  }}
+                >
+                  {isBusy ? (
+                    <ActivityIndicator size="small" color={theme.subtext} />
+                  ) : (
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{ color: theme.dangerText ?? "#ef4444" }}
+                    >
+                      Revoke
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
 export default function UsersPage({ currentUser }: Props) {
   const { theme } = useTheme();
   const activeUser = currentUser ?? fallbackUser;
@@ -287,6 +461,16 @@ export default function UsersPage({ currentUser }: Props) {
   const [addAdminVisible, setAddAdminVisible] = useState(false);
   const [addAdminSearch, setAddAdminSearch] = useState("");
   const [promotingUsername, setPromotingUsername] = useState<string | null>(
+    null,
+  );
+
+  const [viewMode, setViewMode] = useState<"users" | "permissions">("users");
+  const [permGrantModule, setPermGrantModule] = useState<null | {
+    key: keyof EnrichedUser["permissions"];
+    label: string;
+  }>(null);
+  const [permGrantSearch, setPermGrantSearch] = useState("");
+  const [grantingUsername, setGrantingUsername] = useState<string | null>(
     null,
   );
 
@@ -384,6 +568,50 @@ export default function UsersPage({ currentUser }: Props) {
       console.error("Failed to promote user to admin:", err);
     } finally {
       setPromotingUsername(null);
+    }
+  }
+
+  async function handleGrantPermission(
+    user: EnrichedUser,
+    key: keyof EnrichedUser["permissions"],
+  ) {
+    setGrantingUsername(user.username);
+    try {
+      const updatedPermissions = { ...user.permissions, [key]: true };
+      await updateUserPermissions(user.username, updatedPermissions);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === user.username
+            ? { ...u, permissions: updatedPermissions }
+            : u,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to grant permission:", err);
+    } finally {
+      setGrantingUsername(null);
+    }
+  }
+
+  async function handleRevokePermission(
+    user: EnrichedUser,
+    key: keyof EnrichedUser["permissions"],
+  ) {
+    setGrantingUsername(user.username);
+    try {
+      const updatedPermissions = { ...user.permissions, [key]: false };
+      await updateUserPermissions(user.username, updatedPermissions);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === user.username
+            ? { ...u, permissions: updatedPermissions }
+            : u,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to revoke permission:", err);
+    } finally {
+      setGrantingUsername(null);
     }
   }
 
@@ -529,6 +757,32 @@ export default function UsersPage({ currentUser }: Props) {
         </View>
       </View>
 
+      {/* View mode switcher */}
+      <View className="flex-row gap-1.5 px-5 mb-3">
+        {(["users", "permissions"] as const).map((mode) => {
+          const active = viewMode === mode;
+          return (
+            <TouchableOpacity
+              key={mode}
+              onPress={() => setViewMode(mode)}
+              className="px-3.5 py-1.5 rounded-lg"
+              style={{
+                backgroundColor: active ? theme.iconActive : theme.bgActive,
+                borderWidth: 1,
+                borderColor: active ? theme.iconActive : theme.border,
+              }}
+            >
+              <Text
+                className="text-xs font-semibold"
+                style={{ color: active ? theme.primaryText : theme.subtext }}
+              >
+                {mode === "users" ? "Users" : "Permissions"}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Stat cards */}
       <View className="flex-row gap-2.5 px-5 mb-4">
         {[
@@ -564,6 +818,8 @@ export default function UsersPage({ currentUser }: Props) {
         ))}
       </View>
 
+      {viewMode === "users" && (
+      <>
       {/* Search */}
       <View className="px-5 mb-3">
         <TextInput
@@ -747,6 +1003,162 @@ export default function UsersPage({ currentUser }: Props) {
             );
           }}
         />
+      )}
+
+      </>
+      )}
+
+      {viewMode === "permissions" && (
+        <PermissionsView
+          users={users}
+          theme={theme}
+          permissionLabels={PERMISSION_LABELS}
+          grantingUsername={grantingUsername}
+          onOpenGrant={(module) => {
+            setPermGrantModule(module);
+            setPermGrantSearch("");
+          }}
+          onRevoke={handleRevokePermission}
+        />
+      )}
+
+      {/* Grant permission modal */}
+      {permGrantModule && (
+        <View
+          className="absolute inset-0 items-center justify-center p-6"
+          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+        >
+          <View
+            className="rounded-2xl p-6 w-full max-w-[420px]"
+            style={{
+              backgroundColor: theme.background,
+              borderWidth: 1,
+              borderColor: theme.border,
+              maxHeight: "80%",
+            }}
+          >
+            <Text
+              className="text-base font-bold mb-1"
+              style={{ color: theme.text }}
+            >
+              Add User — {permGrantModule.label}
+            </Text>
+            <Text className="text-xs mb-4" style={{ color: theme.subtext }}>
+              Search for a user and tap to grant access
+            </Text>
+
+            <TextInput
+              value={permGrantSearch}
+              onChangeText={setPermGrantSearch}
+              placeholder="Search name, username, department…"
+              placeholderTextColor={theme.subtext}
+              autoFocus
+              className="rounded-xl px-3.5 py-2.5 text-sm mb-3"
+              style={{
+                backgroundColor: theme.bgActive,
+                borderWidth: 1,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            />
+
+            <FlatList
+              data={users.filter((u) => {
+                if (u.permissions?.[permGrantModule.key]) return false;
+                const q = permGrantSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  u.displayName?.toLowerCase().includes(q) ||
+                  u.username?.toLowerCase().includes(q) ||
+                  u.department?.toLowerCase().includes(q)
+                );
+              })}
+              keyExtractor={(item) => item.username}
+              style={{ maxHeight: 320 }}
+              ListEmptyComponent={
+                <Text
+                  className="text-sm text-center py-6"
+                  style={{ color: theme.subtext }}
+                >
+                  No matching users found.
+                </Text>
+              }
+              renderItem={({ item }) => {
+                const role = getRoleStyle(item.role);
+                const isGranting = grantingUsername === item.username;
+                return (
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleGrantPermission(item, permGrantModule.key)
+                    }
+                    disabled={isGranting}
+                    activeOpacity={0.75}
+                    className="flex-row items-center gap-3 rounded-xl p-3 mb-2"
+                    style={{
+                      backgroundColor: theme.bgActive,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      opacity: isGranting ? 0.6 : 1,
+                    }}
+                  >
+                    <View
+                      className="w-9 h-9 rounded-full items-center justify-center"
+                      style={{ backgroundColor: role.bg }}
+                    >
+                      <Text
+                        className="text-xs font-bold"
+                        style={{ color: role.text }}
+                      >
+                        {getInitials(item.displayName || item.username)}
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: theme.text }}
+                      >
+                        {item.displayName || item.username}
+                      </Text>
+                      <Text
+                        className="text-xs mt-0.5"
+                        style={{ color: theme.subtext }}
+                      >
+                        {item.username} · {item.department || "No department"}
+                      </Text>
+                    </View>
+                    {isGranting ? (
+                      <ActivityIndicator size="small" color={theme.iconActive} />
+                    ) : (
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: theme.iconActive }}
+                      >
+                        Grant
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={() => setPermGrantModule(null)}
+              className="rounded-xl py-3 items-center mt-3"
+              style={{
+                backgroundColor: theme.bgActive,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}
+            >
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: theme.text }}
+              >
+                Close
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       {/* Add Admin modal — search employees, tap to promote */}

@@ -57,7 +57,6 @@ async function getServiceToken(): Promise<string> {
     const res = await fetch(`${BACKEND_URL}/auth/service-token`, {
       headers: {
         "x-internal-secret": INTERNAL_SECRET,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -84,7 +83,7 @@ async function authHeaders(json = true): Promise<Record<string, string>> {
   const token = await getServiceToken();
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
-    
+
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
@@ -128,6 +127,7 @@ function mapTripRow(row: any): FleetTrip {
     createdAt: row.createdAt ?? "",
     updatedAt: row.updatedAt ?? "",
     statusHistory: Array.isArray(row.statusHistory) ? row.statusHistory : [],
+    calendarSynced: !!row.calendarSynced,
   };
 }
 
@@ -157,12 +157,22 @@ export async function getTramigoDevices(): Promise<TramigoDevice[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/tramigo-devices`, {
       headers: await authHeaders(false),
     });
-    const data = await readJsonResponse<{ success?: boolean; devices?: any[]; message?: string }>(res);
+    const data = await readJsonResponse<{
+      success?: boolean;
+      devices?: any[];
+      message?: string;
+    }>(res);
     if (!res.ok || !data?.success || !Array.isArray(data.devices)) {
-      console.warn("Tramigo devices endpoint unavailable, returning empty list.");
+      console.warn(
+        "Tramigo devices endpoint unavailable, returning empty list.",
+      );
       return [];
     }
-    return data.devices.map((d) => ({ id: String(d.ID), imei: d.IMEI, name: d.Name }));
+    return data.devices.map((d) => ({
+      id: String(d.ID),
+      imei: d.IMEI,
+      name: d.Name,
+    }));
   } catch (err) {
     console.warn("getTramigoDevices error:", err);
     return [];
@@ -199,7 +209,9 @@ export async function startFleetTrip(tripId: string): Promise<void> {
       headers: await authHeaders(),
     },
   );
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to start trip.");
   }
@@ -207,14 +219,25 @@ export async function startFleetTrip(tripId: string): Promise<void> {
 
 export async function updateFleetVehicle(
   vehicleId: string,
-  payload: Partial<{ plateNumber: string; type: VehicleType; model: string; seatingCapacity: number; tramigoDeviceId: string | null }>,
+  payload: Partial<{
+    plateNumber: string;
+    type: VehicleType;
+    model: string;
+    seatingCapacity: number;
+    tramigoDeviceId: string | null;
+  }>,
 ): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/vehicles/${encodeURIComponent(vehicleId)}`, {
-    method: "PATCH",
-    headers: await authHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/vehicles/${encodeURIComponent(vehicleId)}`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update vehicle.");
   }
@@ -229,34 +252,49 @@ export async function updateFleetLocation(
     longitude: number | null;
   }>,
 ): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/locations/${encodeURIComponent(locationId)}`, {
-    method: "PATCH",
-    headers: await authHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/locations/${encodeURIComponent(locationId)}`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update location.");
   }
 }
 
 export async function deleteFleetLocation(locationId: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/locations/${encodeURIComponent(locationId)}`, {
-    method: "DELETE",
-    headers: await authHeaders(false),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/locations/${encodeURIComponent(locationId)}`,
+    {
+      method: "DELETE",
+      headers: await authHeaders(false),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to delete location.");
   }
 }
 
 export async function deleteFleetVehicle(vehicleId: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/vehicles/${encodeURIComponent(vehicleId)}`, {
-    method: "DELETE",
-    headers: await authHeaders(false),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/vehicles/${encodeURIComponent(vehicleId)}`,
+    {
+      method: "DELETE",
+      headers: await authHeaders(false),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to delete vehicle.");
   }
@@ -264,25 +302,39 @@ export async function deleteFleetVehicle(vehicleId: string): Promise<void> {
 
 export async function updateFleetDriver(
   driverId: string,
-  payload: Partial<{ licenseNumber: string; contactNumber: string; vehicleId: string | null }>,
+  payload: Partial<{
+    licenseNumber: string;
+    contactNumber: string;
+    vehicleId: string | null;
+  }>,
 ): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/drivers/${encodeURIComponent(driverId)}`, {
-    method: "PATCH",
-    headers: await authHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/drivers/${encodeURIComponent(driverId)}`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update driver.");
   }
 }
 
 export async function deleteFleetDriver(driverId: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/fleet/drivers/${encodeURIComponent(driverId)}`, {
-    method: "DELETE",
-    headers: await authHeaders(false),
-  });
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/drivers/${encodeURIComponent(driverId)}`,
+    {
+      method: "DELETE",
+      headers: await authHeaders(false),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to delete driver.");
   }
@@ -298,7 +350,6 @@ export async function getAllFleetTrips(): Promise<FleetTrip[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/trips`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -327,7 +378,6 @@ export async function getAllFleetVehicles(): Promise<FleetVehicle[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/vehicles`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -337,7 +387,9 @@ export async function getAllFleetVehicles(): Promise<FleetVehicle[]> {
     }>(res);
 
     if (!res.ok || !data?.success || !Array.isArray(data.vehicles)) {
-      console.warn("Fleet vehicles endpoint unavailable, returning empty list.");
+      console.warn(
+        "Fleet vehicles endpoint unavailable, returning empty list.",
+      );
       return [];
     }
 
@@ -356,7 +408,6 @@ export async function getAllFleetDrivers(): Promise<FleetDriver[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/drivers`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -385,7 +436,6 @@ export async function getAllFleetLocations(): Promise<FleetLocation[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/locations`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -395,7 +445,9 @@ export async function getAllFleetLocations(): Promise<FleetLocation[]> {
     }>(res);
 
     if (!res.ok || !data?.success || !Array.isArray(data.locations)) {
-      console.warn("Fleet locations endpoint unavailable, returning empty list.");
+      console.warn(
+        "Fleet locations endpoint unavailable, returning empty list.",
+      );
       return [];
     }
 
@@ -418,7 +470,6 @@ export async function getFleetLiveLocations(): Promise<FleetLiveLocation[]> {
     const res = await fetch(`${BACKEND_URL}/fleet/vehicles/live-locations`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        
       },
     });
     const data = await readJsonResponse<{
@@ -428,7 +479,9 @@ export async function getFleetLiveLocations(): Promise<FleetLiveLocation[]> {
     }>(res);
 
     if (!res.ok || !data?.success || !Array.isArray(data.locations)) {
-      console.warn("Fleet live-locations endpoint unavailable, returning empty list.");
+      console.warn(
+        "Fleet live-locations endpoint unavailable, returning empty list.",
+      );
       return [];
     }
 
@@ -492,7 +545,9 @@ export async function createFleetVehicle(payload: {
     body: JSON.stringify(payload),
   });
 
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to add vehicle.");
   }
@@ -509,7 +564,9 @@ export async function createFleetDriver(payload: {
     body: JSON.stringify(payload),
   });
 
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to add driver.");
   }
@@ -526,7 +583,9 @@ export async function createFleetLocation(payload: {
     body: JSON.stringify(payload),
   });
 
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to add location.");
   }
@@ -543,7 +602,7 @@ export async function approveFleetTrip(
   const res = await fetch(
     `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/approve`,
     {
-      method: "POST",   // ← was "PATCH"
+      method: "POST", // ← was "PATCH"
       headers: await authHeaders(),
       body: JSON.stringify({
         vehicleId: assignment.vehicleId,
@@ -593,7 +652,11 @@ export async function rejectFleetTrip(
 }
 
 // ─── STATUS TRANSITIONS (approved/ongoing -> arrived -> returning -> completed) ─
-async function postTripAction(tripId: string, action: string, errorLabel: string): Promise<void> {
+async function postTripAction(
+  tripId: string,
+  action: string,
+  errorLabel: string,
+): Promise<void> {
   const res = await fetch(
     `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/${action}`,
     {
@@ -601,7 +664,9 @@ async function postTripAction(tripId: string, action: string, errorLabel: string
       headers: await authHeaders(),
     },
   );
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || errorLabel);
   }
@@ -611,7 +676,7 @@ export async function markTripArrived(tripId: string): Promise<void> {
   return postTripAction(tripId, "arrive", "Failed to mark trip as arrived.");
 }
 export async function startTripReturn(tripId: string): Promise<void> {
-  return postTripAction(tripId, "start-return", "Failed to start return leg.");  // must be exactly "start-return"
+  return postTripAction(tripId, "start-return", "Failed to start return leg."); // must be exactly "start-return"
 }
 export async function completeFleetTrip(tripId: string): Promise<void> {
   return postTripAction(tripId, "complete", "Failed to complete trip.");
@@ -665,6 +730,66 @@ export async function setVehicleStatus(
   }
 }
 
+// ─── CALENDAR SYNC (push a trip directly to the logged-in user's own
+// Outlook mailbox via app-permission Graph, on the backend) ─────────────────
+
+export async function syncTripToMyCalendar(tripId: string): Promise<void> {
+  const user = await getCurrentUser();
+
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/sync-to-my-calendar`,
+    {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({ requestingUsername: user.id }),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to sync trip to your calendar.");
+  }
+}
+
+// Syncs every trip currently visible in the calendar, one request per trip.
+// Failures for individual trips are collected rather than aborting the whole
+// batch, since one bad trip shouldn't block the rest from syncing.
+export async function removeTripFromCalendar(tripId: string): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/remove-from-calendar`,
+    {
+      method: "POST",
+      headers: await authHeaders(false),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(
+      data?.message || "Failed to remove trip from your calendar.",
+    );
+  }
+}
+
+export async function syncTripsToMyCalendar(
+  tripIds: string[],
+): Promise<{ succeeded: number; failed: number }> {
+  let succeeded = 0;
+  let failed = 0;
+  for (const id of tripIds) {
+    try {
+      await syncTripToMyCalendar(id);
+      succeeded++;
+    } catch (err) {
+      console.warn(`syncTripsToMyCalendar: trip ${id} failed:`, err);
+      failed++;
+    }
+  }
+  return { succeeded, failed };
+}
+
 // ─── DRIVER DUTY STATUS (off_duty/active/personal — independent of vehicle) ─
 
 export async function setDriverDutyStatus(
@@ -679,7 +804,9 @@ export async function setDriverDutyStatus(
       body: JSON.stringify({ dutyStatus }),
     },
   );
-  const data = await readJsonResponse<{ success?: boolean; message?: string }>(res);
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update duty status.");
   }

@@ -624,7 +624,7 @@ function LeftPanel({
 
 // ─── Column widths (matches HTML reference grid) ──────────────────────────────
 // grid-template-columns: 90px 1fr 100px 90px 32px
-const COL = { ticketNo: 90, status: 150, date: 90, chev: 32 } as const;
+const COL = { ticketNo: 70, type: 90, status: 150, date: 90, chev: 32 } as const;
 const TABLE_MAX_HEIGHT = 600;
 
 // ─── Ticket list row ──────────────────────────────────────────────────────────
@@ -653,32 +653,25 @@ function TicketRow({
         borderBottomColor: theme.border,
       }}
     >
-      {/* Col 1 — Ticket no. + source tag */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 70,
-        }}
-      >
-        <View>
-          <Text
-            style={{
-              fontFamily: "Outfit-medium",
-              fontSize: 11,
-              color: primary,
-            }}
-          >
-            #{ticket.ticketNumber.slice(-4)}
-          </Text>
-          <View style={{ marginTop: 3 }}>
-            <SourceTag source={ticket._source} />
-          </View>
-        </View>
+      {/* Col 1 — Ticket no. */}
+      <View style={{ width: COL.ticketNo, flexShrink: 0 }}>
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 11,
+            color: primary,
+          }}
+        >
+          #{ticket.ticketNumber.slice(-4)}
+        </Text>
       </View>
 
-      {/* Col 2 — Title + subtitle (flex fill) */}
+      {/* Col 2 — Type */}
+      <View style={{ width: COL.type, flexShrink: 0, alignItems: "flex-start" }}>
+        <SourceTag source={ticket._source} />
+      </View>
+
+      {/* Col 3 — Title + subtitle (flex fill) */}
       <View style={{ flex: 1, paddingRight: 10 }}>
         <Text
           style={{
@@ -691,28 +684,30 @@ function TicketRow({
         >
           {ticket.title}
         </Text>
-        <Text
-          style={{
-            fontFamily: "Outfit",
-            fontSize: 10,
-            color: theme.subtext,
-            marginTop: 2,
-          }}
-          numberOfLines={1}
-        >
-          {ticket.category}
-          {ticket._source === "it" && ticket.itTicket?.assigneeName
-            ? ` · Assigned to ${ticket.itTicket.assigneeName}`
-            : ""}
-        </Text>
+        {ticket._source === "it" && (
+          <Text
+            style={{
+              fontFamily: "Outfit",
+              fontSize: 10,
+              color: theme.subtext,
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {ticket.category}
+            {ticket.itTicket?.assigneeName
+              ? ` · Assigned to ${ticket.itTicket.assigneeName}`
+              : ""}
+          </Text>
+        )}
       </View>
 
-      {/* Col 3 — Status badge */}
+      {/* Col 4 — Status badge */}
       <View style={{ width: COL.status, alignItems: "flex-start" }}>
         <StatusBadge status={ticket.displayStatus ?? ticket.status} />
       </View>
 
-      {/* Col 4 — Date filed */}
+      {/* Col 5 — Date filed */}
       <View style={{ width: COL.date }}>
         <Text
           style={{ fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}
@@ -721,7 +716,7 @@ function TicketRow({
         </Text>
       </View>
 
-      {/* Col 5 — Chevron */}
+      {/* Col 6 — Chevron */}
       <View style={{ width: COL.chev, alignItems: "center" }}>
         <ChevronRight size={14} color={theme.subtext} />
       </View>
@@ -838,13 +833,15 @@ function TableHeader({ theme }: { theme: any }) {
       <Text style={[thStyle, { width: COL.ticketNo, flexShrink: 0 }]}>
         Ticket no.
       </Text>
-      {/* Col 2 */}
-      <Text style={[thStyle, { flex: 1 }]}>Title</Text>
+      {/* Col 2 — Type */}
+      <Text style={[thStyle, { width: COL.type, flexShrink: 0 }]}>Type</Text>
       {/* Col 3 */}
-      <Text style={[thStyle, { width: COL.status }]}>Status</Text>
+      <Text style={[thStyle, { flex: 1 }]}>Title</Text>
       {/* Col 4 */}
+      <Text style={[thStyle, { width: COL.status }]}>Status</Text>
+      {/* Col 5 */}
       <Text style={[thStyle, { width: COL.date }]}>Date filed</Text>
-      {/* Col 5 spacer */}
+      {/* Col 6 spacer */}
       <View style={{ width: COL.chev }} />
     </View>
   );

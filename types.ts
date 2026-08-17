@@ -292,9 +292,10 @@ export type FleetTrip = {
   rejectedReason?: string | null;
   approvedByName?: string | null;
   approvedAt?: string | null;
-  createdAt: string;
+    createdAt: string;
   updatedAt: string;
   statusHistory?: FleetTripStatusLogEntry[];
+  calendarSynced: boolean;
 };
 
 export type FleetVehicle = {

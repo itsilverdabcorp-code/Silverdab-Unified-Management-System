@@ -2789,3 +2789,856 @@
 {"_e":"metro:client_log","_t":1786501794586,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
 {"_e":"metro:client_log","_t":1786501794586,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
 {"_e":"metro:client_log","_t":1786501798473,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"root:init","_t":1786673051179,"format":"v0-jsonl","version":"57.0.14"}
+{"_e":"env:mode","_t":1786673051182,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786673051188,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1786673052649,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786673054300,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1786673055017,"plugins":[]}
+{"_e":"metro:instantiate","_t":1786673065493,"atlas":false,"workers":14,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786673491096,"id":"3","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673491096,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786673491107,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786673492032,"id":"3","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786673492132,"id":"3","progress":0.09,"total":6,"current":3}
+{"_e":"metro:bundling:progress","_t":1786673492232,"id":"3","progress":0.25,"total":10,"current":5}
+{"_e":"metro:bundling:progress","_t":1786673493036,"id":"3","progress":0.36,"total":10,"current":6}
+{"_e":"metro:bundling:progress","_t":1786673493138,"id":"3","progress":0.36,"total":45,"current":16}
+{"_e":"metro:bundling:progress","_t":1786673493241,"id":"3","progress":0.36,"total":91,"current":37}
+{"_e":"metro:bundling:progress","_t":1786673493343,"id":"3","progress":0.36,"total":189,"current":57}
+{"_e":"metro:bundling:progress","_t":1786673493444,"id":"3","progress":0.36,"total":205,"current":64}
+{"_e":"metro:bundling:progress","_t":1786673493545,"id":"3","progress":0.36,"total":251,"current":78}
+{"_e":"metro:bundling:progress","_t":1786673493621,"id":"3","progress":0.36,"total":251,"current":79}
+{"_e":"metro:bundling:progress","_t":1786673493722,"id":"3","progress":0.36,"total":259,"current":85}
+{"_e":"metro:bundling:progress","_t":1786673493831,"id":"3","progress":0.36,"total":260,"current":85}
+{"_e":"metro:bundling:progress","_t":1786673493948,"id":"3","progress":0.36,"total":260,"current":86}
+{"_e":"metro:bundling:progress","_t":1786673494048,"id":"3","progress":0.36,"total":270,"current":90}
+{"_e":"metro:bundling:progress","_t":1786673494153,"id":"3","progress":0.36,"total":278,"current":93}
+{"_e":"metro:bundling:progress","_t":1786673494265,"id":"3","progress":0.36,"total":280,"current":95}
+{"_e":"metro:bundling:progress","_t":1786673494372,"id":"3","progress":0.36,"total":280,"current":96}
+{"_e":"metro:bundling:progress","_t":1786673494484,"id":"3","progress":0.36,"total":284,"current":100}
+{"_e":"metro:bundling:progress","_t":1786673494615,"id":"3","progress":0.36,"total":286,"current":105}
+{"_e":"metro:bundling:progress","_t":1786673494670,"id":"3","progress":0.36,"total":286,"current":106}
+{"_e":"metro:bundling:progress","_t":1786673494781,"id":"3","progress":0.36,"total":288,"current":110}
+{"_e":"metro:bundling:progress","_t":1786673494893,"id":"3","progress":0.36,"total":290,"current":118}
+{"_e":"metro:bundling:progress","_t":1786673494995,"id":"3","progress":0.36,"total":300,"current":125}
+{"_e":"metro:bundling:progress","_t":1786673495096,"id":"3","progress":0.36,"total":343,"current":127}
+{"_e":"metro:bundling:progress","_t":1786673495150,"id":"3","progress":0.36,"total":343,"current":128}
+{"_e":"metro:bundling:progress","_t":1786673495258,"id":"3","progress":0.36,"total":343,"current":132}
+{"_e":"metro:bundling:progress","_t":1786673495391,"id":"3","progress":0.36,"total":343,"current":133}
+{"_e":"metro:bundling:progress","_t":1786673495494,"id":"3","progress":0.36,"total":361,"current":147}
+{"_e":"metro:bundling:progress","_t":1786673495595,"id":"3","progress":0.36,"total":375,"current":168}
+{"_e":"metro:bundling:progress","_t":1786673495697,"id":"3","progress":0.36,"total":399,"current":186}
+{"_e":"metro:bundling:progress","_t":1786673495805,"id":"3","progress":0.36,"total":433,"current":202}
+{"_e":"metro:bundling:progress","_t":1786673495906,"id":"3","progress":0.36,"total":454,"current":226}
+{"_e":"metro:bundling:progress","_t":1786673496005,"id":"3","progress":0.36,"total":504,"current":254}
+{"_e":"metro:bundling:progress","_t":1786673496105,"id":"3","progress":0.36,"total":516,"current":273}
+{"_e":"metro:bundling:progress","_t":1786673496205,"id":"3","progress":0.36,"total":534,"current":302}
+{"_e":"metro:bundling:progress","_t":1786673496306,"id":"3","progress":0.3728363785848688,"total":547,"current":334}
+{"_e":"metro:bundling:progress","_t":1786673496406,"id":"3","progress":0.3741571308794181,"total":582,"current":356}
+{"_e":"metro:bundling:progress","_t":1786673496507,"id":"3","progress":0.3990027777777778,"total":600,"current":379}
+{"_e":"metro:bundling:progress","_t":1786673496607,"id":"3","progress":0.46527217793383624,"total":626,"current":427}
+{"_e":"metro:bundling:progress","_t":1786673496708,"id":"3","progress":0.46527217793383624,"total":706,"current":471}
+{"_e":"metro:bundling:progress","_t":1786673496808,"id":"3","progress":0.47074845679012345,"total":720,"current":494}
+{"_e":"metro:bundling:progress","_t":1786673496915,"id":"3","progress":0.4937404444444444,"total":750,"current":527}
+{"_e":"metro:bundling:progress","_t":1786673497055,"id":"3","progress":0.5077742204289285,"total":755,"current":538}
+{"_e":"metro:bundling:progress","_t":1786673497177,"id":"3","progress":0.5077742204289285,"total":756,"current":538}
+{"_e":"metro:bundling:progress","_t":1786673497283,"id":"3","progress":0.5077742204289285,"total":2511,"current":549}
+{"_e":"metro:bundling:progress","_t":1786673497393,"id":"3","progress":0.5077742204289285,"total":2538,"current":574}
+{"_e":"metro:bundling:progress","_t":1786673497492,"id":"3","progress":0.5077742204289285,"total":2556,"current":596}
+{"_e":"metro:bundling:progress","_t":1786673497592,"id":"3","progress":0.5077742204289285,"total":2602,"current":641}
+{"_e":"metro:bundling:progress","_t":1786673497692,"id":"3","progress":0.5077742204289285,"total":2655,"current":662}
+{"_e":"metro:bundling:progress","_t":1786673497805,"id":"3","progress":0.5077742204289285,"total":2682,"current":692}
+{"_e":"metro:bundling:progress","_t":1786673497905,"id":"3","progress":0.5077742204289285,"total":2712,"current":739}
+{"_e":"metro:bundling:progress","_t":1786673498098,"id":"3","progress":0.5077742204289285,"total":2728,"current":748}
+{"_e":"metro:bundling:progress","_t":1786673498198,"id":"3","progress":0.5077742204289285,"total":2729,"current":748}
+{"_e":"metro:bundling:progress","_t":1786673498309,"id":"3","progress":0.5077742204289285,"total":2729,"current":749}
+{"_e":"metro:bundling:progress","_t":1786673498444,"id":"3","progress":0.5077742204289285,"total":2729,"current":750}
+{"_e":"metro:bundling:progress","_t":1786673498552,"id":"3","progress":0.5077742204289285,"total":2730,"current":755}
+{"_e":"metro:bundling:progress","_t":1786673498667,"id":"3","progress":0.5077742204289285,"total":2730,"current":784}
+{"_e":"metro:bundling:progress","_t":1786673498770,"id":"3","progress":0.5077742204289285,"total":2730,"current":806}
+{"_e":"metro:bundling:progress","_t":1786673498870,"id":"3","progress":0.5077742204289285,"total":2730,"current":854}
+{"_e":"metro:bundling:progress","_t":1786673498974,"id":"3","progress":0.5077742204289285,"total":2730,"current":936}
+{"_e":"metro:bundling:progress","_t":1786673499076,"id":"3","progress":0.5077742204289285,"total":2730,"current":1004}
+{"_e":"metro:bundling:progress","_t":1786673499177,"id":"3","progress":0.5077742204289285,"total":2730,"current":1074}
+{"_e":"metro:bundling:progress","_t":1786673499278,"id":"3","progress":0.5077742204289285,"total":2730,"current":1144}
+{"_e":"metro:bundling:progress","_t":1786673499378,"id":"3","progress":0.5077742204289285,"total":2730,"current":1223}
+{"_e":"metro:bundling:progress","_t":1786673499478,"id":"3","progress":0.5077742204289285,"total":2730,"current":1299}
+{"_e":"metro:bundling:progress","_t":1786673499607,"id":"3","progress":0.5077742204289285,"total":2730,"current":1336}
+{"_e":"metro:bundling:progress","_t":1786673499707,"id":"3","progress":0.5077742204289285,"total":2730,"current":1425}
+{"_e":"metro:bundling:progress","_t":1786673499808,"id":"3","progress":0.5077742204289285,"total":2730,"current":1508}
+{"_e":"metro:bundling:progress","_t":1786673499907,"id":"3","progress":0.5077742204289285,"total":2730,"current":1597}
+{"_e":"metro:bundling:progress","_t":1786673500007,"id":"3","progress":0.5077742204289285,"total":2730,"current":1692}
+{"_e":"metro:bundling:progress","_t":1786673500107,"id":"3","progress":0.5077742204289285,"total":2730,"current":1781}
+{"_e":"metro:bundling:progress","_t":1786673500207,"id":"3","progress":0.5077742204289285,"total":2730,"current":1858}
+{"_e":"metro:bundling:progress","_t":1786673500307,"id":"3","progress":0.5133486293925854,"total":2730,"current":1956}
+{"_e":"metro:bundling:progress","_t":1786673500407,"id":"3","progress":0.5666284265185364,"total":2730,"current":2055}
+{"_e":"metro:bundling:progress","_t":1786673500507,"id":"3","progress":0.6179226878127977,"total":2730,"current":2146}
+{"_e":"metro:bundling:progress","_t":1786673500607,"id":"3","progress":0.6666453326892887,"total":2730,"current":2229}
+{"_e":"metro:bundling:progress","_t":1786673500707,"id":"3","progress":0.7172166539199506,"total":2730,"current":2312}
+{"_e":"metro:bundling:progress","_t":1786673500807,"id":"3","progress":0.7728535201062673,"total":2730,"current":2400}
+{"_e":"metro:bundling:progress","_t":1786673500908,"id":"3","progress":0.8325726898254371,"total":2730,"current":2491}
+{"_e":"metro:bundling:progress","_t":1786673501008,"id":"3","progress":0.8601771939636226,"total":2757,"current":2557}
+{"_e":"metro:bundling:progress","_t":1786673501108,"id":"3","progress":0.8713313806876029,"total":2825,"current":2637}
+{"_e":"metro:bundling:progress","_t":1786673501208,"id":"3","progress":0.8864646017169334,"total":2890,"current":2721}
+{"_e":"metro:bundling:progress","_t":1786673501311,"id":"3","progress":0.8938134849884551,"total":2913,"current":2754}
+{"_e":"metro:bundling:progress","_t":1786673501416,"id":"3","progress":0.904344659713013,"total":2937,"current":2793}
+{"_e":"metro:bundling:progress","_t":1786673501516,"id":"3","progress":0.904344659713013,"total":3037,"current":2863}
+{"_e":"metro:bundling:progress","_t":1786673501619,"id":"3","progress":0.904344659713013,"total":3111,"current":2936}
+{"_e":"metro:bundling:progress","_t":1786673501721,"id":"3","progress":0.9147221390726419,"total":3143,"current":3006}
+{"_e":"metro:bundling:progress","_t":1786673501823,"id":"3","progress":0.9291775064429004,"total":3189,"current":3074}
+{"_e":"metro:bundling:progress","_t":1786673501923,"id":"3","progress":0.9435538391188817,"total":3248,"current":3155}
+{"_e":"metro:bundling:progress","_t":1786673502023,"id":"3","progress":0.9435538391188817,"total":3315,"current":3197}
+{"_e":"metro:bundling:progress","_t":1786673502124,"id":"3","progress":0.9708652523414597,"total":3339,"current":3290}
+{"_e":"metro:bundling:progress","_t":1786673502223,"id":"3","progress":0.9988091695012594,"total":3358,"current":3356}
+{"_e":"metro:bundling:done","_t":1786673502363,"id":"3","total":3358,"ms":11267.173}
+{"_e":"metro:client_log","_t":1786673502713,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673502713,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673502816,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502817,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502817,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502817,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673502818,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673504437,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673506426,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1786673507816,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673509440,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673537782,"level":"warn","data":["syncTripsToMyCalendar: trip 26 failed:","[Error: Graph createTripEvent failed: 400 {\"error\":{\"code\":\"ErrorPropertyValidationFailure\",\"message\":\"At least one property failed validation.\"}}]"]}
+{"_e":"metro:client_log","_t":1786673547422,"level":"warn","data":["syncTripsToMyCalendar: trip 11 failed:","[Error: Graph createTripEvent failed: 400 {\"error\":{\"code\":\"ErrorPropertyValidationFailure\",\"message\":\"At least one property failed validation.\"}}]"]}
+{"_e":"metro:client_log","_t":1786673550667,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673550668,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673550668,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673550668,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673550668,"level":"warn","data":["syncTripsToMyCalendar: trip 4 failed:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673550685,"id":"c","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673550685,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673550738,"id":"c","total":1,"ms":53.6188}
+{"_e":"metro:client_log","_t":1786673551089,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673551089,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673551192,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551194,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551194,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551194,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551194,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551194,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551195,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551195,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551195,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551195,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673551841,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673552578,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673557110,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673727024,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673727025,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673727027,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673732010,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673732011,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673732013,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673732611,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673734078,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673734078,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673734078,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673734093,"id":"l","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673734093,"id":"l","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673734147,"id":"l","total":1,"ms":54.2122}
+{"_e":"metro:client_log","_t":1786673734456,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673734456,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673734550,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734551,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734551,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734551,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734552,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673734813,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 190 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 191 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 192 |\u001b[39m   \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 193 |\u001b[39m     headers\u001b[33m:\u001b[39m {\n \u001b[90m 194 |\u001b[39m       \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 195 |\u001b[39m     }\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:192:27)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786673737372,"id":"x","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673737372,"id":"x","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673737423,"id":"x","total":1,"ms":50.7397}
+{"_e":"metro:client_log","_t":1786673737755,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673737755,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673737860,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737861,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737862,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737863,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673737863,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673738474,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673739216,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673762210,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673764143,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673764143,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673764143,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673764161,"id":"16","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673764162,"id":"16","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673764214,"id":"16","total":1,"ms":52.074}
+{"_e":"metro:client_log","_t":1786673764534,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673764534,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673764624,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764625,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764625,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764626,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764626,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764626,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764626,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764626,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764627,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673764627,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673765216,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673765382,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673766030,"level":"log","data":["MapLibre: container size","668","448"]}
+{"_e":"metro:client_log","_t":1786673772992,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673772992,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673772992,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673773011,"id":"1f","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673773011,"id":"1f","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673773058,"id":"1f","total":1,"ms":47.2696}
+{"_e":"metro:client_log","_t":1786673773376,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673773376,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673773463,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773464,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773464,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773464,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673773465,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673774062,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673774250,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673774796,"level":"log","data":["MapLibre: container size","668","448"]}
+{"_e":"metro:client_log","_t":1786673849242,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673849243,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673849244,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673854243,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673854245,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673854246,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673854818,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673855862,"id":"1o","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673855862,"id":"1o","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673855910,"id":"1o","total":1,"ms":47.7349}
+{"_e":"metro:client_log","_t":1786673856230,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673856230,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673856320,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856321,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856321,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856322,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673856948,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673857716,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673857904,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673869393,"level":"warn","data":["syncTripsToMyCalendar: trip 46 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673869665,"level":"warn","data":["syncTripsToMyCalendar: trip 70 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673869926,"level":"warn","data":["syncTripsToMyCalendar: trip 68 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673870187,"level":"warn","data":["syncTripsToMyCalendar: trip 69 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673870453,"level":"warn","data":["syncTripsToMyCalendar: trip 67 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673870727,"level":"warn","data":["syncTripsToMyCalendar: trip 62 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673870995,"level":"warn","data":["syncTripsToMyCalendar: trip 60 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673871263,"level":"warn","data":["syncTripsToMyCalendar: trip 61 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673871526,"level":"warn","data":["syncTripsToMyCalendar: trip 64 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673871792,"level":"warn","data":["syncTripsToMyCalendar: trip 65 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673872057,"level":"warn","data":["syncTripsToMyCalendar: trip 66 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673872325,"level":"warn","data":["syncTripsToMyCalendar: trip 63 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673872596,"level":"warn","data":["syncTripsToMyCalendar: trip 45 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673872864,"level":"warn","data":["syncTripsToMyCalendar: trip 42 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673873131,"level":"warn","data":["syncTripsToMyCalendar: trip 49 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673873398,"level":"warn","data":["syncTripsToMyCalendar: trip 44 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673873663,"level":"warn","data":["syncTripsToMyCalendar: trip 47 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673873927,"level":"warn","data":["syncTripsToMyCalendar: trip 48 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673874195,"level":"warn","data":["syncTripsToMyCalendar: trip 43 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673874460,"level":"warn","data":["syncTripsToMyCalendar: trip 52 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673874724,"level":"warn","data":["syncTripsToMyCalendar: trip 53 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673874995,"level":"warn","data":["syncTripsToMyCalendar: trip 54 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673875270,"level":"warn","data":["syncTripsToMyCalendar: trip 55 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673875536,"level":"warn","data":["syncTripsToMyCalendar: trip 57 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673875805,"level":"warn","data":["syncTripsToMyCalendar: trip 58 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673876069,"level":"warn","data":["syncTripsToMyCalendar: trip 59 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673876342,"level":"warn","data":["syncTripsToMyCalendar: trip 50 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673876619,"level":"warn","data":["syncTripsToMyCalendar: trip 56 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673876888,"level":"warn","data":["syncTripsToMyCalendar: trip 51 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673877152,"level":"warn","data":["syncTripsToMyCalendar: trip 36 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673877411,"level":"warn","data":["syncTripsToMyCalendar: trip 39 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673877680,"level":"warn","data":["syncTripsToMyCalendar: trip 37 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673877948,"level":"warn","data":["syncTripsToMyCalendar: trip 38 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673878220,"level":"warn","data":["syncTripsToMyCalendar: trip 40 failed:","[Error: value.includes is not a function]"]}
+{"_e":"metro:client_log","_t":1786673878244,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673878244,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673878244,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673878244,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673878245,"level":"warn","data":["syncTripsToMyCalendar: trip 41 failed:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673878261,"id":"1x","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673878261,"id":"1x","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673878309,"id":"1x","total":1,"ms":47.6429}
+{"_e":"metro:client_log","_t":1786673878648,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673878648,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673878749,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878750,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878750,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878751,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878751,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878751,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878751,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878752,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878752,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673878752,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673879336,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673880086,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673881450,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786673966756,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673966757,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673966757,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673969507,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673969508,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673969510,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786673970126,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786673970197,"id":"26","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673970197,"id":"26","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673970241,"id":"26","total":1,"ms":44.5158}
+{"_e":"metro:client_log","_t":1786673970570,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673970570,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673970662,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970663,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970663,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970663,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970664,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673970851,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 190 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 191 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 192 |\u001b[39m   \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 193 |\u001b[39m     headers\u001b[33m:\u001b[39m {\n \u001b[90m 194 |\u001b[39m       \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 195 |\u001b[39m     }\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:192:27)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786673975441,"id":"2i","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673975441,"id":"2i","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673975488,"id":"2i","total":1,"ms":46.575}
+{"_e":"metro:client_log","_t":1786673975818,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673975819,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673975909,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975910,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975910,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975910,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975910,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975911,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975911,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975911,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975911,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673975911,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673976096,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 190 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 191 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 192 |\u001b[39m   \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 193 |\u001b[39m     headers\u001b[33m:\u001b[39m {\n \u001b[90m 194 |\u001b[39m       \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 195 |\u001b[39m     }\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:192:27)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786673976847,"id":"2u","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786673976847,"id":"2u","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786673976905,"id":"2u","total":1,"ms":57.5409}
+{"_e":"metro:client_log","_t":1786673977223,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786673977223,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786673977314,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977315,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977315,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977316,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786673977921,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786673978681,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786673979243,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786674007745,"level":"warn","data":["syncTripsToMyCalendar: trip 26 failed:","[Error: Graph createTripEvent failed: 400 {\"error\":{\"code\":\"ErrorPropertyValidationFailure\",\"message\":\"At least one property failed validation.\"}}]"]}
+{"_e":"metro:client_log","_t":1786674017146,"level":"warn","data":["syncTripsToMyCalendar: trip 11 failed:","[Error: Graph createTripEvent failed: 400 {\"error\":{\"code\":\"ErrorPropertyValidationFailure\",\"message\":\"At least one property failed validation.\"}}]"]}
+{"_e":"metro:client_log","_t":1786674082257,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786674082273,"id":"33","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786674082273,"id":"33","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786674082323,"id":"33","total":1,"ms":50.3314}
+{"_e":"metro:client_log","_t":1786674082643,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786674082643,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786674082734,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082735,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082735,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674082736,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674083332,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786674084140,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786674133510,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786674133511,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786674133512,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786674134104,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786674138358,"id":"3c","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786674138358,"id":"3c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786674138407,"id":"3c","total":1,"ms":49.0844}
+{"_e":"metro:client_log","_t":1786674138716,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786674138717,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786674138814,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138815,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138816,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138816,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674138816,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674139007,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 190 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 191 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 192 |\u001b[39m   \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 193 |\u001b[39m     headers\u001b[33m:\u001b[39m {\n \u001b[90m 194 |\u001b[39m       \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 195 |\u001b[39m     }\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:192:27)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786674139638,"id":"3o","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786674139638,"id":"3o","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786674139682,"id":"3o","total":1,"ms":44.2033}
+{"_e":"metro:client_log","_t":1786674139988,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786674139989,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786674140086,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140087,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140087,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140087,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140088,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786674140720,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786674141469,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786674141822,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675421944,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675422002,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675422026,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675422027,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786675450432,"id":"3w","platform":"web","environment":null,"entry":"src\\services\\fleetOps.ts"}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451266,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451267,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675451814,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675452403,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:bundling:started","_t":1786675463831,"id":"3x","platform":"web","environment":null,"entry":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx"}
+{"_e":"metro:bundling:started","_t":1786675470253,"id":"3y","platform":"web","environment":null,"entry":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx"}
+{"_e":"metro:bundling:started","_t":1786675472073,"id":"40","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675472073,"id":"40","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675472120,"id":"40","total":1,"ms":47.3193}
+{"_e":"metro:client_log","_t":1786675472448,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675472448,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675472542,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472543,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472543,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472544,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472544,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472544,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472544,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472545,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472545,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675472545,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675473079,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675474167,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786675478627,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675518909,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786675518926,"id":"49","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675518926,"id":"49","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675518973,"id":"49","total":1,"ms":47.5959}
+{"_e":"metro:client_log","_t":1786675519287,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675519288,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675519378,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519379,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519379,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519380,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675519917,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675520596,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786675521657,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675535073,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675535076,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675535077,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675540093,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675540094,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675540097,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675540622,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550050,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550051,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550051,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550051,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550051,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675550051,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786675550070,"id":"4i","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675550070,"id":"4i","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675550114,"id":"4i","total":1,"ms":44.8266}
+{"_e":"metro:client_log","_t":1786675550497,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675550497,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675550597,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550598,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550598,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550598,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550598,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550599,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550599,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550599,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550599,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675550599,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675551129,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675551284,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675551800,"level":"log","data":["MapLibre: container size","668","448"]}
+{"_e":"metro:client_log","_t":1786675558418,"level":"warn","data":["syncTripsToMyCalendar: trip 69 failed:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786675558436,"id":"4r","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675558436,"id":"4r","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675558491,"id":"4r","total":1,"ms":54.4453}
+{"_e":"metro:client_log","_t":1786675558804,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675558805,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675558901,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558902,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558902,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558902,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675558903,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675559439,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675559947,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675560144,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"root:init","_t":1786675579855,"format":"v0-jsonl","version":"57.0.14"}
+{"_e":"env:mode","_t":1786675579855,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786675579859,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1786675580398,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786675581017,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1786675581398,"plugins":[]}
+{"_e":"metro:instantiate","_t":1786675591841,"atlas":false,"workers":14,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786675605918,"id":"2","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675605919,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786675605929,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786675606612,"id":"2","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786675606712,"id":"2","progress":0.09,"total":6,"current":3}
+{"_e":"metro:bundling:progress","_t":1786675606826,"id":"2","progress":0.16000000000000003,"total":10,"current":4}
+{"_e":"metro:bundling:progress","_t":1786675607660,"id":"2","progress":0.25,"total":10,"current":5}
+{"_e":"metro:bundling:progress","_t":1786675607774,"id":"2","progress":0.25,"total":65,"current":21}
+{"_e":"metro:bundling:progress","_t":1786675607874,"id":"2","progress":0.25,"total":209,"current":35}
+{"_e":"metro:bundling:progress","_t":1786675607980,"id":"2","progress":0.25,"total":251,"current":74}
+{"_e":"metro:bundling:progress","_t":1786675608086,"id":"2","progress":0.25,"total":326,"current":116}
+{"_e":"metro:bundling:progress","_t":1786675608190,"id":"2","progress":0.25,"total":335,"current":124}
+{"_e":"metro:bundling:progress","_t":1786675608292,"id":"2","progress":0.25,"total":338,"current":129}
+{"_e":"metro:bundling:progress","_t":1786675608392,"id":"2","progress":0.25,"total":338,"current":130}
+{"_e":"metro:bundling:progress","_t":1786675608503,"id":"2","progress":0.25,"total":341,"current":133}
+{"_e":"metro:bundling:progress","_t":1786675608603,"id":"2","progress":0.25,"total":344,"current":135}
+{"_e":"metro:bundling:progress","_t":1786675608710,"id":"2","progress":0.25,"total":349,"current":137}
+{"_e":"metro:bundling:progress","_t":1786675608825,"id":"2","progress":0.25,"total":355,"current":142}
+{"_e":"metro:bundling:progress","_t":1786675608928,"id":"2","progress":0.25,"total":355,"current":145}
+{"_e":"metro:bundling:progress","_t":1786675609028,"id":"2","progress":0.25,"total":356,"current":149}
+{"_e":"metro:bundling:progress","_t":1786675609142,"id":"2","progress":0.25,"total":356,"current":155}
+{"_e":"metro:bundling:progress","_t":1786675609267,"id":"2","progress":0.25,"total":358,"current":160}
+{"_e":"metro:bundling:progress","_t":1786675609367,"id":"2","progress":0.25,"total":365,"current":166}
+{"_e":"metro:bundling:progress","_t":1786675609475,"id":"2","progress":0.25,"total":365,"current":170}
+{"_e":"metro:bundling:progress","_t":1786675609588,"id":"2","progress":0.25,"total":365,"current":174}
+{"_e":"metro:bundling:progress","_t":1786675609700,"id":"2","progress":0.25,"total":368,"current":178}
+{"_e":"metro:bundling:progress","_t":1786675609800,"id":"2","progress":0.25812955254942765,"total":372,"current":189}
+{"_e":"metro:bundling:progress","_t":1786675609930,"id":"2","progress":0.2585463947141626,"total":413,"current":210}
+{"_e":"metro:bundling:progress","_t":1786675610030,"id":"2","progress":0.28508834790442455,"total":442,"current":236}
+{"_e":"metro:bundling:progress","_t":1786675610130,"id":"2","progress":0.30333210492188706,"total":463,"current":255}
+{"_e":"metro:bundling:progress","_t":1786675610230,"id":"2","progress":0.34515625000000005,"total":480,"current":282}
+{"_e":"metro:bundling:progress","_t":1786675610331,"id":"2","progress":0.3818420862639597,"total":513,"current":317}
+{"_e":"metro:bundling:progress","_t":1786675610430,"id":"2","progress":0.4067070131719473,"total":530,"current":338}
+{"_e":"metro:bundling:progress","_t":1786675610530,"id":"2","progress":0.42009602194787377,"total":540,"current":350}
+{"_e":"metro:bundling:progress","_t":1786675610633,"id":"2","progress":0.42009602194787377,"total":572,"current":370}
+{"_e":"metro:bundling:progress","_t":1786675610733,"id":"2","progress":0.4335114204489756,"total":606,"current":399}
+{"_e":"metro:bundling:progress","_t":1786675610835,"id":"2","progress":0.4444444444444444,"total":651,"current":434}
+{"_e":"metro:bundling:progress","_t":1786675610935,"id":"2","progress":0.49063560689461017,"total":661,"current":463}
+{"_e":"metro:bundling:progress","_t":1786675611043,"id":"2","progress":0.5223153296612455,"total":678,"current":490}
+{"_e":"metro:bundling:progress","_t":1786675611143,"id":"2","progress":0.5614260145647407,"total":698,"current":523}
+{"_e":"metro:bundling:progress","_t":1786675611243,"id":"2","progress":0.5614260145647407,"total":808,"current":572}
+{"_e":"metro:bundling:progress","_t":1786675611344,"id":"2","progress":0.5625,"total":820,"current":615}
+{"_e":"metro:bundling:progress","_t":1786675611443,"id":"2","progress":0.5928449357243213,"total":839,"current":646}
+{"_e":"metro:bundling:progress","_t":1786675611619,"id":"2","progress":0.6302946870766581,"total":854,"current":678}
+{"_e":"metro:bundling:progress","_t":1786675611738,"id":"2","progress":0.6302946870766581,"total":855,"current":678}
+{"_e":"metro:bundling:progress","_t":1786675611838,"id":"2","progress":0.6302946870766581,"total":2601,"current":681}
+{"_e":"metro:bundling:progress","_t":1786675611940,"id":"2","progress":0.6302946870766581,"total":2641,"current":708}
+{"_e":"metro:bundling:progress","_t":1786675612042,"id":"2","progress":0.6302946870766581,"total":2690,"current":724}
+{"_e":"metro:bundling:progress","_t":1786675612142,"id":"2","progress":0.6302946870766581,"total":2714,"current":748}
+{"_e":"metro:bundling:progress","_t":1786675612265,"id":"2","progress":0.6302946870766581,"total":2735,"current":777}
+{"_e":"metro:bundling:progress","_t":1786675612420,"id":"2","progress":0.6302946870766581,"total":2740,"current":788}
+{"_e":"metro:bundling:progress","_t":1786675612693,"id":"2","progress":0.6302946870766581,"total":2760,"current":823}
+{"_e":"metro:bundling:progress","_t":1786675612793,"id":"2","progress":0.6302946870766581,"total":2782,"current":898}
+{"_e":"metro:bundling:progress","_t":1786675612893,"id":"2","progress":0.6302946870766581,"total":2782,"current":976}
+{"_e":"metro:bundling:progress","_t":1786675612993,"id":"2","progress":0.6302946870766581,"total":2782,"current":1068}
+{"_e":"metro:bundling:progress","_t":1786675613154,"id":"2","progress":0.6302946870766581,"total":2782,"current":1162}
+{"_e":"metro:bundling:progress","_t":1786675613254,"id":"2","progress":0.6302946870766581,"total":2783,"current":1277}
+{"_e":"metro:bundling:progress","_t":1786675613354,"id":"2","progress":0.6302946870766581,"total":2783,"current":1388}
+{"_e":"metro:bundling:progress","_t":1786675613454,"id":"2","progress":0.6302946870766581,"total":2783,"current":1498}
+{"_e":"metro:bundling:progress","_t":1786675613554,"id":"2","progress":0.6302946870766581,"total":2783,"current":1618}
+{"_e":"metro:bundling:progress","_t":1786675613654,"id":"2","progress":0.6302946870766581,"total":2783,"current":1736}
+{"_e":"metro:bundling:progress","_t":1786675613754,"id":"2","progress":0.6302946870766581,"total":2783,"current":1828}
+{"_e":"metro:bundling:progress","_t":1786675613855,"id":"2","progress":0.6302946870766581,"total":2783,"current":1900}
+{"_e":"metro:bundling:progress","_t":1786675613955,"id":"2","progress":0.6302946870766581,"total":2783,"current":1982}
+{"_e":"metro:bundling:progress","_t":1786675614055,"id":"2","progress":0.6302946870766581,"total":2783,"current":2091}
+{"_e":"metro:bundling:progress","_t":1786675614262,"id":"2","progress":0.6302946870766581,"total":2783,"current":2192}
+{"_e":"metro:bundling:progress","_t":1786675614362,"id":"2","progress":0.6967420258179086,"total":2783,"current":2323}
+{"_e":"metro:bundling:progress","_t":1786675614462,"id":"2","progress":0.7857997500093286,"total":2783,"current":2467}
+{"_e":"metro:bundling:progress","_t":1786675614562,"id":"2","progress":0.8641048540565512,"total":2783,"current":2587}
+{"_e":"metro:bundling:progress","_t":1786675614662,"id":"2","progress":0.8747673047260272,"total":2828,"current":2645}
+{"_e":"metro:bundling:progress","_t":1786675614762,"id":"2","progress":0.8913891576417714,"total":2864,"current":2704}
+{"_e":"metro:bundling:progress","_t":1786675614862,"id":"2","progress":0.9037697165714793,"total":2919,"current":2775}
+{"_e":"metro:bundling:progress","_t":1786675614962,"id":"2","progress":0.9037697165714793,"total":3022,"current":2842}
+{"_e":"metro:bundling:progress","_t":1786675615067,"id":"2","progress":0.9037697165714793,"total":3065,"current":2903}
+{"_e":"metro:bundling:progress","_t":1786675615167,"id":"2","progress":0.9401052895185101,"total":3124,"current":3029}
+{"_e":"metro:bundling:progress","_t":1786675615267,"id":"2","progress":0.9401052895185101,"total":3280,"current":3114}
+{"_e":"metro:bundling:progress","_t":1786675615367,"id":"2","progress":0.9401052895185101,"total":3309,"current":3161}
+{"_e":"metro:bundling:progress","_t":1786675615467,"id":"2","progress":0.9582758745826679,"total":3320,"current":3250}
+{"_e":"metro:bundling:progress","_t":1786675615567,"id":"2","progress":0.9940369840727382,"total":3349,"current":3339}
+{"_e":"metro:bundling:progress","_t":1786675615670,"id":"2","progress":0.999,"total":3358,"current":3358}
+{"_e":"metro:bundling:done","_t":1786675615828,"id":"2","total":3358,"ms":9909.6026}
+{"_e":"metro:client_log","_t":1786675616197,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675616197,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675616295,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616296,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616296,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616296,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616296,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616297,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616297,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616297,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616297,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616297,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675616852,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675617531,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:client_log","_t":1786675619029,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1786675623184,"id":"b","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675623184,"id":"b","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675623231,"id":"b","total":1,"ms":47.7402}
+{"_e":"metro:client_log","_t":1786675623535,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675623535,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675623627,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623628,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623628,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675623629,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675624173,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675624846,"level":"log","data":["MapLibre: container size","590","448"]}
+{"_e":"metro:bundling:started","_t":1786675628820,"id":"k","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675628820,"id":"k","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675628877,"id":"k","total":1,"ms":56.8883}
+{"_e":"metro:client_log","_t":1786675629123,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675629123,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675629220,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675636096,"level":"warn","data":["props.pointerEvents is deprecated. Use style.pointerEvents"]}
+{"_e":"metro:client_log","_t":1786675637665,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675638446,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675639008,"level":"log","data":["Push notification permission not granted."]}
+{"_e":"metro:client_log","_t":1786675639104,"level":"log","data":["MapLibre: container size","815","448"]}
+{"_e":"metro:client_log","_t":1786675644155,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675652299,"level":"log","data":["MapLibre: container size","666","448"]}
+{"_e":"metro:bundling:started","_t":1786675783983,"id":"u","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675783983,"id":"u","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675784029,"id":"u","total":1,"ms":46.8046}
+{"_e":"metro:client_log","_t":1786675784286,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675784286,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784376,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675784894,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675785924,"level":"log","data":["MapLibre: container size","815","448"]}
+{"_e":"metro:client_log","_t":1786675790814,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1786675862547,"id":"12","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:bundling:started","_t":1786675862549,"id":"13","platform":"web","environment":null,"entry":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx"}
+{"_e":"metro:bundling:started","_t":1786675862549,"id":"14","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:bundling:started","_t":1786675862551,"id":"15","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:client_log","_t":1786675974500,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675974509,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675974509,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675974528,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:client_log","_t":1786675974541,"level":"error","data":["Failed to fetch employees:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: useEmployees.ts\u001b[22m\n\u001b[0m \u001b[90m 102 |\u001b[39m         }\n \u001b[90m 103 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 104 |\u001b[39m         \u001b[36mconst\u001b[39m res \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/users`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 105 |\u001b[39m           headers\u001b[33m:\u001b[39m { \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 106 |\u001b[39m         })\u001b[33m;\u001b[39m\n \u001b[90m 107 |\u001b[39m         \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m readJsonResponse\u001b[33m<\u001b[39m{\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  fetchEmployees (src\\hooks\\useEmployees.ts:104:27)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1786675974645,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675979508,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675979510,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786675979513,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786675979706,"id":"1a","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675979706,"id":"1a","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675979754,"id":"1a","total":1,"ms":47.7748}
+{"_e":"metro:client_log","_t":1786675980069,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675980069,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675980168,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980169,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980170,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980171,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675980342,"level":"error","data":["Restore auth error:","[TypeError: Failed to fetch]","\n\n\u001b[1mCode: Auth.ts\u001b[22m\n\u001b[0m \u001b[90m 190 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mtoken) \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"No active session.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 191 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 192 |\u001b[39m   \u001b[36mconst\u001b[39m verifyRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m fetch(\u001b[32m`${BACKEND_URL}/auth/verify`\u001b[39m\u001b[33m,\u001b[39m {\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 193 |\u001b[39m     headers\u001b[33m:\u001b[39m {\n \u001b[90m 194 |\u001b[39m       \u001b[33mAuthorization\u001b[39m\u001b[33m:\u001b[39m \u001b[32m`Bearer ${token}`\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 195 |\u001b[39m     }\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  refreshADSession (src\\app\\Auth\\Auth.ts:192:27)\u001b[39m\n\u001b[90m  restoreUser (src\\app\\Auth\\AuthScreen.tsx:621:26)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786675986620,"id":"1m","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786675986620,"id":"1m","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786675986676,"id":"1m","total":1,"ms":56.0084}
+{"_e":"metro:client_log","_t":1786675986989,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786675986990,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786675987092,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987094,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987095,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987095,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987095,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786675987654,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786675988395,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786675988574,"level":"log","data":["MapLibre: container size","735","448"]}
+{"_e":"metro:bundling:started","_t":1786676456164,"id":"1u","platform":"web","environment":null,"entry":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx"}
+{"_e":"metro:bundling:started","_t":1786676638993,"id":"1v","platform":"web","environment":null,"entry":"src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx"}
+{"_e":"metro:bundling:started","_t":1786676668826,"id":"1w","platform":"web","environment":null,"entry":"src\\services\\fleetOps.ts"}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668854,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668855,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668855,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668855,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676668855,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676669400,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786676670011,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:bundling:started","_t":1786676671199,"id":"1x","platform":"web","environment":null,"entry":"src\\services\\fleetOps.ts"}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671229,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676671758,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786676672336,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:client_log","_t":1786676736909,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676736910,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676736910,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676741909,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676741910,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676741910,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676742457,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676879545,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676879545,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786676879545,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786676879572,"id":"1z","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786676879572,"id":"1z","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786676879629,"id":"1z","total":1,"ms":56.7333}
+{"_e":"metro:client_log","_t":1786676879976,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786676879977,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786676880084,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880085,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880086,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676880644,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786676881698,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:client_log","_t":1786676886286,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:bundling:started","_t":1786676887002,"id":"28","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786676887002,"id":"28","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786676887049,"id":"28","total":1,"ms":46.9893}
+{"_e":"metro:client_log","_t":1786676887344,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786676887345,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786676887437,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887438,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887438,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887439,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786676887989,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786676888718,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:client_log","_t":1786676891175,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786686753933,"level":"warn","data":["Fleet live-locations endpoint unavailable, returning empty list."]}
+{"_e":"metro:client_log","_t":1786691438244,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786691438244,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786691438244,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786691438246,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786691499506,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:bundling:started","_t":1786691499522,"id":"2v","platform":"web","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786691499522,"id":"2v","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786691499591,"id":"2v","total":1,"ms":69.6804}
+{"_e":"metro:client_log","_t":1786691499908,"level":"info","data":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"]}
+{"_e":"metro:client_log","_t":1786691499908,"level":"log","data":["Running application \"main\" with appParams:\n","{\"hydrate\": undefined, \"rootTag\": \"#root\"}","\nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."]}
+{"_e":"metro:client_log","_t":1786691500002,"level":"warn","data":["Route \"./Auth/Auth.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500003,"level":"warn","data":["Route \"./Auth/AuthContext.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500003,"level":"warn","data":["Route \"./Auth/Logout.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500003,"level":"warn","data":["Route \"./Modules/office/ActivityPage/useActivityData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500003,"level":"warn","data":["Route \"./Modules/office/MonthlyReportPage/useMonthlyReportData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500003,"level":"warn","data":["Route \"./Modules/office/OfficeDashboardPage/useOfficeDashboardData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500004,"level":"warn","data":["Route \"./Modules/office/OfficeInventoryPage/useOfficeInventoryData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500004,"level":"warn","data":["Route \"./Modules/office/SupplyRequestsPage/useSupplyRequestsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500004,"level":"warn","data":["Route \"./Modules/tripbooking/FleetAllTripsPage/useFleetAllTripsData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500004,"level":"warn","data":["Route \"./Modules/tripbooking/FleetControlTowerPage/useFleetControlTowerData.ts\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786691500576,"level":"log","data":["PUSH DEBUG:","{\"hasToken\": true, \"officeSupplies\": true, \"role\": \"superadmin\"}"]}
+{"_e":"metro:client_log","_t":1786691501510,"level":"log","data":["MapLibre: container size","669","448"]}
+{"_e":"metro:client_log","_t":1786770820823,"level":"warn","data":["getAllFleetVehicles error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786770820824,"level":"warn","data":["getAllFleetDrivers error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786770820827,"level":"warn","data":["getAllFleetTrips error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786770820837,"level":"warn","data":["getFleetLiveLocations error:","[TypeError: Failed to fetch]"]}
+{"_e":"metro:client_log","_t":1786798119729,"level":"warn","data":["Fleet live-locations endpoint unavailable, returning empty list."]}
+{"_e":"metro:client_log","_t":1786807354509,"level":"warn","data":["Fleet live-locations endpoint unavailable, returning empty list."]}
+{"_e":"metro:client_log","_t":1786927233860,"level":"warn","data":["Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md"]}
+{"_e":"metro:client_log","_t":1786927714638,"level":"warn","data":["Fleet live-locations endpoint unavailable, returning empty list."]}
+{"_e":"metro:bundling:started","_t":1786928113969,"id":"35","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:client_log","_t":1786928114324,"level":"error","data":["\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 689 |\u001b[39m             }\n \u001b[90m 690 |\u001b[39m           }}\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 691 |\u001b[39m           disabled\u001b[33m=\u001b[39m{syncing}\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 692 |\u001b[39m           style\u001b[33m=\u001b[39m{{\n \u001b[90m 693 |\u001b[39m             backgroundColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39msurface\u001b[33m,\u001b[39m\n \u001b[90m 694 |\u001b[39m             borderColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39mborder\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:691:21)\u001b[39m\n\u001b[90m  FleetControlTowerPage (src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx:534:15)\u001b[39m\n\u001b[90m  renderPage (src\\components\\Navigations\\AppShell.tsx:151:9)\u001b[39m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:318:12)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:60:7)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:4:10)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:8:44)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786928124068,"id":"3c","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:client_log","_t":1786928124990,"level":"error","data":["\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 687 |\u001b[39m             }\n \u001b[90m 688 |\u001b[39m           }}\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 689 |\u001b[39m           disabled\u001b[33m=\u001b[39m{syncing}\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 690 |\u001b[39m           style\u001b[33m=\u001b[39m{{\n \u001b[90m 691 |\u001b[39m             backgroundColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39msurface\u001b[33m,\u001b[39m\n \u001b[90m 692 |\u001b[39m             borderColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39mborder\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:689:21)\u001b[39m\n\u001b[90m  FleetControlTowerPage (src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx:534:15)\u001b[39m\n\u001b[90m  renderPage (src\\components\\Navigations\\AppShell.tsx:151:9)\u001b[39m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:318:12)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:60:7)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:4:10)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:8:54)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1786928125577,"level":"error","data":["Page render error:","[ReferenceError: syncing is not defined]","\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 528 |\u001b[39m\n \u001b[90m 529 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36mdefault\u001b[39m \u001b[36mfunction\u001b[39m \u001b[33mCalendar\u001b[39m\u001b[33m<\u001b[39m\u001b[33mT\u001b[39m\u001b[33m>\u001b[39m({\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 530 |\u001b[39m   events\u001b[33m,\u001b[39m\n \u001b[90m     |\u001b[39m   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 531 |\u001b[39m   onEventClick\u001b[33m,\u001b[39m\n \u001b[90m 532 |\u001b[39m   onDateClick\u001b[33m,\u001b[39m\n \u001b[90m 533 |\u001b[39m   initialView \u001b[33m=\u001b[39m \u001b[32m\"month\"\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:530:3)\u001b[39m\n\u001b[90m  FleetControlTowerPage (src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx:251:16)\u001b[39m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:180:36)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:15:16)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:3:16)\u001b[39m\n\u001b[90m  ThemeProvider (src\\theme\\ThemeContext.tsx:146:8)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:5:16)\u001b[39m","\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 689 |\u001b[39m             }\n \u001b[90m 690 |\u001b[39m           }}\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 691 |\u001b[39m           disabled\u001b[33m=\u001b[39m{syncing}\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 692 |\u001b[39m           style\u001b[33m=\u001b[39m{{\n \u001b[90m 693 |\u001b[39m             backgroundColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39msurface\u001b[33m,\u001b[39m\n \u001b[90m 694 |\u001b[39m             borderColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39mborder\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:691:21)\u001b[39m","\n\n\u001b[1mCode: AppShell.tsx\u001b[22m\n\u001b[0m \u001b[90m 315 |\u001b[39m       )}\n \u001b[90m 316 |\u001b[39m       \u001b[33m<\u001b[39m\u001b[33mView\u001b[39m style\u001b[33m=\u001b[39m{{ flex\u001b[33m:\u001b[39m \u001b[35m1\u001b[39m\u001b[33m,\u001b[39m paddingTop\u001b[33m:\u001b[39m isMobile \u001b[33m?\u001b[39m \u001b[35m56\u001b[39m \u001b[33m+\u001b[39m insets\u001b[33m.\u001b[39mtop \u001b[33m:\u001b[39m \u001b[35m0\u001b[39m }}\u001b[33m>\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 317 |\u001b[39m         \u001b[33m<\u001b[39m\u001b[33mPageErrorBoundary\u001b[39m key\u001b[33m=\u001b[39m{activeKey}\u001b[33m>\u001b[39m\n \u001b[90m     |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 318 |\u001b[39m           {renderPage(activeKey\u001b[33m,\u001b[39m user\u001b[33m,\u001b[39m {\n \u001b[90m 319 |\u001b[39m             inventoryFilter\u001b[33m,\u001b[39m\n \u001b[90m 320 |\u001b[39m             deliverItem\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:317:9)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:60:7)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:4:10)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:8:44)\u001b[39m"]}
+{"_e":"metro:client_log","_t":1786928126992,"level":"error","data":["Page render error:","[ReferenceError: syncing is not defined]","\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 528 |\u001b[39m\n \u001b[90m 529 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36mdefault\u001b[39m \u001b[36mfunction\u001b[39m \u001b[33mCalendar\u001b[39m\u001b[33m<\u001b[39m\u001b[33mT\u001b[39m\u001b[33m>\u001b[39m({\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 530 |\u001b[39m   events\u001b[33m,\u001b[39m\n \u001b[90m     |\u001b[39m   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 531 |\u001b[39m   onEventClick\u001b[33m,\u001b[39m\n \u001b[90m 532 |\u001b[39m   onDateClick\u001b[33m,\u001b[39m\n \u001b[90m 533 |\u001b[39m   initialView \u001b[33m=\u001b[39m \u001b[32m\"month\"\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:530:3)\u001b[39m\n\u001b[90m  FleetControlTowerPage (src\\app\\Modules\\tripbooking\\FleetControlTowerPage\\FleetControlTowerPage.web.tsx:251:16)\u001b[39m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:180:36)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:15:16)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:3:16)\u001b[39m\n\u001b[90m  ThemeProvider (src\\theme\\ThemeContext.tsx:146:8)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:5:16)\u001b[39m","\n\n\u001b[1mCode: Calendar.tsx\u001b[22m\n\u001b[0m \u001b[90m 687 |\u001b[39m             }\n \u001b[90m 688 |\u001b[39m           }}\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 689 |\u001b[39m           disabled\u001b[33m=\u001b[39m{syncing}\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 690 |\u001b[39m           style\u001b[33m=\u001b[39m{{\n \u001b[90m 691 |\u001b[39m             backgroundColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39msurface\u001b[33m,\u001b[39m\n \u001b[90m 692 |\u001b[39m             borderColor\u001b[33m:\u001b[39m theme\u001b[33m.\u001b[39mborder\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  Calendar (src\\components\\common\\Calendar.tsx:689:21)\u001b[39m","\n\n\u001b[1mCode: AppShell.tsx\u001b[22m\n\u001b[0m \u001b[90m 315 |\u001b[39m       )}\n \u001b[90m 316 |\u001b[39m       \u001b[33m<\u001b[39m\u001b[33mView\u001b[39m style\u001b[33m=\u001b[39m{{ flex\u001b[33m:\u001b[39m \u001b[35m1\u001b[39m\u001b[33m,\u001b[39m paddingTop\u001b[33m:\u001b[39m isMobile \u001b[33m?\u001b[39m \u001b[35m56\u001b[39m \u001b[33m+\u001b[39m insets\u001b[33m.\u001b[39mtop \u001b[33m:\u001b[39m \u001b[35m0\u001b[39m }}\u001b[33m>\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 317 |\u001b[39m         \u001b[33m<\u001b[39m\u001b[33mPageErrorBoundary\u001b[39m key\u001b[33m=\u001b[39m{activeKey}\u001b[33m>\u001b[39m\n \u001b[90m     |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 318 |\u001b[39m           {renderPage(activeKey\u001b[33m,\u001b[39m user\u001b[33m,\u001b[39m {\n \u001b[90m 319 |\u001b[39m             inventoryFilter\u001b[33m,\u001b[39m\n \u001b[90m 320 |\u001b[39m             deliverItem\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  AppShell (src\\components\\Navigations\\AppShell.tsx:317:9)\u001b[39m\n\u001b[90m  HomeScreen (src\\app\\index.tsx:60:7)\u001b[39m\n\u001b[90m  NotFoundScreen (src\\app\\+not-found.tsx:4:10)\u001b[39m\n\u001b[90m  RootLayout (src\\app\\_layout.tsx:8:54)\u001b[39m"]}
+{"_e":"metro:bundling:started","_t":1786928134585,"id":"3j","platform":"web","environment":null,"entry":"src\\components\\common\\Calendar.tsx"}
+{"_e":"metro:client_log","_t":1786928135710,"level":"log","data":["MapLibre: container size","747","448"]}

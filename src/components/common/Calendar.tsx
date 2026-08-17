@@ -472,14 +472,13 @@ export default function Calendar<T>({
   onDateClick,
   initialView = "month",
   initialDate,
-  className,
+ className,
 }: CalendarProps<T>) {
   const { theme } = useTheme();
 
   const [view, setView] = useState<CalendarView>(initialView);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [anchor, setAnchor] = useState(() => initialDate ?? new Date());
-
+   const [anchor, setAnchor] = useState(() => initialDate ?? new Date());
   const viewDays = useMemo(() => getViewDays(anchor, view), [anchor, view]);
 
   // Bridge back to the caller's typed handler (inner grids are type-erased).
@@ -613,6 +612,8 @@ export default function Calendar<T>({
         <p style={{ color: theme.text }} className="text-sm font-bold ml-1">
           {getViewTitle(anchor, view)}
         </p>
+
+        
       </div>
 
       {view === "month" ? (
