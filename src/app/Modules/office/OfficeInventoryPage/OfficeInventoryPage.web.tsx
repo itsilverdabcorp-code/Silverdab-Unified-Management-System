@@ -286,8 +286,38 @@ const OfficeInventoryPage: React.FC<Props> = ({
     fetchData,
     handleRestore, handleConfirmDelete,
     handleToggleRestriction, handleConfirmRestrict,
-    tabCounts, sortedFiltered,
+    tabCounts, sortedFiltered: sortedFilteredRaw,
   } = useOfficeInventoryData({ initialFilter, initialDeliverItem, onDeliverModalOpened });
+
+  // TableFilterPanel's chip selections (Status / Access) aren't applied
+  // inside useOfficeInventoryData — apply them here using the same
+  // multi-select array shape useTableFilter actually produces.
+  const sortedFiltered = React.useMemo(() => {
+    let result = inventoryFilter.applyToData(sortedFilteredRaw, {
+      stockStatus: "stockStatus",
+    });
+
+    const selectedAccess = inventoryFilter.appliedFilters.restrictionStatus as
+      | string[]
+      | undefined;
+    if (selectedAccess?.length) {
+      result = result.filter((item) => {
+        // Normalize defensively in case the API sends 0/1 or "0"/"1"
+        // at runtime despite the boolean type declaration.
+        const raw = item.isRestricted as unknown;
+        const isRestricted = raw === true || raw === 1 || raw === "1";
+        const bucket = isRestricted ? "restricted" : "unrestricted";
+        return selectedAccess.includes(bucket);
+      });
+    }
+
+    return result;
+  }, [sortedFilteredRaw, inventoryFilter.appliedFilters]);
+
+  console.log(
+    "DEBUG isRestricted values:",
+    sortedFilteredRaw.map((i) => ({ name: i.name, isRestricted: i.isRestricted, type: typeof i.isRestricted })),
+  );
 
   const renderTableHead = useCallback(
     () => (

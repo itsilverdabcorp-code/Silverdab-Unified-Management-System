@@ -31,6 +31,7 @@ import {
   MonitorSmartphone,
   Car,
   Filter,
+  Users,
 } from "lucide-react-native";
 import { useTheme } from "../../../theme/ThemeContext";
 import {
@@ -38,20 +39,23 @@ import {
   ConcernTicket,
   SupplyRequest,
   FleetTrip,
+  RoomReservation,
 } from "../../../../types";
 import { getTicketsByRequester } from "../../../services/ticketService";
 import { getAllFleetTrips } from "../../../services/fleetOps";
 import SupplyRequestModal from "./Modal/SupplyRequestModal";
 import TripBookingModal from "./Modal/TripBookingModal";
+import RoomReservationModal from "./Modal/RoomReservationModal";
 // import ITConcernModal from "./Modal/ITConcernModal";
 import {
   getAllSupplyRequests,
   cancelSupplyRequest,
 } from "@/services/supplyRequest";
+import { getAllRoomReservations, cancelRoomReservation } from "@/services/roomReservation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TicketSource = "it" | "supply" | "trip";
+type TicketSource = "it" | "supply" | "trip" | "room";
 type TicketType = "it" | "hr" | "supply";
 type Step = 1 | 2 | 3 | 4;
 type TabKey = "All" | "Pending" | "In Progress" | "Completed" | "Rejected";
@@ -68,6 +72,7 @@ const TYPE_FILTER_OPTIONS: { key: "all" | TicketSource; label: string }[] = [
   { key: "all", label: "All Types" },
   { key: "supply", label: "Supply Requests" },
   { key: "trip", label: "Trips" },
+  { key: "room", label: "Room Reservations" },
   { key: "it", label: "IT Concerns" },
 ];
 
@@ -93,6 +98,7 @@ type UnifiedTicket = {
   itTicket?: ConcernTicket;
   supplyRequest?: SupplyRequest;
   fleetTrip?: FleetTrip;
+  roomReservation?: RoomReservation;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,7 +133,29 @@ const toReadableDate = (value: any): string => {
     return "—";
   }
 };
-
+// Room title date — "Aug 18" instead of the raw ISO/DATE string bookingDate
+// comes back as from the API. Parses YYYY-MM-DD (or a full ISO string) as
+// a LOCAL calendar date, not UTC, so it doesn't shift a day depending on
+// timezone.
+function formatRoomTitleDate(value: string): string {
+  if (!value) return "—";
+  const datePart = value.split("T")[0]; // handles both "2026-08-18" and "2026-08-18T00:00:00.000Z"
+  const [y, m, d] = datePart.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+// "13:00:00" -> "1:00 PM"
+function formatRoomTime(value: string): string {
+  if (!value) return "—";
+  const [hStr, mStr] = value.split(":");
+  let h = Number(hStr);
+  const m = mStr ?? "00";
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
+}
 const SUPPLY_STATUS_MAP: Record<string, string> = {
   pending: "Pending",
   awaiting_stock: "In Progress",
@@ -153,6 +181,29 @@ const SUPPLY_DISPLAY_STATUS_MAP: Record<string, string> = {
 };
 const displaySupplyStatus = (raw: string) =>
   SUPPLY_DISPLAY_STATUS_MAP[raw] ?? raw;
+
+// Room reservations don't carry a lifecycle status column beyond
+// confirmed/cancelled — their Pending/In Progress/Completed state is
+// derived purely from the booking's date + start/end time vs. right now.
+function computeRoomStatus(reservation: RoomReservation): "Pending" | "In Progress" | "Completed" | "Cancelled" {
+  if (reservation.status === "cancelled") return "Cancelled";
+
+  // bookingDate may come back as a plain "YYYY-MM-DD" or a full ISO
+  // timestamp ("YYYY-MM-DDT00:00:00.000Z") depending on the API — strip to
+  // just the date portion before combining with the time-only fields, or
+  // the concatenation produces an invalid Date (and NaN comparisons below
+  // always fall through to "Completed").
+  const datePart = reservation.bookingDate.split("T")[0];
+  const start = new Date(`${datePart}T${reservation.startTime}`);
+  const end = new Date(`${datePart}T${reservation.endTime}`);
+  const now = new Date();
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return "Pending";
+
+  if (now < start) return "Pending";
+  if (now >= start && now < end) return "In Progress";
+  return "Completed";
+}
 
 // Trip statuses collapse into the same three ticket-tab buckets:
 // pending -> Pending, approved/ongoing/arrived/returning -> In Progress,
@@ -209,6 +260,7 @@ const SOURCE_CONFIG: Record<
   it: { bg: "#EEF2FF", text: "#4338CA", label: "IT" },
   supply: { bg: "#F0FDF4", text: "#15803D", label: "Supply" },
   trip: { bg: "#FFF7ED", text: "#C2410C", label: "Trip" },
+  room: { bg: "#F5F3FF", text: "#6D28D9", label: "Room" },
 };
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
@@ -235,10 +287,22 @@ async function getFleetTripsByUser(
   return all.filter((t) => t.requestorName === userName);
 }
 
+// Room reservations don't carry a requestor id/username the way trips and
+// supply requests do — the backend stores whoever typed the booker's own
+// name into the modal, so match on that name field.
+async function getRoomReservationsByUser(
+  userId: string,
+  userName: string,
+): Promise<RoomReservation[]> {
+  const all = await getAllRoomReservations();
+  return (all as RoomReservation[]).filter((r) => r.fullName === userName);
+}
+
 function mergeTickets(
   it: ConcernTicket[],
   supply: SupplyRequest[],
   trips: FleetTrip[],
+  rooms: RoomReservation[] = [],
 ): UnifiedTicket[] {
   const itUnified: UnifiedTicket[] = it.map((t) => ({
     _source: "it",
@@ -279,6 +343,25 @@ function mergeTickets(
     fleetTrip: t,
   }));
 
+  const roomUnified: UnifiedTicket[] = rooms.map((r) => {
+    const computed = computeRoomStatus(r);
+    // Cancelled rooms bucket under "Rejected" for the tab filter (so they
+    // stay visible under that tab and under "All"), but the badge itself
+    // shows the real "Cancelled" label via displayStatus below.
+    const bucketStatus = computed === "Cancelled" ? "Rejected" : computed;
+    return {
+      _source: "room",
+      id: r.id,
+      ticketNumber: r.roomRef,
+      title: `${r.roomName} · ${formatRoomTitleDate(r.bookingDate)} | ${formatRoomTime(r.startTime)} - ${formatRoomTime(r.endTime)}`,
+      status: bucketStatus,
+      displayStatus: computed, // "Cancelled" flows straight into StatusBadge
+      dateCreated: r.createdAt,
+      category: "Room Reservation",
+      roomReservation: r,
+    };
+  });
+
   const toMs = (v: any): number => {
     if (!v) return 0;
     if (typeof v?.toDate === "function") return v.toDate().getTime();
@@ -287,7 +370,7 @@ function mergeTickets(
     return isNaN(d.getTime()) ? 0 : d.getTime();
   };
 
-  return [...itUnified, ...supplyUnified, ...tripUnified].sort(
+  return [...itUnified, ...supplyUnified, ...tripUnified, ...roomUnified].sort(
     (a, b) => toMs(b.dateCreated) - toMs(a.dateCreated),
   );
 }
@@ -346,6 +429,8 @@ function SourceTag({ source }: { source: TicketSource }) {
         <MonitorSmartphone size={9} color={c.text} />
       ) : source === "trip" ? (
         <Car size={9} color={c.text} />
+      ) : source === "room" ? (
+        <Users size={9} color={c.text} />
       ) : (
         <Package size={9} color={c.text} />
       )}
@@ -428,26 +513,30 @@ function StatCard({ label, value, sub, dotColor, theme }: StatCardProps) {
 type LeftPanelProps = {
   onNewRequest: () => void;
   onNewTrip: () => void;
+  onNewRoomReservation: () => void;
   counts: Record<TabKey, number>;
   theme: any;
   primary: string;
   isMobile: boolean;
   canBookTrip: boolean;
+  canReserveRoom: boolean;
 };
 
 function LeftPanel({
   onNewRequest,
   onNewTrip,
+  onNewRoomReservation,
   counts,
   theme,
   primary,
   isMobile,
   canBookTrip,
+  canReserveRoom,
 }: LeftPanelProps) {
-  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | null>(
+  const [hoveredBtn, setHoveredBtn] = useState<"supplies" | "trip" | "room" | null>(
     null,
   );
-  const hoverHandlers = (key: "supplies" | "trip") =>
+  const hoverHandlers = (key: "supplies" | "trip" | "room") =>
     Platform.OS === "web"
       ? {
           onMouseEnter: () => setHoveredBtn(key),
@@ -582,6 +671,49 @@ function LeftPanel({
               </Text>
             </TouchableOpacity>
           )}
+
+          {canReserveRoom && (
+            <TouchableOpacity
+              onPress={onNewRoomReservation}
+              activeOpacity={0.8}
+              {...hoverHandlers("room")}
+              style={{
+                backgroundColor: primary,
+                borderRadius: 8,
+                paddingVertical: 12,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {hoveredBtn === "room" && (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                  }}
+                />
+              )}
+              <MonitorSmartphone size={14} color="#fff" />
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#fff",
+                }}
+              >
+                Reserve a Room
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -662,7 +794,7 @@ function TicketRow({
             color: primary,
           }}
         >
-          #{ticket.ticketNumber.slice(-4)}
+          #{ticket.ticketNumber ? ticket.ticketNumber.slice(-4) : "----"}
         </Text>
       </View>
 
@@ -764,7 +896,7 @@ function TicketCard({
               color: primary,
             }}
           >
-            #{ticket.ticketNumber.slice(-4)}
+            #{ticket.ticketNumber ? ticket.ticketNumber.slice(-4) : "----"}
           </Text>
           <SourceTag source={ticket._source} />
         </View>
@@ -1676,6 +1808,306 @@ function TripDetailContent({
   );
 }
 
+// ─── Room Reservation Detail ─────────────────────────────────────────────────
+
+function RoomDetailContent({
+  reservation,
+  theme,
+  onCancel,
+}: {
+  reservation: RoomReservation;
+  theme: any;
+  onCancel?: (reservation: RoomReservation) => Promise<void>;
+}) {
+  const computed = computeRoomStatus(reservation);
+  const isCancelled = computed === "Cancelled";
+  const cancellable = computed === "Pending";
+
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+
+  const handleConfirmCancel = async () => {
+    if (!onCancel) return;
+    setCancelling(true);
+    setCancelError("");
+    try {
+      await onCancel(reservation);
+    } catch (err: any) {
+      setCancelError(err?.message ?? "Failed to cancel reservation.");
+      setCancelling(false);
+    }
+  };
+
+  return (
+    <>
+      {isCancelled ? (
+        <View
+          style={{
+            backgroundColor: "#F8FAFC",
+            borderWidth: 1,
+            borderColor: "#E2E8F0",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>🚫</Text>
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 13,
+              color: "#475569",
+            }}
+          >
+            Reservation Cancelled
+          </Text>
+        </View>
+      ) : (
+        <StatusTimeline
+          steps={["Pending", "In Progress", "Completed"]}
+          currentStatus={computed}
+          theme={theme}
+        />
+      )}
+
+      <MetaCard
+        fields={[
+          { label: "Booking Ref", value: reservation.roomRef },
+          { label: "Room", value: reservation.roomName },
+          { label: "Date", value: reservation.bookingDate },
+          {
+            label: "Time",
+            value: `${reservation.startTime.slice(0, 5)} – ${reservation.endTime.slice(0, 5)}`,
+          },
+          { label: "Booked by", value: reservation.fullName },
+          { label: "Email", value: reservation.email },
+          {
+            label: "Guests",
+            value: reservation.guestEmails?.length
+              ? `${reservation.guestEmails.length} invited`
+              : "—",
+          },
+          { label: "AV Requirement", value: reservation.avRequirement },
+          { label: "Wifi needed", value: reservation.needsWifi ? "Yes" : "No" },
+        ]}
+        theme={theme}
+      />
+
+      {cancellable && onCancel ? (
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            padding: 15,
+            marginBottom: 16,
+          }}
+        >
+          {!confirmingCancel ? (
+            <TouchableOpacity
+              onPress={() => {
+                setConfirmingCancel(true);
+                setCancelError("");
+              }}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 7,
+                paddingVertical: 10,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: "#FCA5A5",
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#DC2626",
+                }}
+              >
+                Cancel this reservation
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View>
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: theme.textActive ?? theme.text,
+                  marginBottom: 4,
+                }}
+              >
+                Cancel this reservation?
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Outfit",
+                  fontSize: 12,
+                  color: theme.subtext,
+                  marginBottom: 12,
+                  lineHeight: 17,
+                }}
+              >
+                This can't be undone. You'll need to submit a new booking if you
+                still need the room.
+              </Text>
+
+              {cancelError ? (
+                <Text
+                  style={{
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    color: "#EF4444",
+                    marginBottom: 10,
+                  }}
+                >
+                  {cancelError}
+                </Text>
+              ) : null}
+
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setConfirmingCancel(false)}
+                  disabled={cancelling}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    borderWidth: 1.5,
+                    borderColor: theme.border,
+                    alignItems: "center",
+                    opacity: cancelling ? 0.6 : 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: theme.subtext,
+                    }}
+                  >
+                    Keep reservation
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmCancel}
+                  disabled={cancelling}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: "#DC2626",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 6,
+                    opacity: cancelling ? 0.7 : 1,
+                  }}
+                >
+                  {cancelling ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : null}
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: "#fff",
+                    }}
+                  >
+                    {cancelling ? "Cancelling…" : "Yes, cancel it"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      ) : null}
+
+      {reservation.agenda ? (
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            padding: 15,
+            marginBottom: reservation.specialRequests ? 16 : 0,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 11,
+              color: theme.subtext,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 8,
+            }}
+          >
+            Agenda
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Outfit",
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 20,
+            }}
+          >
+            {reservation.agenda}
+          </Text>
+        </View>
+      ) : null}
+
+      {reservation.specialRequests ? (
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            padding: 15,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 11,
+              color: theme.subtext,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 8,
+            }}
+          >
+            Special Requests
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Outfit",
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 20,
+            }}
+          >
+            {reservation.specialRequests}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 // ─── Detail Drawer ────────────────────────────────────────────────────────────
 
 function DetailDrawer({
@@ -1684,12 +2116,14 @@ function DetailDrawer({
   theme,
   primary,
   onCancelSupplyRequest,
+  onCancelRoomReservation,
 }: {
   ticket: UnifiedTicket | null;
   onClose: () => void;
   theme: any;
   primary: string;
   onCancelSupplyRequest?: (request: SupplyRequest) => Promise<void>;
+  onCancelRoomReservation?: (reservation: RoomReservation) => Promise<void>;
 }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const isMobile = winW < 768;
@@ -1751,7 +2185,7 @@ function DetailDrawer({
                     color: theme.subtext,
                   }}
                 >
-                  #{ticket.ticketNumber.slice(-4)}
+                  #{ticket.ticketNumber ? ticket.ticketNumber.slice(-4) : "----"}
                 </Text>
                 <SourceTag source={ticket._source} />
               </View>
@@ -1803,6 +2237,12 @@ function DetailDrawer({
                 trip={ticket.fleetTrip}
                 theme={theme}
                 primary={primary}
+              />
+            ) : ticket._source === "room" && ticket.roomReservation ? (
+              <RoomDetailContent
+                reservation={ticket.roomReservation}
+                theme={theme}
+                onCancel={onCancelRoomReservation}
               />
             ) : ticket.supplyRequest ? (
               <SupplyDetailContent
@@ -2001,7 +2441,8 @@ export default function TicketHubPage({ user }: Props) {
   const primary = theme.primary ?? "#4169E1";
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const canBookTrip = user.role === "superadmin";
+  const canBookTrip = true; // available to all employees, same as room reservations
+  const canReserveRoom = true; // available to all employees
 
   // ── Ticket list state ──
   const [unified, setUnified] = useState<UnifiedTicket[]>([]);
@@ -2025,6 +2466,7 @@ export default function TicketHubPage({ user }: Props) {
   const [itModalVisible, setItModalVisible] = useState(false);
   const [supplyModalVisible, setSupplyModalVisible] = useState(false);
   const [tripModalVisible, setTripModalVisible] = useState(false);
+  const [roomReservationModalVisible, setRoomReservationModalVisible] = useState(false);
 
   // HR fields
   const [hrCategory, setHrCategory] = useState("Overtime Filing");
@@ -2048,14 +2490,15 @@ export default function TicketHubPage({ user }: Props) {
         // ]);
         // setUnified(mergeTickets(itTickets, supplyRequests));
 
-        const [supplyRequests, trips] = await Promise.all([
+        const [supplyRequests, trips, rooms] = await Promise.all([
           getSupplyRequestsByUser(
             user.username,
             user.displayName ?? user.username,
           ),
           getFleetTripsByUser(user.username, user.displayName ?? user.username),
+          getRoomReservationsByUser(user.username, user.displayName ?? user.username),
         ]);
-        setUnified(mergeTickets([], supplyRequests, trips));
+        setUnified(mergeTickets([], supplyRequests, trips, rooms));
       } catch (err) {
         console.error("Failed to load tickets:", err);
       } finally {
@@ -2134,6 +2577,11 @@ export default function TicketHubPage({ user }: Props) {
     setTripModalVisible(true);
   };
 
+  // Opens the Room Reservation modal directly, same pattern as trips.
+  const handleNewRoomReservation = () => {
+    setRoomReservationModalVisible(true);
+  };
+
   const handleCancelSupplyRequest = useCallback(
     async (request: SupplyRequest) => {
       await cancelSupplyRequest(request.id, user.displayName ?? user.username);
@@ -2141,6 +2589,15 @@ export default function TicketHubPage({ user }: Props) {
       load(true);
     },
     [user, load],
+  );
+
+  const handleCancelRoomReservation = useCallback(
+    async (reservation: RoomReservation) => {
+      await cancelRoomReservation(reservation.id);
+      setSelected(null);
+      load(true);
+    },
+    [load],
   );
 
   const inputStyle = {
@@ -3196,11 +3653,13 @@ export default function TicketHubPage({ user }: Props) {
           <LeftPanel
             onNewRequest={handleNewSupplyRequest}
             onNewTrip={handleNewTripBooking}
+            onNewRoomReservation={handleNewRoomReservation}
             counts={counts}
             theme={theme}
             primary={primary}
             isMobile={isMobile}
             canBookTrip={canBookTrip}
+            canReserveRoom={canReserveRoom}
           />
 
           {/* Right: ticket list or HR form */}
@@ -3247,6 +3706,18 @@ export default function TicketHubPage({ user }: Props) {
         }}
       />
 
+      <RoomReservationModal
+        visible={roomReservationModalVisible}
+        onClose={() => setRoomReservationModalVisible(false)}
+        user={user}
+        onSuccess={(bookingRef) => {
+          setSubmittedId(bookingRef);
+          setStep(4);
+          setRoomReservationModalVisible(false);
+          load(true);
+        }}
+      />
+
       {/* Detail drawer */}
       <DetailDrawer
         ticket={selected}
@@ -3254,6 +3725,7 @@ export default function TicketHubPage({ user }: Props) {
         theme={theme}
         primary={primary}
         onCancelSupplyRequest={handleCancelSupplyRequest}
+        onCancelRoomReservation={handleCancelRoomReservation}
       />
     </ScrollView>
   );

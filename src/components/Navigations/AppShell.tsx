@@ -27,6 +27,8 @@ import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPa
 import DriverPortalPage from "@/app/Modules/tripbooking/DriverPortalPage";
 import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPage";
 import PageErrorBoundary from "../common/PageErrorBoundary";
+import RoomReservationPage from "@/app/Modules/roomreservation/RoomReservationPage";
+import SeatPlanPage from "@/app/Modules/it/seatplan/SeatPlanPage";
 
 const LAST_PAGE_KEY = "SUMS_LAST_PAGE";
 
@@ -89,6 +91,8 @@ function renderPage(
       return (
         <AuditTrailPage />
       );
+    case "seatplan":
+      return <SeatPlanPage user={user} />;
     case "tickets":
       return (
         <PlaceholderPage
@@ -157,6 +161,10 @@ function renderPage(
     case "fleetdriver":
       return (
         <DriverPortalPage user={user} />
+      );
+    case "roomreservation":
+      return (
+        <RoomReservationPage user={user} />
       );
     case "settings":
       return (

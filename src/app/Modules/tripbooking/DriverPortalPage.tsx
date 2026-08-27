@@ -1127,23 +1127,55 @@ export default function DriverPortalPage({ user }: Props) {
                     fontFamily: "Outfit-medium",
                     fontSize: 16,
                     color: theme.textActive ?? theme.text,
-                    marginBottom: 6,
+                    marginBottom: 12,
                   }}
                 >
                   {nextDriverAction(confirmingTrip)?.label}?
                 </Text>
+
+                {/* Route block — same dot/connector style as TripCard */}
+                <View style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
+                    <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0, marginTop: 4 }} />
+                    <Text
+                      style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
+                    >
+                      {confirmingTrip.pickupLabel}
+                    </Text>
+                  </View>
+                  <View style={{ marginLeft: 3, width: 1, height: 10, backgroundColor: theme.border, marginBottom: 3 }} />
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                    <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0, marginTop: 4 }} />
+                    <Text
+                      style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
+                    >
+                      {confirmingTrip.dropoffLabel}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Divider */}
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: theme.border,
+                    marginBottom: 12,
+                  }}
+                />
+
+                {/* Warning — secondary weight, separated from the route */}
                 <Text
                   style={{
                     fontFamily: "Outfit",
-                    fontSize: 12.5,
+                    fontSize: 11,
+                    fontStyle: "italic",
                     color: theme.subtext,
-                    lineHeight: 18,
+                    lineHeight: 16,
                     marginBottom: 18,
                   }}
                 >
-                  {confirmingTrip.pickupLabel} → {confirmingTrip.dropoffLabel}
-                  {"\n"}This updates the trip status right away — make sure
-                  you're ready before confirming.
+                  This updates the trip status right away — make sure you're
+                  ready before confirming.
                 </Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity

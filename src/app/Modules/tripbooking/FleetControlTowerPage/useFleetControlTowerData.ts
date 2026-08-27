@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useEmployees } from "../../../../hooks/useEmployees";
+import { DriverDutyStatus } from "../../../../../types";
 import type { CalendarEvent } from "../../../../components/common/Calendar";
 import {
   getAllFleetTrips,
@@ -30,6 +31,7 @@ import {
   updateFleetDriver,
   deleteFleetDriver,
   setVehicleStatus,
+  setDriverDutyStatus,
   TramigoDevice,
 } from "../../../../services/fleetOps";
 import {
@@ -312,8 +314,8 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
 
   const [editingDriver, setEditingDriver] = useState<FleetDriver | null>(null);
   const [editDriverForm, setEditDriverForm] = useState({
-    licenseNumber: "",
     contactNumber: "",
+    dutyStatus: "off_duty" as DriverDutyStatus,
   });
   const [editDriverError, setEditDriverError] = useState("");
   const [editDriverSubmitting, setEditDriverSubmitting] = useState(false);
@@ -660,8 +662,8 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
   function openEditDriver(d: FleetDriver) {
     setEditingDriver(d);
     setEditDriverForm({
-      licenseNumber: d.licenseNumber ?? "",
       contactNumber: d.contactNumber ?? "",
+      dutyStatus: (d.dutyStatus as DriverDutyStatus) ?? "off_duty",
     });
     setEditDriverError("");
     setConfirmDeleteDriver(false);
@@ -673,9 +675,14 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     setEditDriverError("");
     try {
       await updateFleetDriver(editingDriver.id, {
-        licenseNumber: editDriverForm.licenseNumber.trim(),
         contactNumber: editDriverForm.contactNumber.trim(),
       });
+      // Duty status lives on its own endpoint — same pattern as the
+      // vehicle-status toggle — so admins can correct it even if the
+      // driver forgot to update it themselves.
+      if (editDriverForm.dutyStatus !== editingDriver.dutyStatus) {
+        await setDriverDutyStatus(editingDriver.id, editDriverForm.dutyStatus);
+      }
       setEditingDriver(null);
       await loadAll();
     } catch (err) {

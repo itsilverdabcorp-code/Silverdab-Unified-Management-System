@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
-import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon } from "lucide-react-native";
+import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
-import { ADUser } from "../../../../../types";
+import { ADUser, displayDepartment } from "../../../../../types";
 import { submitTripRequest, getAllFleetLocations } from "../../../../services/fleetOps";
 import { FleetLocation } from "../../../../../types";
 import FleetLocationPickerMap from "../../tripbooking/FleetLocationPickerMap";
@@ -207,6 +207,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   const [pickupLocationId, setPickupLocationId] = useState<string | null>(null);
   const [dropoffText, setDropoffText] = useState("");
   const [dropoffLocationId, setDropoffLocationId] = useState<string | null>(null);
+  const [pickupLabel, setPickupLabel] = useState("");
+  const [dropoffLabel, setDropoffLabel] = useState("");
 
   // Map pin state — populated automatically when a preset is picked from
   // the dropdown (flies the map to that preset's coords), or set directly
@@ -243,6 +245,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   const [departureTime, setDepartureTime] = useState("");
   const [purpose, setPurpose] = useState("");
 
+  const [step, setStep] = useState<"form" | "confirm">("form");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -275,6 +278,19 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     colorScheme: theme.mode,
   };
 
+  // Rounds a "HH:MM" string to the nearest allowed :00/:30 slot — guards
+  // against manual keyboard entry, since `step` on <input type="time">
+  // only constrains the native picker's scroll increments, not typing.
+  function snapToHalfHour(value: string): string {
+    if (!value) return value;
+    const [hStr, mStr] = value.split(":");
+    let h = Number(hStr);
+    const m = Number(mStr);
+    const snappedMinute = m < 15 ? 0 : m < 45 ? 30 : 0;
+    if (m >= 45) h = (h + 1) % 24;
+    return `${String(h).padStart(2, "0")}:${String(snappedMinute).padStart(2, "0")}`;
+  }
+
   // Small button style for the calendar/clock trigger icon overlaid on
   // each date/time field — clicking it (not the input) opens the picker,
   // so typing directly into the field's segments still works normally.
@@ -299,6 +315,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setPickupLocationId(null);
     setDropoffText("");
     setDropoffLocationId(null);
+    setPickupLabel("");
+    setDropoffLabel("");
     setPickupPoint(null);
     setDropoffPoint(null);
     setActiveMapField("pickup");
@@ -308,6 +326,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setDepartureTime("");
     setPurpose("");
     setError("");
+    setStep("form");
   }
 
   function handleAddPassenger() {
@@ -324,7 +343,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     setPassengers((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleSubmit() {
+  function handleReview() {
     setError("");
 
     if (!pickupPoint || !dropoffPoint) {
@@ -340,6 +359,17 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
       return;
     }
 
+    setStep("confirm");
+  }
+
+  async function handleSubmit() {
+    if (!pickupPoint || !dropoffPoint) {
+      setError("Set both a pickup and drop-off point on the map.");
+      setStep("form");
+      return;
+    }
+
+    setError("");
     setSubmitting(true);
     try {
        // Build the departure datetime as an explicit Philippine-time (+08:00)
@@ -351,14 +381,16 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
       const tripRef = await submitTripRequest({
         pickupLocationId: pickupLocationId ?? undefined,
         pickupLocationText:
-          pickupText.trim() ||
-          pickupPoint.address ||
-          `${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`,
+          (pickupText.trim() ||
+            pickupPoint.address ||
+            `${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`) +
+          (pickupLabel.trim() ? ` (${pickupLabel.trim()})` : ""),
         dropoffLocationId: dropoffLocationId ?? undefined,
         dropoffLocationText:
-          dropoffText.trim() ||
-          dropoffPoint.address ||
-          `${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`,
+          (dropoffText.trim() ||
+            dropoffPoint.address ||
+            `${dropoffPoint.latitude.toFixed(5)}, ${dropoffPoint.longitude.toFixed(5)}`) +
+          (dropoffLabel.trim() ? ` (${dropoffLabel.trim()})` : ""),
         tripType: "oneway",
         departureDatetime,
         purpose: purpose.trim(),
@@ -379,9 +411,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={onClose}
+      <View
         style={{
           flex: 1,
           backgroundColor: "rgba(0,0,0,0.45)",
@@ -477,13 +507,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ padding: isMobile ? 16 : 20, paddingBottom: 30 }}
           >
+            {step === "form" && (
+            <>
             {/* Requestor / Passenger count */}
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <Field label="Requestor" theme={theme}>
                   <View style={[inputStyle, { opacity: 0.7 }]}>
                     <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.textActive ?? theme.text }}>
-                      {user.displayName} {user.department ? `— ${user.department}` : ""}
+                      {user.displayName} {user.department ? `— ${displayDepartment(user.department)}` : ""}
                     </Text>
                   </View>
                 </Field>
@@ -741,21 +773,19 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               <View style={{ flex: 1 }}>
                 <Field label="Label this pickup (optional)" theme={theme}>
                   <LocationSelect
-                    text={pickupText}
+                    text={pickupLabel}
                     locations={locations}
                     loading={loadingLocations}
                     placeholder="e.g. Main office"
                     theme={theme}
                     webInputStyle={webInputStyle}
                     onTextChange={(t) => {
-                      setPickupText(t);
-                      setPickupLabelEdited(true);
+                      setPickupLabel(t);
                       if (pickupLocationId) setPickupLocationId(null);
                     }}
                     onSelect={(loc) => {
-                      setPickupText(loc.name);
+                      setPickupLabel(loc.name);
                       setPickupLocationId(loc.id);
-                      setPickupLabelEdited(true);
                       setActiveMapField("pickup");
                       if (loc.latitude != null && loc.longitude != null) {
                         setPickupPoint({ latitude: loc.latitude, longitude: loc.longitude, address: loc.name });
@@ -767,21 +797,19 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               <View style={{ flex: 1 }}>
                 <Field label="Label this drop-off (optional)" theme={theme}>
                   <LocationSelect
-                    text={dropoffText}
+                    text={dropoffLabel}
                     locations={locations}
                     loading={loadingLocations}
                     placeholder="e.g. Client site"
                     theme={theme}
                     webInputStyle={webInputStyle}
                     onTextChange={(t) => {
-                      setDropoffText(t);
-                      setDropoffLabelEdited(true);
+                      setDropoffLabel(t);
                       if (dropoffLocationId) setDropoffLocationId(null);
                     }}
                     onSelect={(loc) => {
-                      setDropoffText(loc.name);
+                      setDropoffLabel(loc.name);
                       setDropoffLocationId(loc.id);
-                      setDropoffLabelEdited(true);
                       setActiveMapField("dropoff");
                       if (loc.latitude != null && loc.longitude != null) {
                         setDropoffPoint({ latitude: loc.latitude, longitude: loc.longitude, address: loc.name });
@@ -825,9 +853,10 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                     <input
                       ref={departureTimeRef as any}
                       type="time"
+                      step={1800}
                       className={DATE_INPUT_CLASS}
                       value={departureTime}
-                      onChange={(e: any) => setDepartureTime(e.target.value)}
+                      onChange={(e: any) => setDepartureTime(snapToHalfHour(e.target.value))}
                       style={webInputStyle}
                     />
                     <button
@@ -861,8 +890,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
             ) : null}
 
             <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={submitting}
+              onPress={handleReview}
               activeOpacity={0.8}
               style={{
                 backgroundColor: primary,
@@ -872,18 +900,139 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 justifyContent: "center",
                 flexDirection: "row",
                 gap: 8,
-                opacity: submitting ? 0.7 : 1,
                 marginTop: 4,
               }}
             >
-              {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Car size={14} color="#fff" />}
+              <Car size={14} color="#fff" />
               <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                {submitting ? "Submitting…" : "Submit Booking Request"}
+                Review Booking Request
               </Text>
             </TouchableOpacity>
+            </>
+            )}
+
+            {step === "confirm" && (
+              <>
+                <View
+                  style={{
+                    backgroundColor: theme.background,
+                    borderWidth: 1.5,
+                    borderColor: theme.border,
+                    borderRadius: 12,
+                    padding: 15,
+                    marginBottom: 18,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 10,
+                      color: theme.subtext,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.7,
+                      marginBottom: 10,
+                    }}
+                  >
+                    Trip Summary
+                  </Text>
+                  {[
+                    { label: "Requestor", value: `${user.displayName}${user.department ? ` — ${displayDepartment(user.department)}` : ""}` },
+                    { label: "Passengers", value: passengers.length > 0 ? `${passengers.length + 1} (${passengers.join(", ")})` : "1 (just you)" },
+                    {
+                      label: "Pickup",
+                      value:
+                        (pickupText.trim() || pickupPoint?.address || "—") +
+                        (pickupLabel.trim() ? ` (${pickupLabel.trim()})` : ""),
+                    },
+                    {
+                      label: "Drop-off",
+                      value:
+                        (dropoffText.trim() || dropoffPoint?.address || "—") +
+                        (dropoffLabel.trim() ? ` (${dropoffLabel.trim()})` : ""),
+                    },
+                    { label: "Departure", value: departureDate && departureTime ? `${departureDate} ${departureTime}` : "—" },
+                    { label: "Purpose", value: purpose.trim() || "—" },
+                  ].map((row, i, arr) => (
+                    <View
+                      key={row.label}
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingVertical: 7,
+                        borderBottomWidth: i < arr.length - 1 ? 1 : 0,
+                        borderBottomColor: theme.border,
+                        gap: 12,
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.subtext }}>
+                        {row.label}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: theme.textActive ?? theme.text,
+                          flexShrink: 1,
+                          textAlign: "right",
+                        }}
+                      >
+                        {row.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {error ? (
+                  <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>
+                    {error}
+                  </Text>
+                ) : null}
+
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setStep("form")}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 13,
+                      borderRadius: 8,
+                      borderWidth: 1.5,
+                      borderColor: theme.border,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>
+                      Edit
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 2,
+                      backgroundColor: primary,
+                      borderRadius: 8,
+                      paddingVertical: 13,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "row",
+                      gap: 8,
+                      opacity: submitting ? 0.7 : 1,
+                    }}
+                  >
+                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={14} color="#fff" />}
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                      {submitting ? "Submitting…" : "Confirm & Submit"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </ScrollView>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }

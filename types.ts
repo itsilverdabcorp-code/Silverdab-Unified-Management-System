@@ -341,3 +341,111 @@ export type FleetLiveLocation = {
   heading: number | null;
   reportedAt: string;
 };
+
+// ─── Room Reservation types ─────────────────────────────────────────────────
+
+export type RoomName = "Conference Room" | "Meeting Room 1" | "Meeting Room 2";
+
+export type AVRequirement =
+  | "None"
+  | "With video presentation"
+  | "With Audio and Video presentation"
+  | "Audio only";
+
+export type RoomReservationStatus =
+  | "confirmed"
+  | "cancelled"
+  | "completed"
+  | "no_show";
+
+export type RoomReservation = {
+  id: string;
+  bookingId: string;
+  roomRef: string;
+  roomName: RoomName;
+  maxAttendees: number;
+  bookingDate: string; // YYYY-MM-DD
+  startTime: string; // HH:MM:SS
+  endTime: string; // HH:MM:SS
+  timezone?: string;
+  fullName: string;
+  email: string;
+  guestEmails?: string[];
+  specialRequests?: string;
+  avRequirement: AVRequirement;
+  needsWifi: boolean;
+  agenda: string;
+  status: RoomReservationStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ─── Department display labels ──────────────────────────────────────────────
+// Maps the raw AD department value (from users.department) to a short label
+// for display. Anything not in this map is shown exactly as it came from AD.
+export const DEPARTMENT_LABELS: Record<string, string> = {
+  "Admin Staff": "Admin",
+  "BIM Department": "BIM",
+  "Production": "BIM",
+};
+
+export function displayDepartment(dept: string): string {
+  return DEPARTMENT_LABELS[dept] ?? dept;
+}
+
+// Response shape from GET /users/:username/email-preference
+export type EmailPreference = {
+  current: string; // the user's notification_email
+  options: {
+    silverdab: string;
+    ocgbim: string | null;
+  };
+};
+
+// ─── Seat Plan types ─────────────────────────────────────────────────────────
+
+export type SeatPlanRoom = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
+  vertical?: boolean;
+  window?: boolean;
+};
+
+export type SeatPlanPod = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rows: number;
+  cols: number;
+  seats: string[];
+  portrait?: boolean;
+};
+export type SeatPlanDoor = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rot?: 0 | 90;
+};
+
+export type SeatPlanSeat = {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+  rot?: number;
+};
+
+export type SeatPlanLayout = {
+  rooms: SeatPlanRoom[];
+  pods: SeatPlanPod[];
+  seats: SeatPlanSeat[];
+  doors: SeatPlanDoor[];
+};

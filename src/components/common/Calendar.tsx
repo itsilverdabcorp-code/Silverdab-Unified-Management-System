@@ -32,7 +32,13 @@ export type CalendarEvent<T = unknown> = {
 export type CalendarView = "day" | "4days" | "week" | "month";
 
 // ─── Date helpers (self-contained; same mysql2 dateStrings parsing) ─────────
-
+// Strip a leading "H:MM AM/PM – H:MM AM/PM · " prefix from a title when
+// the block is too short to show it usefully — position on the grid
+// already communicates the time; purpose and room/name matter more.
+function displayTitle(title: string, height: number): string {
+  if (height > 34) return title;
+  return title.replace(/^\d{1,2}:\d{2}\s?[AP]M\s?–\s?\d{1,2}:\d{2}\s?[AP]M\s?·\s?/i, "");
+}
 const HOUR_HEIGHT = 48; // px per hour row in the time grid
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -80,6 +86,76 @@ function addDays(d: Date, n: number): Date {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
   return r;
+}
+
+// "1:00 PM – 2:00 PM" (or just the start time if there's no end).
+function formatEventTime(start?: string | null, end?: string | null): string {
+  const startMs = parseLocalMs(start);
+  if (isNaN(startMs)) return "";
+  const startStr = new Date(startMs).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const endMs = parseLocalMs(end);
+  if (isNaN(endMs)) return startStr;
+  const endStr = new Date(endMs).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${startStr} – ${endStr}`;
+}
+
+// Custom hover tooltip — follows the cursor, shows the full title/subtitle/
+// time instead of relying on the browser's native (slow, unstyled) title
+// attribute tooltip. Positioned with `fixed` so it's unaffected by any
+// scrolling/overflow on the calendar grid it's rendered inside.
+function EventTooltip({
+  event,
+  x,
+  y,
+  theme,
+}: {
+  event: CalendarEvent;
+  x: number;
+  y: number;
+  theme: any;
+}) {
+  const timeStr = formatEventTime(event.start, event.end);
+  return (
+    <div
+      className="fixed z-[9999] pointer-events-none rounded-lg shadow-lg px-3 py-2"
+      style={{
+        left: x + 14,
+        top: y + 14,
+        maxWidth: 260,
+        backgroundColor: theme.surface,
+        border: `1px solid ${theme.border}`,
+      }}
+    >
+      <p
+        className="text-[11.5px] font-semibold leading-tight"
+        style={{ color: theme.text }}
+      >
+        {event.title}
+      </p>
+      {event.subtitle && (
+        <p
+          className="text-[10.5px] mt-0.5 leading-tight"
+          style={{ color: theme.subtext }}
+        >
+          {event.subtitle}
+        </p>
+      )}
+      {timeStr && (
+        <p
+          className="text-[10px] mt-1.5 font-semibold"
+          style={{ color: event.color.dot }}
+        >
+          {timeStr}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // Day columns for a time-grid view, anchored on `anchor`. Month returns [].
@@ -159,6 +235,14 @@ function TimeGridView({
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const todayKey = dateKeyLocal(new Date());
+
+  // Tracks whichever event block is currently under the cursor, plus the
+  // live cursor position, so the tooltip can follow the mouse.
+  const [hover, setHover] = useState<{
+    event: CalendarEvent;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Open around business hours instead of midnight.
   React.useEffect(() => {
@@ -291,47 +375,146 @@ function TimeGridView({
                   />
                 ))}
 
-                {/* Events */}
-                {dayEvents.map((e) => {
-                  const startMin = minutesFromMidnight(e.start);
-                  if (isNaN(startMin)) return null;
-                  const endMin = minutesFromMidnight(e.end);
-                  const dur =
-                    !isNaN(endMin) && endMin > startMin
-                      ? endMin - startMin
-                      : 45;
-                  const top = (startMin / 60) * HOUR_HEIGHT;
-                  const height = Math.max((dur / 60) * HOUR_HEIGHT, 22);
-                  return (
+                {/* Events — overlap-aware. Events whose time ranges overlap
+                    (e.g. two rooms booked at the same hour) are grouped
+                    into a cluster and rendered as a taller, stacked block
+                    with one row per booking, instead of sitting exactly on
+                    top of each other where only the last one stays visible. */}
+                                {(() => {
+                  const timed = dayEvents
+                    .map((e) => {
+                      const startMin = minutesFromMidnight(e.start);
+                      if (isNaN(startMin)) return null;
+                      const endMinRaw = minutesFromMidnight(e.end);
+                      const endMin =
+                        !isNaN(endMinRaw) && endMinRaw > startMin
+                          ? endMinRaw
+                          : startMin + 45;
+                      return { e, startMin, endMin };
+                    })
+                    .filter(
+                      (x): x is { e: CalendarEvent; startMin: number; endMin: number } =>
+                        x !== null,
+                    );
+
+                  timed.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+                  const clusters: (typeof timed)[] = [];
+                  let runningMaxEnd = -Infinity;
+                  for (const item of timed) {
+                    if (clusters.length > 0 && item.startMin < runningMaxEnd) {
+                      clusters[clusters.length - 1].push(item);
+                    } else {
+                      clusters.push([item]);
+                    }
+                    runningMaxEnd = Math.max(runningMaxEnd, item.endMin);
+                  }
+
+                  const MIN_COL_WIDTH = 90;
+
+                  const renderBlock = (
+                    e: CalendarEvent,
+                    top: number,
+                    height: number,
+                    style: React.CSSProperties,
+                    inColumn: boolean = false,
+                  ) => (
                     <button
                       key={e.id}
                       onClick={() => onEventClick(e)}
-                      className="absolute left-1 right-1 rounded px-1.5 py-0.5 text-left overflow-hidden z-10"
+                      onMouseEnter={(ev) =>
+                        setHover({ event: e, x: ev.clientX, y: ev.clientY })
+                      }
+                      onMouseMove={(ev) =>
+                        setHover((h) =>
+                          h ? { ...h, x: ev.clientX, y: ev.clientY } : h,
+                        )
+                      }
+                      onMouseLeave={() => setHover(null)}
+                      className="rounded px-1.5 py-0.5 text-left overflow-hidden flex flex-col justify-center"
                       style={{
                         top,
                         height,
                         backgroundColor: e.color.bg,
                         color: e.color.text,
                         borderLeft: `3px solid ${e.color.dot}`,
+                        ...style,
                       }}
-                      title={
-                        e.subtitle ? `${e.title} ${e.subtitle}` : e.title
-                      }
                     >
                       <span className="block text-[10px] font-semibold truncate">
-                        {e.title}
+                        {inColumn ? displayTitle(e.title, 0) : displayTitle(e.title, height)}
                       </span>
-                      {height > 30 && e.subtitle && (
-                        <span
-                          className="block text-[9px] truncate"
-                          style={{ opacity: 0.85 }}
-                        >
+                      {e.subtitle && (height > 30 || inColumn) && (
+                        <span className="block text-[9px] truncate" style={{ opacity: 0.85 }}>
                           {e.subtitle}
                         </span>
                       )}
                     </button>
                   );
-                })}
+
+                  return clusters.flatMap((cluster) => {
+                    if (cluster.length === 1) {
+                      const { e, startMin, endMin } = cluster[0];
+                      const top = (startMin / 60) * HOUR_HEIGHT;
+                      const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 22);
+                      return [
+                        renderBlock(e, top, height, { position: "absolute", left: 4, right: 4, zIndex: 10 }),
+                      ];
+                    }
+
+                    const columns: (typeof timed)[] = [];
+                    cluster.forEach((item) => {
+                      let placed = false;
+                      for (const col of columns) {
+                        if (col[col.length - 1].endMin <= item.startMin) {
+                          col.push(item);
+                          placed = true;
+                          break;
+                        }
+                      }
+                      if (!placed) columns.push([item]);
+                    });
+                    const colCount = columns.length;
+                    const clusterTop = (cluster[0].startMin / 60) * HOUR_HEIGHT;
+                    const clusterBottom = Math.max(...cluster.map((c) => c.endMin));
+                    const clusterHeight =
+                      ((clusterBottom - cluster[0].startMin) / 60) * HOUR_HEIGHT;
+                    const needsScroll = colCount * MIN_COL_WIDTH > 300;
+
+                    return [
+                      <div
+                        key={`cluster-${cluster[0].e.id}`}
+                        className="absolute left-1 right-1 z-10 overflow-x-auto cal-scroll"
+                        style={{
+                          top: clusterTop,
+                          height: clusterHeight,
+                          display: needsScroll ? "flex" : "block",
+                          gap: needsScroll ? 2 : 0,
+                        }}
+                      >
+                        {columns.map((col, ci) =>
+                          col.map(({ e, startMin, endMin }) => {
+                            const top = (startMin / 60) * HOUR_HEIGHT - clusterTop;
+                            const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 22);
+                            return renderBlock(
+                              e,
+                              top,
+                              height,
+                              needsScroll
+                                ? { position: "relative", flex: `0 0 ${MIN_COL_WIDTH}px` }
+                                : {
+                                    position: "absolute",
+                                    left: `${(ci / colCount) * 100}%`,
+                                    width: `calc(${100 / colCount}% - 2px)`,
+                                  },
+                              true,
+                            );
+                          }),
+                        )}
+                      </div>,
+                    ];
+                  });
+                })()}
 
                 {/* Now line */}
                 {isToday && (
@@ -358,6 +541,9 @@ function TimeGridView({
           })}
         </div>
       </div>
+      {hover && (
+        <EventTooltip event={hover.event} x={hover.x} y={hover.y} theme={theme} />
+      )}
     </div>
   );
 }
@@ -382,6 +568,12 @@ function MonthGridView({
     new Date(anchor.getFullYear(), anchor.getMonth(), 1),
   );
 
+  const [hover, setHover] = useState<{
+    event: CalendarEvent;
+    x: number;
+    y: number;
+  } | null>(null);
+
   return (
     <div className="cal-scroll flex-1 min-w-0 overflow-auto flex flex-col">
       {/* Weekday header */}
@@ -402,7 +594,9 @@ function MonthGridView({
         {cells.map((day, i) => {
           const inMonth = day.getMonth() === anchor.getMonth();
           const key = dateKeyLocal(day);
-          const dayEvents = events.filter((e) => eventDateKey(e.start) === key);
+          const dayEvents = events
+            .filter((e) => eventDateKey(e.start) === key)
+            .sort((a, b) => minutesFromMidnight(a.start) - minutesFromMidnight(b.start));
           const isToday = key === todayKey;
           const clickable = !!onDateClick && dayEvents.length > 0;
           return (
@@ -431,9 +625,18 @@ function MonthGridView({
                       ev.stopPropagation();
                       onEventClick(e);
                     }}
+                    onMouseEnter={(ev) => {
+                      ev.stopPropagation();
+                      setHover({ event: e, x: ev.clientX, y: ev.clientY });
+                    }}
+                    onMouseMove={(ev) =>
+                      setHover((h) =>
+                        h ? { ...h, x: ev.clientX, y: ev.clientY } : h,
+                      )
+                    }
+                    onMouseLeave={() => setHover(null)}
                     style={{ backgroundColor: e.color.bg, color: e.color.text }}
                     className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded truncate text-left"
-                    title={e.subtitle ? `${e.title} ${e.subtitle}` : e.title}
                   >
                     {e.title}
                   </button>
@@ -451,6 +654,9 @@ function MonthGridView({
           );
         })}
       </div>
+      {hover && (
+        <EventTooltip event={hover.event} x={hover.x} y={hover.y} theme={theme} />
+      )}
     </div>
   );
 }

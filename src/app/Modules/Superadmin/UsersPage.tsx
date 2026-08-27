@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ADUser, UserPermissions } from "../../../../types";
+import { ADUser, UserPermissions, displayDepartment } from "../../../../types";
 import { useTheme } from "../../../theme/ThemeContext";
 import {
   clearUsers,
@@ -256,7 +256,7 @@ export function SuperadminDashboard({ currentUser }: Props) {
                   {user.displayName || user.username}
                 </Text>
                 <Text className="text-xs" style={{ color: theme.subtext }}>
-                  {user.role} · {user.department || "No department"}
+                  {user.role} · {user.department ? displayDepartment(user.department) : "No department"}
                 </Text>
               </View>
             </View>
@@ -917,7 +917,7 @@ export default function UsersPage({ currentUser }: Props) {
                     className="text-xs mt-0.5"
                     style={{ color: theme.subtext }}
                   >
-                    {item.username} · {item.department || "No department"}
+                    {item.username} · {item.department ? displayDepartment(item.department) : "No department"}
                   </Text>
 
                   <View className="flex-row flex-wrap gap-1 mt-1.5">
@@ -1123,7 +1123,7 @@ export default function UsersPage({ currentUser }: Props) {
                         className="text-xs mt-0.5"
                         style={{ color: theme.subtext }}
                       >
-                        {item.username} · {item.department || "No department"}
+                        {item.username} · {item.department ? displayDepartment(item.department) : "No department"}
                       </Text>
                     </View>
                     {isGranting ? (
@@ -1260,7 +1260,7 @@ export default function UsersPage({ currentUser }: Props) {
                         className="text-xs mt-0.5"
                         style={{ color: theme.subtext }}
                       >
-                        {item.username} · {item.department || "No department"}
+                        {item.username} · {item.department ? displayDepartment(item.department) : "No department"}
                       </Text>
                     </View>
                     {isPromoting ? (

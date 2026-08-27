@@ -581,6 +581,51 @@ export const ActivityIcon: React.FC<{ color: string; size?: number }> = ({
   </Svg>
 );
 
+export const SeatPlanIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect x="3" y="3" width="18" height="18" rx="2" stroke={color} strokeWidth="2" />
+    <Rect x="6" y="7" width="4" height="3" rx="0.5" fill={color} />
+    <Rect x="14" y="7" width="4" height="3" rx="0.5" fill={color} opacity="0.7" />
+    <Rect x="6" y="14" width="4" height="3" rx="0.5" fill={color} opacity="0.7" />
+    <Rect x="14" y="14" width="4" height="3" rx="0.5" fill={color} opacity="0.5" />
+  </Svg>
+);
+
+export const RoomReservationIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="3"
+      y="4"
+      width="18"
+      height="17"
+      rx="2"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16 2v4M8 2v4M3 10h18"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M8 14.5h2M8 17.5h2M14 14.5h2M14 17.5h2"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
 // ─── Route map ──────────────────────────────────────────────────────────────
 // Single source of truth for "key -> browser URL". Adjust these to whatever
 // paths make sense for your app (they don't have to match real files since
@@ -590,6 +635,7 @@ const ROUTE_BY_KEY: Record<string, string> = {
   dashboard: "/dashboard",
   users: "/users",
   audit: "/audit-trail",
+  seatplan: "/it/seat-plan",
   tickets: "/it/tickets",
   inventory: "/it/inventory",
   consumables: "/it/consumables",
@@ -605,6 +651,7 @@ const ROUTE_BY_KEY: Record<string, string> = {
   fleetadmin: "/fleet/control-tower",
   fleetdriver: "/fleet/driver-view",
   fleettrips: "/fleet/all-trips",
+  roomreservation: "/facilities/room-reservation",
 };
 
 function href(key: string): string {
@@ -620,6 +667,29 @@ export type NavSection = {
 
 export const MENU_BY_ROLE: Record<string, NavSection[]> = {
   superadmin: [
+    {
+      sectionLabel: "Employee",
+      items: [
+        // {
+        //   key: "submitticket",
+        //   label: "Submit Ticket",
+        //   icon: SubmitTicketIcon,
+        //   href: href("submitticket"),
+        // },
+        {
+          key: "mytickets",
+          label: "My Tickets",
+          icon: MyTicketsIcon,
+          href: href("mytickets"),
+        },
+        // {
+        //   key: "supplyinventory",
+        //   label: "Supply Inventory",
+        //   icon: SuppliesIcon,
+        //   href: href("supplyinventory"),
+        // },
+      ],
+    },
     {
       sectionLabel: "Superadmin",
       items: [
@@ -664,6 +734,12 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           label: "Audit Trail",
           icon: AuditIcon,
           href: href("audit"),
+        },
+        {
+          key: "seatplan",
+          label: "Seat Plan",
+          icon: SeatPlanIcon,
+          href: href("seatplan"),
         },
       ],
     },
@@ -727,28 +803,17 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
       ],
     },
     {
-      sectionLabel: "Employee",
+      sectionLabel: "Facilities",
       items: [
-        // {
-        //   key: "submitticket",
-        //   label: "Submit Ticket",
-        //   icon: SubmitTicketIcon,
-        //   href: href("submitticket"),
-        // },
         {
-          key: "mytickets",
-          label: "My Tickets",
-          icon: MyTicketsIcon,
-          href: href("mytickets"),
+          key: "roomreservation",
+          label: "Room Reservation",
+          icon: RoomReservationIcon,
+          href: href("roomreservation"),
         },
-        // {
-        //   key: "supplyinventory",
-        //   label: "Supply Inventory",
-        //   icon: SuppliesIcon,
-        //   href: href("supplyinventory"),
-        // },
       ],
     },
+    
   ],
   admin: [
     {
@@ -839,6 +904,17 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           label: "All Trips",
           icon: FleetTripsIcon,
           href: href("fleettrips"),
+        },
+      ],
+    },
+    {
+      sectionLabel: "Facilities",
+      items: [
+        {
+          key: "roomreservation",
+          label: "Room Reservation",
+          icon: RoomReservationIcon,
+          href: href("roomreservation"),
         },
       ],
     },
@@ -975,7 +1051,36 @@ export function getNavSectionsForUser(user: {
         ]
       : [];
 
-    const sections: NavSection[] = [baseSection];
+    const sections: NavSection[] = [];
+
+    // A "driver-only" user has fleetDriver and nothing else — they should
+    // see just Driver View, with no My Tickets / IT / Office Supplies /
+    // Control Tower / Room Reservation clutter.
+    const isDriverOnly =
+      Boolean(user.permissions?.fleetDriver) &&
+      !user.permissions?.itAccess &&
+      !hasOfficeSuppliesAccess &&
+      !user.permissions?.fleetControl;
+
+    // Drivers get Driver View pinned to the very top of their nav, ahead
+    // of everything else (My Tickets, IT, Office Supplies, etc).
+    if (user.permissions?.fleetDriver) {
+      sections.push({
+        sectionLabel: "Fleet Management",
+        items: [
+          {
+            key: "fleetdriver",
+            label: "Driver View",
+            icon: FleetDriverIcon,
+            href: href("fleetdriver"),
+          },
+        ],
+      });
+    }
+
+    if (!isDriverOnly) {
+      sections.push(baseSection);
+    }
 
     if (itItems.length > 0)
       sections.push({ sectionLabel: "IT", items: itItems });
@@ -983,16 +1088,16 @@ export function getNavSectionsForUser(user: {
     if (officeItems.length > 0)
       sections.push({ sectionLabel: "Office Supplies", items: officeItems });
 
-   const fleetItems: NavItem[] = [];
+    const fleetControlItems: NavItem[] = [];
 
     if (user.permissions?.fleetControl) {
-      fleetItems.push({
+      fleetControlItems.push({
         key: "fleetadmin",
         label: "Control Tower",
         icon: FleetControlIcon,
         href: href("fleetadmin"),
       });
-      fleetItems.push({
+      fleetControlItems.push({
         key: "fleettrips",
         label: "All Trips",
         icon: FleetTripsIcon,
@@ -1000,17 +1105,25 @@ export function getNavSectionsForUser(user: {
       });
     }
 
-    if (user.permissions?.fleetDriver) {
-      fleetItems.push({
-        key: "fleetdriver",
-        label: "Driver View",
-        icon: FleetDriverIcon,
-        href: href("fleetdriver"),
-      });
+    if (fleetControlItems.length > 0) {
+      sections.push({ sectionLabel: "Fleet Management", items: fleetControlItems });
     }
 
-    if (fleetItems.length > 0) {
-      sections.push({ sectionLabel: "Fleet Management", items: fleetItems });
+    // Room Reservation is available to every employee/admin, independent
+    // of the Office Supplies permission toggle — except driver-only users,
+    // who should see nothing but Driver View.
+    if (!isDriverOnly) {
+      sections.push({
+        sectionLabel: "Facilities",
+        items: [
+          {
+            key: "roomreservation",
+            label: "Room Reservation",
+            icon: RoomReservationIcon,
+            href: href("roomreservation"),
+          },
+        ],
+      });
     }
 
     return sections;

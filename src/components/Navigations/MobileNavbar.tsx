@@ -76,6 +76,8 @@ export default function MobileNavbar({
         user.permissions?.officeSupplies ||
         (user.permissions as any)?.officesupplies,
       ),
+      fleetControl: Boolean(user.permissions?.fleetControl),
+      fleetDriver: Boolean(user.permissions?.fleetDriver),
     },
   };
 
