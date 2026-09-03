@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "174080436673",
+    "project_id": "sum-push",
+    "storage_bucket": "sum-push.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:174080436673:android:909ab1c9dbc582b6ce2740",
+        "android_client_info": {
+          "package_name": "com.hpatenio.silverdabums"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY4I0e9V9-dcCl7EggsqaoP2IttL4SkrM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

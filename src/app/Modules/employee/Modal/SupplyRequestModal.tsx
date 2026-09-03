@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   TextInput,
   Modal,
@@ -152,18 +153,92 @@ function ItemPickerSheet({
     setActiveCategory("All");
   }, []);
 
-  const categories = [
-    "All",
-    ...Array.from(new Set(items.map((i) => i.category))).sort(),
-  ];
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(items.map((i) => i.category))).sort()],
+    [items],
+  );
 
-  const filtered = items.filter((i) => {
-    const matchSearch =
-      i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.itemCode.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === "All" || i.category === activeCategory;
-    return matchSearch && matchCat && !alreadyAdded.includes(i.id);
-  });
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return items.filter((i) => {
+      const matchSearch =
+        i.name.toLowerCase().includes(q) || i.itemCode.toLowerCase().includes(q);
+      const matchCat = activeCategory === "All" || i.category === activeCategory;
+      return matchSearch && matchCat && !alreadyAdded.includes(i.id);
+    });
+  }, [items, search, activeCategory, alreadyAdded]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: OfficeInventoryItem }) => {
+      const status = resolveStockStatus(item);
+      return (
+        <TouchableOpacity
+          onPress={() => onSelect(item)}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 9,
+              backgroundColor: theme.background,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 11,
+            }}
+          >
+            <Package size={16} color={theme.subtext} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: "Outfit-SemiBold",
+                fontSize: 13,
+                color: theme.textActive,
+              }}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 3,
+              }}
+            >
+              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
+                {item.itemCode}
+              </Text>
+              <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
+              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
+                {item.category}
+              </Text>
+              <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
+              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
+                {item.currentStock} {item.unit}
+              </Text>
+            </View>
+          </View>
+          <View style={{ alignItems: "flex-end", gap: 5 }}>
+            <StockBadge status={status} />
+            <ChevronRight size={13} color={theme.subtext} />
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [onSelect, theme],
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -246,7 +321,6 @@ function ItemPickerSheet({
             placeholderTextColor={theme.subtext}
             value={search}
             onChangeText={setSearch}
-            autoFocus
             style={{
               flex: 1,
               fontFamily: "Outfit",
@@ -304,13 +378,20 @@ function ItemPickerSheet({
         ))}
       </ScrollView>
 
-      {/* Item list — takes all remaining space */}
-      <ScrollView
+      {/* Item list — virtualized so only visible rows render */}
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-      >
-        {filtered.length === 0 ? (
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={7}
+        removeClippedSubviews
+        ListEmptyComponent={
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
             <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
             <Text
@@ -333,96 +414,8 @@ function ItemPickerSheet({
               Try a different search or category
             </Text>
           </View>
-        ) : (
-          filtered.map((item) => {
-            const status = resolveStockStatus(item);
-            return (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => onSelect(item)}
-                activeOpacity={0.7}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 12,
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.border,
-                }}
-              >
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 9,
-                    backgroundColor: theme.background,
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 11,
-                  }}
-                >
-                  <Package size={16} color={theme.subtext} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-SemiBold",
-                      fontSize: 13,
-                      color: theme.textActive,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {item.name}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                      marginTop: 3,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: "Outfit",
-                        fontSize: 11,
-                        color: theme.subtext,
-                      }}
-                    >
-                      {item.itemCode}
-                    </Text>
-                    <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
-                    <Text
-                      style={{
-                        fontFamily: "Outfit",
-                        fontSize: 11,
-                        color: theme.subtext,
-                      }}
-                    >
-                      {item.category}
-                    </Text>
-                    <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
-                    <Text
-                      style={{
-                        fontFamily: "Outfit",
-                        fontSize: 11,
-                        color: theme.subtext,
-                      }}
-                    >
-                      {item.currentStock} {item.unit}
-                    </Text>
-                  </View>
-                  </View>
-                <View style={{ alignItems: "flex-end", gap: 5 }}>
-                  <StockBadge status={status} />
-                  <ChevronRight size={13} color={theme.subtext} />
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
+        }
+      />
     </View>
   );
 }

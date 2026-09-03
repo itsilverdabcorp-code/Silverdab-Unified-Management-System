@@ -46,8 +46,8 @@ export const DEFAULT_SEAT_PLAN_LAYOUT_UNIT_1_2: SeatPlanLayout = {
 export type SeatPlanKey = "unit3" | "unit1_2";
 
 export const SEAT_PLAN_OPTIONS: { key: SeatPlanKey; label: string; defaultLayout: SeatPlanLayout }[] = [
-  { key: "unit3", label: "Unit 3", defaultLayout: DEFAULT_SEAT_PLAN_LAYOUT },
   { key: "unit1_2", label: "Unit 1 & 2", defaultLayout: DEFAULT_SEAT_PLAN_LAYOUT_UNIT_1_2 },
+  { key: "unit3", label: "Unit 3", defaultLayout: DEFAULT_SEAT_PLAN_LAYOUT },
 ];
 
 export const DOOR_W = 36; // horizontal door (rot 0)

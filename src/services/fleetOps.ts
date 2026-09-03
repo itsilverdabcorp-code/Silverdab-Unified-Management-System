@@ -189,6 +189,8 @@ function mapDriverRow(row: any): FleetDriver {
     vehicleId: row.vehicleId ?? null,
     vehiclePlate: row.vehiclePlate ?? null,
     dutyStatus: row.dutyStatus ?? "off_duty",
+    shiftStart: row.shiftStart ?? null,
+    shiftEnd: row.shiftEnd ?? null,
   };
 }
 
@@ -809,5 +811,28 @@ export async function setDriverDutyStatus(
   );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to update duty status.");
+  }
+}
+
+// ─── DRIVER SHIFT (one of the 3 fixed windows — drives auto duty status) ───
+
+export async function setDriverShift(
+  driverId: string,
+  shiftStart: string,
+  shiftEnd: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/drivers/${encodeURIComponent(driverId)}/shift`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify({ shiftStart, shiftEnd }),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to update shift.");
   }
 }

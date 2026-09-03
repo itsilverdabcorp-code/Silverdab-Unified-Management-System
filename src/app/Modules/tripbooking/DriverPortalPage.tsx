@@ -78,6 +78,7 @@ import {
   Linking,
 } from "react-native";
 import { useTheme } from "../../../theme/ThemeContext";
+import Svg, { Path, Circle } from "react-native-svg";
 import {
   getAllFleetTrips,
   getAllFleetVehicles,
@@ -89,6 +90,8 @@ import {
   completeFleetTrip,
   setDriverDutyStatus,
 } from "../../../services/fleetOps";
+import { findShiftOption, computeAutoDutyStatus } from "@/utils/shiftUtils";
+import { setupExpoPushNotifications } from "../../../services/pushNotifications";
 import {
   ADUser,
   FleetTrip,
@@ -166,7 +169,7 @@ const STATUS_COLORS: Record<TripStatus, { bg: string; text: string }> = {
   ongoing: { bg: "#dcfce7", text: "#166534" },
   arrived: { bg: "#dbeafe", text: "#1d4ed8" },
   returning: { bg: "#fef3c7", text: "#92400e" },
-  completed: { bg: "#e2e8f0", text: "#334155" },
+  completed: { bg: "#dcfce7", text: "#166534" },
   cancelled: { bg: "#fee2e2", text: "#991b1b" },
   rejected: { bg: "#fee2e2", text: "#991b1b" },
 };
@@ -198,7 +201,7 @@ function nextDriverAction(trip: FleetTrip): NextAction | null {
   }
   if (trip.status === "ongoing") {
     return trip.tripType === "oneway"
-      ? { label: "Arrived", next: "completed", color: "#0E9E8F" }
+      ? { label: "Complete", next: "completed", color: "#0E9E8F" }
       : { label: "Arrived", next: "arrived", color: "#3D6FE0" };
   }
   if (trip.status === "arrived") {
@@ -207,7 +210,7 @@ function nextDriverAction(trip: FleetTrip): NextAction | null {
     return { label: "Start Return", next: "returning", color: "#E6952B" };
   }
   if (trip.status === "returning") {
-    return { label: "Arrived", next: "completed", color: "#0E9E8F" };
+    return { label: "Complete", next: "completed", color: "#0E9E8F" };
   }
   return null;
 }
@@ -344,6 +347,67 @@ function LateBadge() {
   );
 }
 
+function AssignedVehicleRow({
+  plateNumber,
+  theme,
+}: {
+  plateNumber?: string;
+  theme: any;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 16,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Svg
+          width={18}
+          height={18}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={theme.subtext}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <Path d="M10 17h4V5H2v12h3" />
+          <Path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5" />
+          <Circle cx={7.5} cy={17.5} r={2.5} />
+          <Circle cx={17.5} cy={17.5} r={2.5} />
+        </Svg>
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 13,
+            color: theme.textActive ?? theme.text,
+          }}
+        >
+          Assigned Vehicle
+        </Text>
+      </View>
+      <Text
+        style={{
+          fontFamily: "Outfit-medium",
+          fontSize: 13,
+          color: theme.subtext,
+        }}
+      >
+        {plateNumber ?? "—"}
+      </Text>
+    </View>
+  );
+}
+
 function StatCard({
   value,
   label,
@@ -392,87 +456,182 @@ function StatCard({
   );
 }
 
-// Segmented Off Duty / On Duty / Personal Use control. Locks (dimmed,
-// untappable) while `locked` is true — i.e. the driver has a trip actually
-// in progress — with a short explanatory line underneath.
-function DutyStatusSelector({
+// Big hero status card matching the design: full-bleed colored card (green
+// = On Duty, slate/blue = Off Duty, orange = Personal Use), a van icon,
+// title + subtitle, and two stacked action buttons — a primary "switch to
+// the other inactive state" pill and a secondary "toggle on/off duty" pill.
+// Locks (dimmed, untappable) while `locked` is true — i.e. the driver has
+// a trip actually in progress.
+
+const DUTY_STATUS_CARD_STYLE: Record<
+  DriverDutyStatus,
+  { bg: string; title: string; subtitle: string }
+> = {
+  active: {
+    bg: "#22B573",
+    title: "You're On Duty",
+    subtitle: "Available for trip assignment",
+  },
+  off_duty: {
+    bg: "#5B8BA6",
+    title: "You're Off Duty",
+    subtitle: "Not available for trip assignment",
+  },
+  personal: {
+    bg: "#E6952B",
+    title: "Personal Use",
+    subtitle: "Not available for trip assignment",
+  },
+};
+
+function VanIcon({ color, slashed }: { color: string; slashed?: boolean }) {
+  return (
+    <Svg
+      width={30}
+      height={30}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+      <Circle cx={7} cy={17} r={2} />
+      <Path d="M9 17h6" />
+      <Circle cx={17} cy={17} r={2} />
+      {slashed && <Path d="M3 20 21 3" />}
+    </Svg>
+  );
+}
+
+function DutyStatusCard({
   current,
   locked,
   busy,
   theme,
+  shiftLabel,
   onSelect,
 }: {
   current: DriverDutyStatus;
   locked: boolean;
   busy: boolean;
   theme: any;
+  shiftLabel: string;
   onSelect: (status: DriverDutyStatus) => void;
 }) {
   const disabled = locked || busy;
+  const cardStyle = DUTY_STATUS_CARD_STYLE[current];
+
+  // On Duty / Off Duty is now driven automatically by the driver's
+  // assigned shift (computeAutoDutyStatus) — no manual toggle for it.
+  // The only thing still settable by hand is Personal Use, layered on top
+  // of the shift; tapping it again clears the override and hands control
+  // back to the shift.
+  const primaryLabel = current === "personal" ? "End Personal Use" : "Switch to Personal Use";
+  const primaryTarget: DriverDutyStatus = current === "personal" ? "off_duty" : "personal";
+
   return (
-    <View style={{ marginBottom: 16 }}>
-      <Text
+    <View
+      style={{
+        backgroundColor: cardStyle.bg,
+        borderRadius: 20,
+        padding: 24,
+        alignItems: "center",
+        marginBottom: 16,
+        opacity: disabled ? 0.75 : 1,
+      }}
+    >
+      <View
         style={{
-          fontFamily: "Outfit-medium",
-          fontSize: 11,
-          color: theme.subtext,
-          textTransform: "uppercase",
-          letterSpacing: 0.4,
-          marginBottom: 6,
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          backgroundColor: "rgba(255,255,255,0.22)",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 14,
         }}
       >
-        Duty status
-      </Text>
-      <View
-        style={{ flexDirection: "row", gap: 8, opacity: disabled ? 0.5 : 1 }}
-      >
-        {DUTY_STATUS_OPTIONS.map((opt) => {
-          const active = opt.key === current;
-          return (
-            <TouchableOpacity
-              key={opt.key}
-              onPress={() => !disabled && onSelect(opt.key)}
-              disabled={disabled}
-              activeOpacity={0.85}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: active ? opt.color : theme.surface,
-                borderWidth: 1,
-                borderColor: active ? opt.color : theme.border,
-              }}
-            >
-              {busy && active ? (
-                <ActivityIndicator
-                  size="small"
-                  color={active ? "#fff" : opt.color}
-                />
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: "Outfit-medium",
-                    fontSize: 11.5,
-                    color: active ? "#fff" : theme.subtext,
-                    textAlign: "center",
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        <VanIcon color="#fff" slashed={current === "off_duty"} />
       </View>
+      <Text
+        style={{
+          fontFamily: "Outfit-Bold",
+          fontSize: 18,
+          color: "#fff",
+          marginBottom: 4,
+        }}
+      >
+        {cardStyle.title}
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Outfit",
+          fontSize: 12.5,
+          color: "rgba(255,255,255,0.85)",
+          marginBottom: 14,
+        }}
+      >
+        {cardStyle.subtitle}
+      </Text>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 7,
+          backgroundColor: "rgba(0,0,0,0.18)",
+          borderRadius: 999,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          marginBottom: 18,
+        }}
+      >
+        <MetaIcon name="clock" color="#fff" />
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 12.5,
+            color: "#fff",
+          }}
+        >
+          Shift: {shiftLabel}
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => !disabled && onSelect(primaryTarget)}
+        disabled={disabled}
+        activeOpacity={0.85}
+        style={{
+          width: "100%",
+          borderWidth: 1.5,
+          borderColor: "rgba(255,255,255,0.6)",
+          borderRadius: 10,
+          paddingVertical: 12,
+          alignItems: "center",
+        }}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text
+            style={{ fontFamily: "Outfit-medium", fontSize: 13.5, color: "#fff" }}
+          >
+            {primaryLabel}
+          </Text>
+        )}
+      </TouchableOpacity>
+
       {locked && (
         <Text
           style={{
             fontFamily: "Outfit",
             fontSize: 11,
-            color: theme.subtext,
-            marginTop: 6,
+            color: "rgba(255,255,255,0.85)",
+            marginTop: 12,
+            textAlign: "center",
           }}
         >
           You're on a trip right now — duty status is locked until it's
@@ -483,160 +642,271 @@ function DutyStatusSelector({
   );
 }
 
+function MetaIcon({ name, color }: { name: "clock" | "person" | "car" | "nav"; color: string }) {
+  const common = {
+    fill: "none",
+    stroke: color,
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (name === "clock") {
+    return (
+      <Svg width={16} height={16} viewBox="0 0 24 24" {...common}>
+        <Circle cx={12} cy={12} r={10} />
+        <Path d="M12 6v6l4 2" />
+      </Svg>
+    );
+  }
+  if (name === "person") {
+    return (
+      <Svg width={16} height={16} viewBox="0 0 24 24" {...common}>
+        <Circle cx={12} cy={8} r={4} />
+        <Path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+      </Svg>
+    );
+  }
+  if (name === "nav") {
+    return (
+      <Svg width={16} height={16} viewBox="0 0 24 24" {...common}>
+        <Path d="m3 11 18-8-8 18-2-8-8-2Z" />
+      </Svg>
+    );
+  }
+  // car
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" {...common}>
+      <Path d="M10 17h4V5H2v12h3" />
+      <Path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5" />
+      <Circle cx={7.5} cy={17.5} r={2.5} />
+      <Circle cx={17.5} cy={17.5} r={2.5} />
+    </Svg>
+  );
+}
+
 function TripCard({
   trip,
   theme,
   busy,
+  isNext,
+  locations,
   onAdvance,
   onViewDetails,
 }: {
   trip: FleetTrip;
   theme: any;
   busy: boolean;
+  isNext?: boolean;
+  locations: FleetLocation[];
   onAdvance: (trip: FleetTrip) => void;
   onViewDetails: (trip: FleetTrip) => void;
 }) {
   const action = nextDriverAction(trip);
   const late = isTripLate(trip);
+  const pickupCoords = findLocationCoords(trip.pickupLocationId, locations);
+  const dropoffCoords = findLocationCoords(trip.dropoffLocationId, locations);
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
+      activeOpacity={0.85}
       onPress={() => onViewDetails(trip)}
       style={{
         backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: theme.border,
-        borderRadius: 12,
-        padding: 14,
+        borderRadius: 14,
+        padding: 18,
         marginBottom: 12,
       }}
     >
+      {/* Header row — title + status badge */}
       <View
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 10,
+          alignItems: "center",
+          marginBottom: 18,
         }}
       >
-        <View style={{ flex: 1 }}>
-         {/* Pickup */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 }}>
-            <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0 }} />
-            <Text
-              style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }}
-              numberOfLines={1}
-            >
-              {trip.pickupLabel}
-            </Text>
-          </View>
-          {/* Connector line */}
-          <View style={{ marginLeft: 3, width: 1, height: 10, backgroundColor: theme.border, marginBottom: 3 }} />
-          {/* Dropoff */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 5 }}>
-            <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0 }} />
-            <Text
-              style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }}
-              numberOfLines={1}
-            >
-              {trip.dropoffLabel}
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontFamily: "Outfit",
-              fontSize: 11.5,
-              color: theme.subtext,
-              marginTop: 3,
-            }}
-          >
-            {formatSchedule(trip.departureDatetime)} · {trip.passengerCount}{" "}
-            passenger
-            {trip.passengerCount === 1 ? "" : "s"} ·{" "}
-            {trip.tripType === "oneway" ? "One way" : "Round trip"}
-          </Text>
-        </View>
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 19,
+            color: theme.textActive ?? theme.text,
+          }}
+        >
+          {isNext
+            ? trip.status === "approved"
+              ? "Next Trip"
+              : "New Trip"
+            : `Trip ${trip.tripRef}`}
+        </Text>
         <View style={{ alignItems: "flex-end", gap: 5 }}>
           <StatusBadge status={trip.status} theme={theme} />
           {late && <LateBadge />}
         </View>
       </View>
 
-      {trip.requestorName ? (
-        <Text
-          style={{
-            fontFamily: "Outfit",
-            fontSize: 11.5,
-            color: theme.subtext,
-            marginTop: 8,
-          }}
-        >
-          For {trip.requestorName}
-        </Text>
-      ) : null}
-
-      {trip.vehiclePlate ? (
-        <View
-          style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}
-        >
+      {/* Route block — big circle/pin markers, address, small label */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
+        <View style={{ alignItems: "center", width: 20 }}>
+          <View
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              borderWidth: 5,
+              borderColor: "#3D6FE0",
+              backgroundColor: theme.surface,
+            }}
+          />
+          <View
+            style={{
+              width: 2,
+              flex: 1,
+              minHeight: 28,
+              marginTop: 2,
+              marginBottom: 2,
+              borderLeftWidth: 2,
+              borderStyle: "dotted",
+              borderColor: theme.border,
+            }}
+          />
+        </View>
+        <View style={{ flex: 1, paddingTop: 1 }}>
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 15,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 21,
+            }}
+          >
+            {trip.pickupLabel}
+          </Text>
           <Text
             style={{
               fontFamily: "Outfit",
-              fontSize: 11.5,
+              fontSize: 12.5,
               color: theme.subtext,
+              marginTop: 2,
             }}
           >
-            Vehicle
+            Pickup
           </Text>
-          <View
+        </View>
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
+        <View style={{ width: 20, alignItems: "center" }}>
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
+            <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+          </Svg>
+        </View>
+        <View style={{ flex: 1, paddingTop: 1 }}>
+          <Text
             style={{
-              backgroundColor: theme.background,
-              borderWidth: 1,
-              borderColor: theme.border,
-              borderRadius: 6,
-              paddingHorizontal: 6,
-              paddingVertical: 1,
-              marginLeft: 6,
+              fontFamily: "Outfit-medium",
+              fontSize: 15,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 21,
             }}
           >
+            {trip.dropoffLabel}
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Outfit",
+              fontSize: 12.5,
+              color: theme.subtext,
+              marginTop: 2,
+            }}
+          >
+            Drop-off
+          </Text>
+        </View>
+      </View>
+
+      {/* Meta row — time, requestor, vehicle */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 18,
+          marginBottom: 18,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <MetaIcon name="clock" color="#3D6FE0" />
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+            }}
+          >
+            {formatSchedule(trip.departureDatetime)}
+          </Text>
+        </View>
+        {trip.requestorName ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <MetaIcon name="person" color="#3D6FE0" />
             <Text
               style={{
                 fontFamily: "Outfit-medium",
-                fontSize: 10.5,
+                fontSize: 13,
+                color: theme.textActive ?? theme.text,
+              }}
+            >
+              {trip.requestorName}
+            </Text>
+          </View>
+        ) : null}
+        {trip.vehiclePlate ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <MetaIcon name="car" color="#3D6FE0" />
+            <Text
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 13,
                 color: theme.textActive ?? theme.text,
               }}
             >
               {trip.vehiclePlate}
             </Text>
           </View>
-        </View>
-      ) : null}
-
-      {trip.purpose ? (
-        <Text
-          style={{
-            fontFamily: "Outfit",
-            fontSize: 11.5,
-            color: theme.subtext,
-            marginTop: 6,
-          }}
-        >
-          {trip.purpose}
-        </Text>
-      ) : null}
-
-      <View style={{ marginTop: 8 }}>
-        <Text
-          style={{
-            fontFamily: "Outfit-medium",
-            fontSize: 11.5,
-            color: "#3D6FE0",
-          }}
-        >
-          View route &amp; directions →
-        </Text>
+        ) : null}
       </View>
 
+      {/* View route & directions — outlined pill button, goes straight to
+          Google Maps rather than opening the trip details modal. */}
+      <TouchableOpacity
+        onPress={(e) => {
+          e.stopPropagation?.();
+          openTripDirections(pickupCoords, trip.pickupLabel, dropoffCoords, trip.dropoffLabel);
+        }}
+        activeOpacity={0.8}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          borderWidth: 1.5,
+          borderColor: "#3D6FE0",
+          borderRadius: 999,
+          paddingVertical: 13,
+          marginBottom: 10,
+        }}
+      >
+        <MetaIcon name="nav" color="#3D6FE0" />
+        <Text
+          style={{ fontFamily: "Outfit-medium", fontSize: 14, color: "#3D6FE0" }}
+        >
+          View route &amp; directions
+        </Text>
+      </TouchableOpacity>
+
+      {/* Primary action — full-width filled button */}
       {action && (
         <TouchableOpacity
           onPress={() => onAdvance(trip)}
@@ -644,11 +914,10 @@ function TripCard({
           activeOpacity={0.85}
           style={{
             backgroundColor: action.color,
-            borderRadius: 8,
-            paddingVertical: 11,
+            borderRadius: 999,
+            paddingVertical: 14,
             alignItems: "center",
             justifyContent: "center",
-            marginTop: 12,
             opacity: busy ? 0.6 : 1,
           }}
         >
@@ -658,7 +927,7 @@ function TripCard({
             <Text
               style={{
                 fontFamily: "Outfit-medium",
-                fontSize: 13,
+                fontSize: 14,
                 color: "#fff",
               }}
             >
@@ -673,7 +942,7 @@ function TripCard({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            marginTop: 10,
+            marginTop: 6,
             paddingTop: 10,
             borderTopWidth: 1,
             borderTopColor: theme.border,
@@ -762,6 +1031,39 @@ export default function DriverPortalPage({ user }: Props) {
     [vehicles, myDriver],
   );
 
+  const myShiftOption = useMemo(
+    () => findShiftOption(myDriver?.shiftStart, myDriver?.shiftEnd),
+    [myDriver],
+  );
+
+  // Auto-sync duty status from the driver's assigned shift — no button
+  // press required. A manual "personal" override always wins; otherwise
+  // "active" only while now falls inside the shift window, "off_duty"
+  // outside it. Runs on every poll cycle (loadAll re-runs every
+  // POLL_INTERVAL_MS) so it self-corrects as the clock crosses a boundary.
+  useEffect(() => {
+    if (!myDriver) return;
+    const auto = computeAutoDutyStatus(
+      myDriver.shiftStart,
+      myDriver.shiftEnd,
+      myDriver.dutyStatus === "personal" ? "personal" : null,
+    );
+    if (auto !== myDriver.dutyStatus) {
+      setDriverDutyStatus(myDriver.id, auto).catch((err) =>
+        console.error("Auto duty-status sync failed:", err),
+      );
+    }
+  }, [myDriver]);
+
+  // Register this device for Expo push once we've confirmed the logged-in
+  // user actually has a fleet_drivers row — mirrors how sendExpoPushToUser
+  // on the backend is only ever fired at drivers, not every employee.
+  useEffect(() => {
+    if (myDriver) {
+      setupExpoPushNotifications();
+    }
+  }, [myDriver]);
+
   const myTrips = useMemo(
     () =>
       trips.filter(
@@ -840,9 +1142,16 @@ export default function DriverPortalPage({ user }: Props) {
 
   async function handleSetDutyStatus(status: DriverDutyStatus) {
     if (!myDriver || status === currentDutyStatus || isOnTrip) return;
+    // Manual selection is only ever "personal" or "clear personal" now —
+    // clearing falls back to whatever the shift says right now, not a
+    // hardcoded off_duty.
+    const target =
+      status === "personal"
+        ? "personal"
+        : computeAutoDutyStatus(myDriver.shiftStart, myDriver.shiftEnd, null);
     setTogglingDutyStatus(true);
     try {
-      await setDriverDutyStatus(myDriver.id, status);
+      await setDriverDutyStatus(myDriver.id, target);
       await loadAll();
     } catch (err) {
       console.error("Set duty status failed:", err);
@@ -875,59 +1184,6 @@ export default function DriverPortalPage({ user }: Props) {
         }
       >
         {/* Header — avatar, greeting, quick stats */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: ink,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Outfit-medium",
-                fontSize: 16,
-                color: "#fff",
-              }}
-            >
-              {getInitials(user.displayName)}
-            </Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              style={{
-                fontFamily: "Outfit-medium",
-                fontSize: 17,
-                color: theme.textActive ?? theme.text,
-              }}
-            >
-              {user.displayName}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Outfit",
-                fontSize: 12,
-                color: theme.subtext,
-                marginTop: 1,
-              }}
-            >
-              {myVehicle
-                ? `Assigned to ${myVehicle.plateNumber}`
-                : "No vehicle assigned"}
-            </Text>
-          </View>
-        </View>
-
         {!myDriver ? (
           <View
             style={{
@@ -962,76 +1218,90 @@ export default function DriverPortalPage({ user }: Props) {
           </View>
         ) : (
           <>
-            {/* Quick stats */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-              <StatCard
-                value={activeTrips.length}
-                label="Active"
-                theme={theme}
-              />
-              <StatCard
-                value={historyTrips.length}
-                label="Completed"
-                theme={theme}
-              />
-              <StatCard
-                value={myVehicle?.plateNumber ?? "—"}
-                label="Vehicle"
-                mono
-                theme={theme}
-              />
-            </View>
-
-            {/* Duty status selector — Off Duty / On Duty / Personal Use.
+            {/* Duty status hero card — Off Duty / On Duty / Personal Use.
                 Settable any time there's no trip in progress, even with
                 zero active trips assigned. Locks automatically once a
                 trip goes ongoing / arrived / returning. */}
             {canSetDutyStatus && (
-              <DutyStatusSelector
+              <DutyStatusCard
                 current={currentDutyStatus}
                 locked={isOnTrip}
                 busy={togglingDutyStatus}
                 theme={theme}
+                shiftLabel={myShiftOption?.label ?? "No shift set"}
                 onSelect={handleSetDutyStatus}
               />
             )}
 
-            {/* Segmented tabs */}
+            <AssignedVehicleRow
+              plateNumber={myVehicle?.plateNumber}
+              theme={theme}
+            />
+
+            {/* Segmented tabs — count badge next to each label, matching
+                the design ("Active [1]" / "Completed [5]"), underline
+                indicator on the selected tab instead of a filled pill. */}
             <View
               style={{
                 flexDirection: "row",
-                backgroundColor: theme.surface,
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: 999,
-                padding: 3,
+                justifyContent: "space-evenly",
+                gap: 32,
                 marginBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
               }}
             >
-              {(["active", "history"] as const).map((key) => {
-                const active = tab === key;
+              {(
+                [
+                  { key: "active" as const, label: "Active", count: activeTrips.length },
+                  { key: "history" as const, label: "Completed", count: historyTrips.length },
+                ]
+              ).map((t) => {
+                const active = tab === t.key;
                 return (
                   <TouchableOpacity
-                    key={key}
-                    onPress={() => setTab(key)}
+                    key={t.key}
+                    onPress={() => setTab(t.key)}
                     activeOpacity={0.8}
                     style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 999,
+                      flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: active ? ink : "transparent",
+                      gap: 6,
+                      paddingBottom: 10,
+                      borderBottomWidth: active ? 2 : 0,
+                      borderBottomColor: "#3D6FE0",
                     }}
                   >
                     <Text
                       style={{
                         fontFamily: "Outfit-medium",
-                        fontSize: 12.5,
-                        color: active ? "#fff" : theme.subtext,
+                        fontSize: 13.5,
+                        color: active ? (theme.textActive ?? theme.text) : theme.subtext,
                       }}
                     >
-                      {key === "active" ? "Active trips" : "Previous trips"}
+                      {t.label}
                     </Text>
+                    <View
+                      style={{
+                        minWidth: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        paddingHorizontal: 5,
+                        backgroundColor: active ? "#3D6FE0" : theme.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 10.5,
+                          color: active ? "#fff" : theme.subtext,
+                        }}
+                      >
+                        {t.count}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -1052,12 +1322,14 @@ export default function DriverPortalPage({ user }: Props) {
                   No active trips assigned to you right now.
                 </Text>
               ) : (
-                activeTrips.map((trip) => (
+                activeTrips.map((trip, idx) => (
                   <TripCard
                     key={trip.id}
                     trip={trip}
                     theme={theme}
                     busy={busyTripId === trip.id}
+                    isNext={idx === 0}
+                    locations={locations}
                     onAdvance={setConfirmingTrip}
                     onViewDetails={setViewingTrip}
                   />
@@ -1082,6 +1354,7 @@ export default function DriverPortalPage({ user }: Props) {
                   trip={trip}
                   theme={theme}
                   busy={false}
+                  locations={locations}
                   onAdvance={setConfirmingTrip}
                   onViewDetails={setViewingTrip}
                 />
@@ -1135,19 +1408,70 @@ export default function DriverPortalPage({ user }: Props) {
 
                 {/* Route block — same dot/connector style as TripCard */}
                 <View style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
-                    <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0, marginTop: 4 }} />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: 6,
+                      marginBottom: 3,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: 999,
+                        backgroundColor: "#0E9E8F",
+                        flexShrink: 0,
+                        marginTop: 4,
+                      }}
+                    />
                     <Text
-                      style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 13,
+                        color: theme.textActive ?? theme.text,
+                        flex: 1,
+                        flexWrap: "wrap",
+                      }}
                     >
                       {confirmingTrip.pickupLabel}
                     </Text>
                   </View>
-                  <View style={{ marginLeft: 3, width: 1, height: 10, backgroundColor: theme.border, marginBottom: 3 }} />
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-                    <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0, marginTop: 4 }} />
+                  <View
+                    style={{
+                      marginLeft: 3,
+                      width: 1,
+                      height: 10,
+                      backgroundColor: theme.border,
+                      marginBottom: 3,
+                    }}
+                  />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: 6,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: 2,
+                        backgroundColor: "#3D6FE0",
+                        flexShrink: 0,
+                        marginTop: 4,
+                      }}
+                    />
                     <Text
-                      style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 13,
+                        color: theme.textActive ?? theme.text,
+                        flex: 1,
+                        flexWrap: "wrap",
+                      }}
                     >
                       {confirmingTrip.dropoffLabel}
                     </Text>
@@ -1281,92 +1605,184 @@ export default function DriverPortalPage({ user }: Props) {
                 );
 
                 const detailRows: [string, string][] = [
-                  ["Requestor", viewingTrip.requestorName],
                   ["Departure", formatSchedule(viewingTrip.departureDatetime)],
-                  ["Passengers", String(viewingTrip.passengerCount)],
+                  [
+                    "Trip Type",
+                    viewingTrip.tripType === "oneway" ? "One way" : "Round trip",
+                  ],
                   ["Purpose", viewingTrip.purpose || "—"],
                   ...(viewingTrip.status === "pending"
                     ? []
                     : ([
                         ["Vehicle", viewingTrip.vehiclePlate ?? "Not assigned"],
-                        ["Driver", viewingTrip.driverName ?? "Not assigned"],
-                        ["Approved by", viewingTrip.approvedByName ?? "—"],
-                        [
-                          "Approved at",
-                          viewingTrip.approvedAt
-                            ? formatSchedule(viewingTrip.approvedAt)
-                            : "—",
-                        ],
                       ] as [string, string][])),
+                  ["Requestor", viewingTrip.requestorName],
                 ];
+
+                const action = nextDriverAction(viewingTrip);
 
                 return (
                   <ScrollView showsVerticalScrollIndicator={false}>
+                    {/* Title + status badge */}
                     <View
                       style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: 4,
+                        alignItems: "center",
+                        marginBottom: 18,
                       }}
                     >
-                     <View style={{ flex: 1, marginRight: 8 }}>
-                    {/* Pickup */}
-                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 999, backgroundColor: "#0E9E8F", flexShrink: 0, marginTop: 4 }} />
                       <Text
-                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 19,
+                          color: theme.textActive ?? theme.text,
+                        }}
                       >
-                        {viewingTrip.pickupLabel}
+                        {viewingTrip.status === "approved" ? "Next Trip" : "Trip Details"}
                       </Text>
-                    </View>
-                    {/* Connector line */}
-                    <View style={{ marginLeft: 3, width: 1, height: 10, backgroundColor: theme.border, marginBottom: 3 }} />
-                    {/* Dropoff */}
-                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: "#3D6FE0", flexShrink: 0, marginTop: 4 }} />
-                      <Text
-                        style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1, flexWrap: "wrap" }}
-                      >
-                        {viewingTrip.dropoffLabel}
-                      </Text>
-                    </View>
-                  </View>
                       <StatusBadge status={viewingTrip.status} theme={theme} />
                     </View>
-                    <Text
+
+                    {/* Route block — same style as TripCard */}
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
+                      <View style={{ alignItems: "center", width: 20 }}>
+                        <View
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 8,
+                            borderWidth: 5,
+                            borderColor: "#3D6FE0",
+                            backgroundColor: theme.surface,
+                          }}
+                        />
+                        <View
+                          style={{
+                            width: 2,
+                            flex: 1,
+                            minHeight: 28,
+                            marginTop: 2,
+                            marginBottom: 2,
+                            borderLeftWidth: 2,
+                            borderStyle: "dotted",
+                            borderColor: theme.border,
+                          }}
+                        />
+                      </View>
+                      <View style={{ flex: 1, paddingTop: 1 }}>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 15,
+                            color: theme.textActive ?? theme.text,
+                            lineHeight: 21,
+                          }}
+                        >
+                          {viewingTrip.pickupLabel}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 12.5,
+                            color: theme.subtext,
+                            marginTop: 2,
+                          }}
+                        >
+                          Pickup
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
+                      <View style={{ width: 20, alignItems: "center" }}>
+                        <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
+                          <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+                        </Svg>
+                      </View>
+                      <View style={{ flex: 1, paddingTop: 1 }}>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 15,
+                            color: theme.textActive ?? theme.text,
+                            lineHeight: 21,
+                          }}
+                        >
+                          {viewingTrip.dropoffLabel}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 12.5,
+                            color: theme.subtext,
+                            marginTop: 2,
+                          }}
+                        >
+                          Drop-off
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* View route & directions — outlined pill button */}
+                    <TouchableOpacity
+                      onPress={() =>
+                        openTripDirections(
+                          pickupCoords,
+                          viewingTrip.pickupLabel,
+                          dropoffCoords,
+                          viewingTrip.dropoffLabel,
+                        )
+                      }
+                      activeOpacity={0.8}
                       style={{
-                        fontFamily: "Outfit",
-                        fontSize: 12,
-                        color: theme.subtext,
-                        marginBottom: 16,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        borderWidth: 1.5,
+                        borderColor: "#3D6FE0",
+                        borderRadius: 999,
+                        paddingVertical: 13,
+                        marginBottom: 18,
                       }}
                     >
-                      {viewingTrip.tripRef}
-                    </Text>
+                      <MetaIcon name="nav" color="#3D6FE0" />
+                      <Text
+                        style={{ fontFamily: "Outfit-medium", fontSize: 14, color: "#3D6FE0" }}
+                      >
+                        View route &amp; directions
+                      </Text>
+                    </TouchableOpacity>
 
+                    {/* Detail card — label left, value right in accent blue */}
                     <View
                       style={{
-                        borderTopWidth: 1,
-                        borderTopColor: theme.border,
-                        paddingTop: 14,
-                        marginBottom: 16,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                        borderRadius: 12,
+                        paddingVertical: 6,
+                        paddingHorizontal: 16,
+                        marginBottom: 18,
                       }}
                     >
-                      {detailRows.map(([label, value]) => (
+                      {detailRows.map(([label, value], idx) => (
                         <View
                           key={label}
                           style={{
                             flexDirection: "row",
                             justifyContent: "space-between",
-                            marginBottom: 10,
+                            alignItems: "center",
+                            paddingVertical: 12,
+                            borderTopWidth: idx === 0 ? 0 : 1,
+                            borderTopColor: theme.border,
                           }}
                         >
                           <Text
                             style={{
-                              fontFamily: "Outfit",
-                              fontSize: 11.5,
-                              color: theme.subtext,
+                              fontFamily: "Outfit-medium",
+                              fontSize: 13.5,
+                              color: theme.textActive ?? theme.text,
                             }}
                           >
                             {label}
@@ -1374,8 +1790,8 @@ export default function DriverPortalPage({ user }: Props) {
                           <Text
                             style={{
                               fontFamily: "Outfit-medium",
-                              fontSize: 12.5,
-                              color: theme.textActive ?? theme.text,
+                              fontSize: 13.5,
+                              color: "#3D6FE0",
                               textAlign: "right",
                               flexShrink: 1,
                               marginLeft: 12,
@@ -1387,12 +1803,18 @@ export default function DriverPortalPage({ user }: Props) {
                       ))}
                       {viewingTrip.status === "rejected" &&
                       viewingTrip.rejectedReason ? (
-                        <View style={{ marginTop: 4 }}>
+                        <View
+                          style={{
+                            paddingVertical: 12,
+                            borderTopWidth: 1,
+                            borderTopColor: theme.border,
+                          }}
+                        >
                           <Text
                             style={{
-                              fontFamily: "Outfit",
-                              fontSize: 11.5,
-                              color: theme.subtext,
+                              fontFamily: "Outfit-medium",
+                              fontSize: 13.5,
+                              color: theme.textActive ?? theme.text,
                               marginBottom: 4,
                             }}
                           >
@@ -1402,7 +1824,7 @@ export default function DriverPortalPage({ user }: Props) {
                             style={{
                               fontFamily: "Outfit",
                               fontSize: 12.5,
-                              color: theme.textActive ?? theme.text,
+                              color: theme.subtext,
                             }}
                           >
                             {viewingTrip.rejectedReason}
@@ -1469,87 +1891,59 @@ export default function DriverPortalPage({ user }: Props) {
                         </View>
                       )}
 
-                    <TouchableOpacity
-                      onPress={() =>
-                        openTripDirections(
-                          pickupCoords,
-                          viewingTrip.pickupLabel,
-                          dropoffCoords,
-                          viewingTrip.dropoffLabel,
-                        )
-                      }
-                      activeOpacity={0.85}
-                      style={{
-                        backgroundColor: "#3D6FE0",
-                        borderRadius: 8,
-                        paddingVertical: 11,
-                        alignItems: "center",
-                        marginBottom: 10,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit-medium",
-                          fontSize: 13,
-                          color: "#fff",
-                        }}
-                      >
-                        Get Directions (Pickup → Drop-off)
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Same next-action button the trip card shows (Start Trip /
-                      Arrived / Start Return / Complete) — tapping it here just
-                      hands off to the existing confirm modal, so the actual
-                      mutation call still only lives in handleConfirmAdvance. */}
-                    {nextDriverAction(viewingTrip) && (
+                    {/* Back + primary action, side by side */}
+                    <View style={{ flexDirection: "row", gap: 10 }}>
                       <TouchableOpacity
-                        onPress={() => {
-                          setConfirmingTrip(viewingTrip);
-                          setViewingTrip(null);
-                        }}
-                        activeOpacity={0.85}
+                        onPress={() => setViewingTrip(null)}
+                        activeOpacity={0.8}
                         style={{
-                          backgroundColor: nextDriverAction(viewingTrip)!.color,
-                          borderRadius: 8,
-                          paddingVertical: 11,
+                          paddingVertical: 14,
+                          paddingHorizontal: 22,
+                          borderRadius: 999,
+                          backgroundColor: theme.background,
                           alignItems: "center",
-                          marginBottom: 10,
+                          justifyContent: "center",
                         }}
                       >
                         <Text
                           style={{
                             fontFamily: "Outfit-medium",
-                            fontSize: 13,
-                            color: "#fff",
+                            fontSize: 14,
+                            color: theme.subtext,
                           }}
                         >
-                          {nextDriverAction(viewingTrip)!.label}
+                          Back
                         </Text>
                       </TouchableOpacity>
-                    )}
 
-                    <TouchableOpacity
-                      onPress={() => setViewingTrip(null)}
-                      activeOpacity={0.8}
-                      style={{
-                        paddingVertical: 11,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: theme.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit-medium",
-                          fontSize: 13,
-                          color: theme.subtext,
-                        }}
-                      >
-                        Close
-                      </Text>
-                    </TouchableOpacity>
+                      {action && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setConfirmingTrip(viewingTrip);
+                            setViewingTrip(null);
+                          }}
+                          activeOpacity={0.85}
+                          style={{
+                            flex: 1,
+                            backgroundColor: action.color,
+                            borderRadius: 999,
+                            paddingVertical: 14,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: "Outfit-medium",
+                              fontSize: 14,
+                              color: "#fff",
+                            }}
+                          >
+                            {action.label}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </ScrollView>
                 );
               })()}

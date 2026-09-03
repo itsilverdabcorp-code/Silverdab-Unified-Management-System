@@ -548,7 +548,7 @@ function RightPanel({ theme }: { theme: any }) {
           maxWidth: "80%",
         }}
       >
-        Silverdab Unified Management System — your central hub for concerns,
+        Silvergraph Unified Management System — your central hub for concerns,
         requests, and inventory.
       </Text>
     </View>
@@ -765,29 +765,38 @@ export default function AuthScreen({
           </Svg>
         </TouchableOpacity>
 
-        <View style={{ width: "100%", maxWidth: isMobile ? 420 : 560 }}>
+       <View style={{ width: "100%", maxWidth: isMobile ? 420 : 560 }}>
           {/* Logo */}
-          <View
+         <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 12,
+              gap: 16,
               marginBottom: isSmallMobile ? 24 : isMobile ? 28 : 36,
-              justifyContent: isMobile ? "center" : "flex-start",
+              justifyContent: "flex-start",
             }}
           >
             <Image
               source={
                 theme.mode === "dark"
-                  ? require("../../components/icons/sdb-logo-white.png")
-                  : require("../../components/icons/sdb-logo-black.png")
+                  ? require("../../components/icons/SilvergraphLogo.png")
+                  : require("../../components/icons/SilvergraphLogo.png")
               }
               style={{
-                width: isSmallMobile ? 160 : isMobile ? 190 : 220,
-                height: isSmallMobile ? 52 : isMobile ? 62 : 72,
+                width: isSmallMobile ? 50 : isMobile ? 60 : 60,
+                height: isSmallMobile ? 50 : isMobile ? 60 : 60,
               }}
               resizeMode="contain"
             />
+            <Text
+              style={{
+                fontSize: isSmallMobile ? 24 : isMobile ? 28 : 32,
+                fontWeight: "700",
+                color: theme.text,
+              }}
+            >
+              Silvergraph
+            </Text>
           </View>
 
           {user ? (
@@ -950,7 +959,7 @@ export default function AuthScreen({
                   fontSize: isSmallMobile ? 22 : 26,
                   fontWeight: "700",
                   marginBottom: 4,
-                  textAlign: isMobile ? "center" : "left",
+                  textAlign: "left",
                 }}
               >
                 Sign in
@@ -960,7 +969,7 @@ export default function AuthScreen({
                   color: theme.subtext,
                   fontSize: 13,
                   marginBottom: isSmallMobile ? 20 : 24,
-                  textAlign: isMobile ? "center" : "left",
+                  textAlign: "left",
                 }}
               >
                 Sign in with your Desktop Credential Account

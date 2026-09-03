@@ -71,6 +71,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
   const [inventory, setInventory] = useState<ITInventory[]>([]);
   const [devicesModal, setDevicesModal] = useState<{ name: string; target: DragTarget | { kind: "podCell"; podId: string; index: number } } | null>(null);
   const [editingDevicesModalName, setEditingDevicesModalName] = useState(false);
+  const [devicesModalDraftName, setDevicesModalDraftName] = useState("");
   const [history, setHistory] = useState<SeatPlanLayout[]>([]);
   const UNDO_LIMIT = 20;
   const [zoom, setZoom] = useState(1);
@@ -1090,33 +1091,75 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
             <Text style={{ color: theme.subtext, fontSize: 11, marginBottom: 6 }}>Devices assigned to</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4, position: "relative", zIndex: 1000, elevation: 1000 }}>
               {editingDevicesModalName ? (
-                <View
-                  style={[
-                    { flex: 1, zIndex: 1000, elevation: 1000 },
-                    Platform.OS === "web" ? ({ isolation: "isolate" } as any) : {},
-                  ]}
-                >
-                  <NameSelect
-                    value={devicesModal?.name ?? ""}
-                    options={employeeNames}
-                    viewMode={false}
-                    theme={theme}
-                    placeholder="Unassigned"
-                    autoOpen
-                    onChange={(v) => {
-                      renameFromDevicesModal(v);
+                <>
+                  <View
+                    style={[
+                      { flex: 1, zIndex: 1000, elevation: 1000 },
+                      Platform.OS === "web" ? ({ isolation: "isolate" } as any) : {},
+                    ]}
+                  >
+                    <NameSelect
+                      value={devicesModal?.name ?? ""}
+                      options={employeeNames}
+                      viewMode={false}
+                      theme={theme}
+                      placeholder="Unassigned"
+                      autoOpen
+                      commitBlankOnDismiss={false}
+                      onQueryChange={setDevicesModalDraftName}
+                      onChange={(v) => {
+                        renameFromDevicesModal(v);
+                        setEditingDevicesModalName(false);
+                      }}
+                      textStyle={{ fontSize: 15, fontWeight: "700", color: theme.text }}
+                    />
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      renameFromDevicesModal(devicesModalDraftName);
                       setEditingDevicesModalName(false);
                     }}
-                    textStyle={{ fontSize: 15, fontWeight: "700", color: theme.text }}
-                  />
-                </View>
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#4caf6b",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: "#fff", fontWeight: "700" }}>✓</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      // Discard any typed-but-unsaved text; devicesModal.name
+                      // (the last saved value) was never touched, so simply
+                      // closing edit mode reverts the display to it.
+                      setDevicesModalDraftName(devicesModal?.name ?? "");
+                      setEditingDevicesModalName(false);
+                    }}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#c1503f",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: "#fff", fontWeight: "700" }}>×</Text>
+                  </Pressable>
+                </>
               ) : (
                 <>
                   <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text, flex: 1 }}>
                     {devicesModal?.name || "Unassigned"}
                   </Text>
                   <Pressable
-                    onPress={() => setEditingDevicesModalName(true)}
+                    onPress={() => {
+                      setDevicesModalDraftName(devicesModal?.name ?? "");
+                      setEditingDevicesModalName(true);
+                    }}
                     style={{
                       width: 26,
                       height: 26,
@@ -1369,11 +1412,22 @@ const NameSelect: React.FC<{
   autoOpen?: boolean;
   onChange: (value: string) => void;
   onOpenChange?: (open: boolean) => void;
-}> = ({ value, options, viewMode, theme, placeholder = "—", textStyle, autoOpen, onChange, onOpenChange }) => {
+  onQueryChange?: (value: string) => void;
+  // When false, clearing the text and clicking/tabbing away does NOT
+  // auto-save as blank — use this when an explicit Save/Cancel control
+  // owns committing the value instead.
+  commitBlankOnDismiss?: boolean;
+}> = ({ value, options, viewMode, theme, placeholder = "—", textStyle, autoOpen, onChange, onOpenChange, onQueryChange, commitBlankOnDismiss = true }) => {
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<any>(null);
 
   useEffect(() => {
-    if (autoOpen && !viewMode) setOpen(true);
+    if (autoOpen && !viewMode) {
+      setOpen(true);
+      // Focus immediately so double-click-to-edit doesn't require an
+      // extra click before typing actually registers.
+      requestAnimationFrame(() => inputRef.current?.focus?.());
+    }
   }, [autoOpen, viewMode]);
   const [query, setQuery] = useState(value);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1388,7 +1442,7 @@ const NameSelect: React.FC<{
       const node = wrapperRef.current as any;
       if (node && node.contains && !node.contains(e.target as Node)) {
         setOpen(false);
-        if (query.trim() === "" && value.trim() !== "") {
+        if (commitBlankOnDismiss && query.trim() === "" && value.trim() !== "") {
           onChange("");
         }
       }
@@ -1514,6 +1568,7 @@ const NameSelect: React.FC<{
   return (
     <View ref={wrapperRef} style={{ width: "100%", position: "relative", overflow: "visible" }}>
       <TextInput
+        ref={inputRef}
         value={open ? query : value}
         editable={!viewMode}
         multiline={false}
@@ -1525,6 +1580,7 @@ const NameSelect: React.FC<{
         onChangeText={(t) => {
           if (viewMode) return; // belt-and-braces: never mutate in view mode
           setQuery(t);
+          onQueryChange?.(t);
           if (!open) setOpen(true);
         }}
         onBlur={() => {
@@ -1533,7 +1589,7 @@ const NameSelect: React.FC<{
           // yank the dropdown closed mid-interaction
           blurTimer.current = setTimeout(() => {
             setOpen(false);
-            if (query.trim() === "" && value.trim() !== "") {
+            if (commitBlankOnDismiss && query.trim() === "" && value.trim() !== "") {
               onChange("");
             }
           }, 300);

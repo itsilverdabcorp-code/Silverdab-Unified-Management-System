@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
-import { Mail, CheckCircle } from "lucide-react-native";
+import { Mail, CheckCircle, X } from "lucide-react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import {
   getEmailPreference,
@@ -18,12 +18,17 @@ type Props = {
   visible: boolean;
   username: string;
   onDone: () => void; // called after save (or if there's nothing to ask)
+  // When true, always show the modal with the current preference pre-selected,
+  // instead of auto-closing for users who already have one saved. Used when
+  // opened manually from Settings, as opposed to the one-time post-login prompt.
+  alwaysShow?: boolean;
 };
 
 export default function EmailPreferenceModal({
   visible,
   username,
   onDone,
+  alwaysShow = false,
 }: Props) {
   const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
@@ -59,17 +64,19 @@ export default function EmailPreferenceModal({
           return;
         }
         // Already has a preference saved — nothing to ask, close immediately,
-        // without ever showing the modal.
-        if (pref.current) {
+        // without ever showing the modal. Doesn't apply when opened
+        // deliberately from Settings (alwaysShow), where an existing
+        // preference should be shown pre-selected instead.
+        if (pref.current && !alwaysShow) {
           onDone();
           return;
         }
         setOptions(pref.options);
-        setSelected(pref.options.silverdab); // sensible default
+        setSelected(pref.current ?? pref.options.silverdab); // pre-select current, else default
         setShouldPrompt(true);
       })
       .finally(() => setLoading(false));
-  }, [visible, username]);
+  }, [visible, username, alwaysShow]);
 
   const handleConfirm = async () => {
     if (!selected) return;
@@ -111,16 +118,38 @@ export default function EmailPreferenceModal({
         >
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: primary + "20",
-              alignItems: "center",
-              justifyContent: "center",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
               marginBottom: 14,
             }}
           >
-            <Mail size={20} color={primary} />
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: primary + "20",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Mail size={20} color={primary} />
+            </View>
+
+            <TouchableOpacity
+              onPress={onDone}
+              activeOpacity={0.7}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={18} color={theme.subtext} />
+            </TouchableOpacity>
           </View>
 
           <Text
@@ -143,7 +172,7 @@ export default function EmailPreferenceModal({
             }}
           >
             Choose which email you'd like to receive request notifications
-            on. You can't change this later from Settings.
+            on. You can change this anytime from Settings.
           </Text>
 
           {loading ? (

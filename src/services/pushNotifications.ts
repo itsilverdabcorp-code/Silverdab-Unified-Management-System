@@ -1,8 +1,24 @@
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const BACKEND_URL = "https://api.silvergraph.ai"; // match your other services
 const INTERNAL_SECRET = "silverdab_internal_2024";
+const EXPO_PROJECT_ID = "f98cf282-56fe-40e3-9133-5ff96fa4a3fd";
 
 // Same VAPID public key printed by `npx web-push generate-vapid-keys` on the backend.
 const VAPID_PUBLIC_KEY = "BIIS-YAqwDFivTHdnE9Omi06kKYzE6yyIT7kfR9FddGe-TXmpvc2MbMV0VmlTIAaNwRUYaCy9y88m0KBc1lAA6o";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -31,6 +47,53 @@ async function getServiceToken(): Promise<string> {
   } catch (err) {
     console.warn("Could not fetch service token for push setup:", err);
     return "";
+  }
+}
+
+// Native (iOS/Android) counterpart to the web push setup below — registers
+// for an Expo push token and sends it to POST /push/expo-token, matching
+// how the web branch sends its subscription to POST /push/subscribe.
+// Reads the JWT the same way AuthScreen.tsx stores it on login — no prop
+// needs to be threaded through AppShell/DriverPortalPage for this.
+export async function setupExpoPushNotifications() {
+  const userToken = await AsyncStorage.getItem("AD_USER_TOKEN");
+  if (!Device.isDevice || !userToken) return;
+
+  try {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+      });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      console.log("Expo push notification permission not granted.");
+      return;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: EXPO_PROJECT_ID,
+    });
+
+    await fetch(`${BACKEND_URL}/push/expo-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userToken}`,
+      },
+      body: JSON.stringify({ token: tokenData.data }),
+    });
+
+    //console.log("✅ Expo push token registered");
+  } catch (err) {
+    console.warn("Expo push notification setup failed:", err);
   }
 }
 

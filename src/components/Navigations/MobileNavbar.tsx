@@ -249,7 +249,7 @@ export default function MobileNavbar({
           pointerEvents="box-none"
         >
           <Image
-            source={require("../icons/silverdab-logo.png")}
+            source={require("../icons/SilvergraphLogo.png")}
             style={{ width: 26, height: 26 }}
             resizeMode="contain"
           />
@@ -261,7 +261,7 @@ export default function MobileNavbar({
               letterSpacing: -0.3,
             }}
           >
-            Silverdab
+            Silvergraph
           </Text>
         </View>
 
@@ -341,7 +341,7 @@ export default function MobileNavbar({
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Image
-              source={require("../icons/silverdab-logo.png")}
+              source={require("../icons/SilvergraphLogo.png")}
               style={{ width: 30, height: 30 }}
               resizeMode="contain"
             />
@@ -353,7 +353,7 @@ export default function MobileNavbar({
                 letterSpacing: -0.3,
               }}
             >
-              Silverdab
+              Silvergraph
             </Text>
           </View>
           <TouchableOpacity

@@ -23,6 +23,10 @@ import { FleetLiveLocation, FleetVehicle } from "../../../../types";
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
 const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";
 const POLL_INTERVAL_MS = 10_000;
+// Screen-pixel distance under which two vehicle markers merge into a
+// cluster badge (see clusterLocations below) — roughly "close enough that
+// their pins would visually overlap at the current zoom level".
+const CLUSTER_PIXEL_RADIUS = 50;
 
 declare global {
   interface Window {
@@ -172,6 +176,65 @@ function getMarkerColor(vehicle?: FleetVehicle): string {
   return LEGEND_CONFIG[getVehicleDisplayStatusKey(vehicle)].color;
 }
 
+type LocationCluster = { ids: string[]; lng: number; lat: number };
+
+// Groups vehicle locations that are within `pixelRadius` screen pixels of
+// each other into a single cluster — greedy nearest-neighbor grouping, run
+// fresh on every poll/zoom rather than an incremental structure, since
+// fleet sizes here are small enough (dozens, not thousands) that this is
+// cheap either way.
+function clusterLocations(
+  map: any,
+  locations: FleetLiveLocation[],
+  pixelRadius: number,
+): LocationCluster[] {
+  const points = locations.map((l) => ({
+    id: l.vehicleId,
+    lng: l.longitude,
+    lat: l.latitude,
+    screen: map.project([l.longitude, l.latitude]),
+  }));
+
+  const used = new Set<string>();
+  const clusters: LocationCluster[] = [];
+
+  points.forEach((p) => {
+    if (used.has(p.id)) return;
+    const group = [p];
+    used.add(p.id);
+    points.forEach((q) => {
+      if (used.has(q.id)) return;
+      const dx = p.screen.x - q.screen.x;
+      const dy = p.screen.y - q.screen.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= pixelRadius) {
+        group.push(q);
+        used.add(q.id);
+      }
+    });
+    clusters.push({
+      ids: group.map((g) => g.id),
+      lng: group.reduce((sum, g) => sum + g.lng, 0) / group.length,
+      lat: group.reduce((sum, g) => sum + g.lat, 0) / group.length,
+    });
+  });
+
+  return clusters;
+}
+
+// Builds a CSS conic-gradient dividing the ring into arcs sized by each
+// status color's share of the cluster — e.g. a 3-vehicle cluster with 2
+// "On Trip" and 1 "Maintenance" gets a ring that's 2/3 blue, 1/3 red.
+function buildClusterGradient(colorCounts: Record<string, number>, total: number): string {
+  let cursor = 0;
+  const stops = Object.entries(colorCounts).map(([color, count]) => {
+    const pct = (count / total) * 100;
+    const stop = `${color} ${cursor}% ${cursor + pct}%`;
+    cursor += pct;
+    return stop;
+  });
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
 export default function FleetLiveMap({ focusVehicle, vehicles = [], theme }: Props) {  const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Record<string, any>>({});
@@ -187,6 +250,10 @@ export default function FleetLiveMap({ focusVehicle, vehicles = [], theme }: Pro
   // admin manually drags the map (which cancels following) or picks
   // another vehicle / clicks "Stop following".
   const [followedVehicleId, setFollowedVehicleId] = useState<string | null>(null);
+  // Bumped on every 'zoomend' so the marker-sync effect below re-clusters —
+  // clustering distance is measured in screen pixels, so it changes with
+  // zoom even when the underlying vehicle locations haven't moved.
+  const [zoomTick, setZoomTick] = useState(0);
 
   // Counts for the status legend below the header — tallies the WHOLE
   // fleet (not just vehicles currently reporting a live position), so a
@@ -296,22 +363,32 @@ function switchLayer(key: LayerKey) {
 
   // Stop following if the admin manually drags the map — otherwise the next
   // poll would yank the camera back to the vehicle mid-pan, fighting them.
+  // Also re-cluster on zoom: "close enough to merge" is a screen-pixel
+  // distance, so it changes as the admin zooms in/out even though the
+  // underlying vehicle locations haven't moved.
   useEffect(() => {
     if (!ready || !mapRef.current) return;
     const map = mapRef.current;
     const onDragStart = () => setFollowedVehicleId(null);
+    const onZoomEnd = () => setZoomTick((t) => t + 1);
     map.on("dragstart", onDragStart);
+    map.on("zoomend", onZoomEnd);
     return () => {
       map.off("dragstart", onDragStart);
+      map.off("zoomend", onZoomEnd);
     };
   }, [ready]);
 
-  // Sync markers whenever fresh location data comes in.
+  // Sync markers whenever fresh location data comes in, the map is zoomed
+  // (zoomTick), or the map first becomes ready. Clusters are recomputed
+  // and every marker rebuilt from scratch on each pass — cluster
+  // membership can change on any of those triggers, so diffing in place
+  // isn't worth the complexity at fleet scale (dozens of vehicles, not
+  // thousands).
   useEffect(() => {
     if (!ready || !mapRef.current || !window.maplibregl) return;
     const maplibregl = window.maplibregl;
     const map = mapRef.current;
-    const seenIds = new Set<string>();
 
     const CAR_ICON_SVG = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -319,37 +396,36 @@ function switchLayer(key: LayerKey) {
       </svg>
     `;
 
-     const vehiclesById: Record<string, FleetVehicle> = {};
+    const vehiclesById: Record<string, FleetVehicle> = {};
     vehicles.forEach((v) => {
       vehiclesById[v.id] = v;
     });
 
-    locations.forEach((loc) => {
-      seenIds.add(loc.vehicleId);
-      const vehicleName = (loc as any).vehicleModel ?? (loc as any).model ?? null;
-      const labelHtml = vehicleName
-        ? `${vehicleName}<br/>${loc.plateNumber}`
-        : loc.plateNumber;
-      const labelText = vehicleName
-        ? `${vehicleName} - ${loc.plateNumber}`
-        : loc.plateNumber;
-      const pinColor = getMarkerColor(vehiclesById[loc.vehicleId]);      const popupHtml = `
-        <div style="font-family: sans-serif; font-size: 12.5px;">
-          <strong>${labelText}</strong><br/>
-          Speed: ${loc.speed != null ? loc.speed.toFixed(0) + " km/h" : "—"}<br/>
-          Last report: ${loc.reportedAt}
-        </div>
-      `;
-      const existing = markersRef.current[loc.vehicleId];
-      if (existing) {
-        existing.setLngLat([loc.longitude, loc.latitude]);
-        existing.getPopup()?.setHTML(popupHtml);
-        const el = existing.getElement();
-        const labelEl = el.querySelector(".fleet-marker-label");
-        if (labelEl) labelEl.innerHTML = labelHtml;
-        const pinEl = el.querySelector(".fleet-marker-pin") as HTMLElement | null;
-        if (pinEl) pinEl.style.backgroundColor = pinColor;
-      } else {
+    Object.values(markersRef.current).forEach((m: any) => m.remove());
+    markersRef.current = {};
+
+    const clusters = clusterLocations(map, locations, CLUSTER_PIXEL_RADIUS);
+
+    clusters.forEach((cluster, idx) => {
+      if (cluster.ids.length === 1) {
+        // ── Single vehicle — same pin+label marker as before ──
+        const loc = locations.find((l) => l.vehicleId === cluster.ids[0]);
+        if (!loc) return;
+        const vehicleName = (loc as any).vehicleModel ?? (loc as any).model ?? null;
+        const labelHtml = vehicleName
+          ? `${vehicleName}<br/>${loc.plateNumber}`
+          : loc.plateNumber;
+        const labelText = vehicleName
+          ? `${vehicleName} - ${loc.plateNumber}`
+          : loc.plateNumber;
+        const pinColor = getMarkerColor(vehiclesById[loc.vehicleId]);
+        const popupHtml = `
+          <div style="font-family: sans-serif; font-size: 12.5px;">
+            <strong>${labelText}</strong><br/>
+            Speed: ${loc.speed != null ? loc.speed.toFixed(0) + " km/h" : "—"}<br/>
+            Last report: ${loc.reportedAt}
+          </div>
+        `;
         const popup = new maplibregl.Popup({ offset: 28 }).setHTML(popupHtml);
 
         const el = document.createElement("div");
@@ -364,18 +440,41 @@ function switchLayer(key: LayerKey) {
           .setPopup(popup)
           .addTo(map);
         markersRef.current[loc.vehicleId] = marker;
+      } else {
+        // ── Cluster of 2+ nearby vehicles — ringed count badge, ring
+        // segments proportioned by status color, click to zoom in. ──
+        const colorCounts: Record<string, number> = {};
+        cluster.ids.forEach((id) => {
+          const color = getMarkerColor(vehiclesById[id]);
+          colorCounts[color] = (colorCounts[color] ?? 0) + 1;
+        });
+        const gradient = buildClusterGradient(colorCounts, cluster.ids.length);
+        const dominantColor = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+        const el = document.createElement("div");
+        el.className = "fleet-cluster";
+        el.innerHTML = `
+          <div class="fleet-cluster-ring" style="background: ${gradient};">
+            <div class="fleet-cluster-inner" style="color: ${dominantColor};">${cluster.ids.length}</div>
+          </div>
+        `;
+        el.addEventListener("click", () => {
+          const bounds = new maplibregl.LngLatBounds();
+          cluster.ids.forEach((id) => {
+            const loc = locations.find((l) => l.vehicleId === id);
+            if (loc) bounds.extend([loc.longitude, loc.latitude]);
+          });
+          map.fitBounds(bounds, { padding: 80, maxZoom: 18, duration: 500 });
+        });
+
+        const marker = new maplibregl.Marker({ element: el, anchor: "center" })
+          .setLngLat([cluster.lng, cluster.lat])
+          .addTo(map);
+        markersRef.current[`cluster-${idx}`] = marker;
       }
     });
 
-    // Drop markers for vehicles no longer reporting.
-    Object.keys(markersRef.current).forEach((id) => {
-      if (!seenIds.has(id)) {
-        markersRef.current[id].remove();
-        delete markersRef.current[id];
-      }
-    });
-
-     // Auto-fit to all vehicles once, so the admin's own pan/zoom afterward
+    // Auto-fit to all vehicles once, so the admin's own pan/zoom afterward
     // isn't overridden on every 10s poll.
     if (locations.length > 0 && !hasFitBoundsRef.current) {
       const bounds = new maplibregl.LngLatBounds();
@@ -397,7 +496,7 @@ function switchLayer(key: LayerKey) {
         });
       }
     }
-  }, [locations, ready, followedVehicleId]);
+  }, [locations, ready, followedVehicleId, zoomTick]);
 
   const SURFACE = theme.surface;
   const BORDER = theme.border;
@@ -481,6 +580,31 @@ function switchLayer(key: LayerKey) {
           justify-content: center;
           box-shadow: 0 1px 4px rgba(0,0,0,0.4);
           border: 2px solid #fff;
+        }
+        .fleet-cluster {
+          cursor: pointer;
+        }
+        .fleet-cluster-ring {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+          border: 3px solid #fff;
+        }
+        .fleet-cluster-inner {
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: sans-serif;
+          font-weight: 700;
+          font-size: 12.5px;
         }
       `}</style>
       {pollFailed && (

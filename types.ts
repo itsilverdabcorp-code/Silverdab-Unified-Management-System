@@ -251,11 +251,7 @@ export type TripStatus =
   | "cancelled"
   | "rejected";
 
-export type VehicleStatus =
-  | "idle"
-  | "active"
-  | "maintenance"
-  | "personal";
+export type VehicleStatus = "idle" | "active" | "maintenance" | "personal";
 
 export type VehicleType = "sedan" | "van" | "suv" | "truck";
 
@@ -292,7 +288,7 @@ export type FleetTrip = {
   rejectedReason?: string | null;
   approvedByName?: string | null;
   approvedAt?: string | null;
-    createdAt: string;
+  createdAt: string;
   updatedAt: string;
   statusHistory?: FleetTripStatusLogEntry[];
   calendarSynced: boolean;
@@ -323,6 +319,8 @@ export type FleetDriver = {
   vehicleId?: string | null;
   vehiclePlate?: string | null;
   dutyStatus: DriverDutyStatus;
+  shiftStart: string | null; // "HH:MM:SS" from DB, or null if unset
+  shiftEnd: string | null;
 };
 
 export type FleetLocation = {
@@ -386,7 +384,7 @@ export type RoomReservation = {
 export const DEPARTMENT_LABELS: Record<string, string> = {
   "Admin Staff": "Admin",
   "BIM Department": "BIM",
-  "Production": "BIM",
+  Production: "BIM",
 };
 
 export function displayDepartment(dept: string): string {

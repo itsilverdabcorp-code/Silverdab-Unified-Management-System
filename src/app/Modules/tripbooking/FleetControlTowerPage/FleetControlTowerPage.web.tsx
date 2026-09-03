@@ -60,7 +60,7 @@ function downloadTripIcs(trip: {
     "VERSION:2.0",
     "PRODID:-//Silverdab UMS//Fleet Trips//EN",
     "BEGIN:VEVENT",
-    `UID:${trip.tripRef}@silverdab-ums`,
+    `UID:${trip.tripRef}@silvergraph-ums`,
     `DTSTAMP:${toIcsDate(new Date().toISOString())}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,

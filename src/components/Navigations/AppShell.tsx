@@ -21,6 +21,7 @@ import OfficeInventoryPage, {
 import { getKeyFromHref, getNavSectionsForUser } from "./NavItems"; // adjust to your actual saved path
 import Sidebar from "./Sidebar"; // adjust to your actual saved path
 import MobileNavbar from "./MobileNavbar"; // adjust to your actual saved path
+import DriverNavbar from "./DriverNavBar"; // adjust to your actual saved path
 import AuditTrailPage from "@/app/Modules/it/AuditTrailPage";
 import ConsumablesPage from "@/app/Modules/it/consumables/ConsumablesPage";
 import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPage";
@@ -304,9 +305,18 @@ export default function AppShell({ user, onLogout }: Props) {
 
   if (!restored) return null;
 
+  const isDriverOnly =
+    Boolean(user.permissions?.fleetDriver) &&
+    !user.permissions?.itAccess &&
+    !user.permissions?.officeSupplies &&
+    !user.permissions?.fleetControl &&
+    user.role !== "superadmin";
+
   return (
     <View style={{ flex: 1, flexDirection: isMobile ? "column" : "row" }}>
-      {isMobile ? (
+      {isDriverOnly ? (
+        <DriverNavbar user={user} onLogout={onLogout} />
+      ) : isMobile ? (
         <MobileNavbar
           user={user}
           activeKey={activeKey}

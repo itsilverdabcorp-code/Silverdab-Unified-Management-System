@@ -12,8 +12,9 @@ import {
 import { getNavColors, getNavSectionsForUser, NavItem } from "./NavItems";
 import { useTheme } from "../../theme/ThemeContext";
 import { ADUser } from "../../../types";
-import { LogOut, Sun, Moon, Monitor, Settings } from "lucide-react-native";
+import { LogOut, Sun, Moon, Monitor, Settings, Mail } from "lucide-react-native";
 import LogoutModal from "../../app/Auth/LogoutModal";
+import EmailPreferenceModal from "@/components/common/EmailPreferenceModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "AD_USER_DATA";
@@ -50,6 +51,7 @@ export default function Sidebar({
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [emailModalVisible, setEmailModalVisible] = useState(false);
 
   const { theme, themeMode, setThemeMode } = useTheme();
   const C = getNavColors(theme);
@@ -295,7 +297,7 @@ export default function Sidebar({
         >
           <View style={{ flexShrink: 0 }}>
             <Image
-              source={require("../icons/silverdab-logo.png")}
+              source={require("../icons/SilvergraphLogo.png")}
               style={{ width: 35, height: 35 }}
               resizeMode="contain"
             />
@@ -311,7 +313,7 @@ export default function Sidebar({
             }}
             numberOfLines={1}
           >
-            Silverdab
+            Silvergraph
           </Animated.Text>
         </TouchableOpacity>
 
@@ -399,6 +401,35 @@ export default function Sidebar({
                   backgroundColor: theme.iconActive,
                 }}
               />
+            </TouchableOpacity>
+
+            <View style={{ height: 0.5, backgroundColor: theme.navBorder }} />
+
+            <TouchableOpacity
+              onPress={() => {
+                setSettingsOpen(false);
+                setEmailModalVisible(true);
+              }}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+              }}
+            >
+              <Mail color={theme.iconActive} size={16} />
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13.5,
+                  color: theme.textActive,
+                  flex: 1,
+                }}
+              >
+                Notification email
+              </Text>
             </TouchableOpacity>
 
             <View style={{ height: 0.5, backgroundColor: theme.navBorder }} />
@@ -534,6 +565,13 @@ export default function Sidebar({
         visible={logoutModalVisible}
         onConfirm={handleLogoutConfirm}
         onCancel={() => setLogoutModalVisible(false)}
+      />
+
+      <EmailPreferenceModal
+        visible={emailModalVisible}
+        username={user.username}
+        alwaysShow
+        onDone={() => setEmailModalVisible(false)}
       />
     </>
   );
