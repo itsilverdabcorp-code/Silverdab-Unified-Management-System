@@ -1,19 +1,21 @@
 {
   "expo": {
-    "name": "silverdab-ums",
+    "name": "silvergraph-ums",
     "slug": "silverdab-ums",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/favicon.png",
     "scheme": "silverdabums",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/favicon.png",
+      "bundleIdentifier": "com.hpatenio.silverdabums"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/favicon.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -31,13 +33,15 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/favicon.png",
           "imageWidth": 76
         }
       ],
       "expo-font",
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,6 +52,7 @@
       "eas": {
         "projectId": "f98cf282-56fe-40e3-9133-5ff96fa4a3fd"
       }
-    }
+    },
+    "owner": "hpatenio"
   }
 }
