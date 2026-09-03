@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native";
+import { Clock as ClockIcon } from "lucide-react-native";
 import { getNavColors } from "./NavItems";
 import { useTheme } from "../../theme/ThemeContext";
 import { ADUser } from "../../../types";
@@ -16,7 +17,12 @@ import LogoutModal from "../../app/Auth/LogoutModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllFleetDrivers, setDriverShift } from "../../services/fleetOps";
-import { SHIFT_OPTIONS, findShiftOption } from "@/utils/shiftUtils";
+import {
+  SHIFT_OPTIONS,
+  findShiftOption,
+  formatShiftLabel,
+  hasNoShift,
+} from "@/utils/shiftUtils";
 
 const STORAGE_KEY = "AD_USER_DATA";
 
@@ -39,6 +45,20 @@ const THEME_META: Record<
   system: { label: "System", Icon: Monitor, next: "light" },
 };
 
+// Rounds a "HH:MM" string from the native <input type="time"> up/down to
+// the nearest whole hour — guards against manual keyboard entry, since
+// `step` on the input only constrains the native picker's scroll
+// increments, not typing (same reasoning as snapToHalfHour in
+// TripBookingModal.tsx, just locked to :00 instead of :00/:30).
+function snapToWholeHour(value: string): string {
+  if (!value) return value;
+  const [hStr, mStr] = value.split(":");
+  let h = Number(hStr);
+  const m = Number(mStr);
+  if (m >= 30) h = (h + 1) % 24;
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
 // ── Driver top bar ──────────────────────────────────────────────────────────
 // Drivers have no side nav to open (no other modules to switch between), so
 // this is a plain fixed header: logo + wordmark, and an avatar on the right
@@ -53,6 +73,12 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
   const [myShiftStart, setMyShiftStart] = useState<string | null>(null);
   const [myShiftEnd, setMyShiftEnd] = useState<string | null>(null);
   const [savingShift, setSavingShift] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [customError, setCustomError] = useState<string | null>(null);
+  const customStartRef = useRef<HTMLInputElement>(null);
+  const customEndRef = useRef<HTMLInputElement>(null);
 
   const { theme, themeMode, setThemeMode } = useTheme();
   const C = getNavColors(theme);
@@ -72,6 +98,11 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
           setMyDriverId(mine.id);
           setMyShiftStart(mine.shiftStart ?? null);
           setMyShiftEnd(mine.shiftEnd ?? null);
+          // No shift on file — force the picker open instead of leaving
+          // the driver stuck with no auto duty-status coverage.
+          if (hasNoShift(mine.shiftStart, mine.shiftEnd)) {
+            setShiftModalVisible(true);
+          }
         }
       })
       .catch((err) => console.error("Load driver shift failed:", err));
@@ -80,7 +111,31 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
     };
   }, [user.displayName]);
 
+  // Hides the browser's own built-in clock icon on the native time inputs
+  // below so only our themed icon button shows — same pattern as
+  // TripBookingModal's DATE_INPUT_CLASS.
+  const TIME_INPUT_CLASS = "driver-shift-time-input";
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const styleId = "driver-shift-time-input-style";
+    if (document.getElementById(styleId)) return;
+    const el = document.createElement("style");
+    el.id = styleId;
+    el.textContent = `
+      .${TIME_INPUT_CLASS}::-webkit-calendar-picker-indicator {
+        opacity: 0;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(el);
+  }, []);
+
   const myShiftOption = findShiftOption(myShiftStart, myShiftEnd);
+  const myShiftLabel = myShiftOption
+    ? myShiftOption.label
+    : myShiftStart && myShiftEnd
+    ? formatShiftLabel(myShiftStart, myShiftEnd)
+    : null;
 
   async function handleSelectShift(start: string, end: string) {
     if (!myDriverId) return;
@@ -90,11 +145,28 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
       setMyShiftStart(start);
       setMyShiftEnd(end);
       setShiftModalVisible(false);
+      setCustomMode(false);
+      setCustomError(null);
+      setCustomStart("");
+      setCustomEnd("");
     } catch (err) {
       console.error("Set shift failed:", err);
     } finally {
       setSavingShift(false);
     }
+  }
+
+  function handleSaveCustomShift() {
+    if (!customStart || !customEnd) {
+      setCustomError("Pick both a start and end time.");
+      return;
+    }
+    if (customStart === customEnd) {
+      setCustomError("Start and end time can't be the same.");
+      return;
+    }
+    setCustomError(null);
+    handleSelectShift(customStart, customEnd);
   }
 
   const handleThemeCycle = () => {
@@ -318,7 +390,7 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
                       marginTop: 1,
                     }}
                   >
-                    {myShiftOption?.label ?? "Not set"}
+                    {myShiftLabel ?? "Not set"}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -403,11 +475,16 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
             </Text>
 
             {SHIFT_OPTIONS.map((opt) => {
-              const selected = opt.start === myShiftStart && opt.end === myShiftEnd;
+              const selected =
+                !customMode && opt.start === myShiftStart && opt.end === myShiftEnd;
               return (
                 <TouchableOpacity
                   key={opt.key}
-                  onPress={() => handleSelectShift(opt.start, opt.end)}
+                  onPress={() => {
+                    setCustomMode(false);
+                    setCustomError(null);
+                    handleSelectShift(opt.start, opt.end);
+                  }}
                   disabled={savingShift}
                   activeOpacity={0.8}
                   style={{
@@ -447,12 +524,208 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
               );
             })}
 
+            {/* Custom time — toggles two HH:MM inputs instead of picking
+                one of the fixed SHIFT_OPTIONS above. */}
+            <TouchableOpacity
+              onPress={() => {
+                setCustomError(null);
+                setCustomMode((prev) => !prev);
+              }}
+              disabled={savingShift}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: 13,
+                paddingHorizontal: 14,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: customMode ? theme.iconActive : theme.navBorder,
+                backgroundColor: customMode ? theme.iconActive + "1a" : "transparent",
+                marginBottom: customMode ? 12 : 10,
+                opacity: savingShift ? 0.6 : 1,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13.5,
+                  color: theme.textActive,
+                }}
+              >
+                Custom time
+              </Text>
+              {customMode && (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    backgroundColor: theme.iconActive,
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+
+            {customMode && (
+              <View style={{ marginBottom: 10 }}>
+                <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 11,
+                        color: theme.subtext,
+                        marginBottom: 6,
+                      }}
+                    >
+                      Start
+                    </Text>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        ref={customStartRef as any}
+                        type="time"
+                        step={3600}
+                        className={TIME_INPUT_CLASS}
+                        value={customStart}
+                        disabled={savingShift}
+                        onChange={(e: any) => setCustomStart(snapToWholeHour(e.target.value))}
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          backgroundColor: theme.background,
+                          borderRadius: 8,
+                          border: `1px solid ${theme.navBorder}`,
+                          padding: "9px 34px 9px 12px",
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: theme.textActive,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => customStartRef.current?.showPicker?.()}
+                        style={{
+                          position: "absolute",
+                          right: 8,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          padding: 4,
+                          cursor: "pointer",
+                          display: "flex",
+                        }}
+                      >
+                        <ClockIcon size={14} color={theme.subtext} />
+                      </button>
+                    </div>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 11,
+                        color: theme.subtext,
+                        marginBottom: 6,
+                      }}
+                    >
+                      End
+                    </Text>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        ref={customEndRef as any}
+                        type="time"
+                        step={3600}
+                        className={TIME_INPUT_CLASS}
+                        value={customEnd}
+                        disabled={savingShift}
+                        onChange={(e: any) => setCustomEnd(snapToWholeHour(e.target.value))}
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          backgroundColor: theme.background,
+                          borderRadius: 8,
+                          border: `1px solid ${theme.navBorder}`,
+                          padding: "9px 34px 9px 12px",
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: theme.textActive,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => customEndRef.current?.showPicker?.()}
+                        style={{
+                          position: "absolute",
+                          right: 8,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          padding: 4,
+                          cursor: "pointer",
+                          display: "flex",
+                        }}
+                      >
+                        <ClockIcon size={14} color={theme.subtext} />
+                      </button>
+                    </div>
+                  </View>
+                </View>
+
+                {customError && (
+                  <Text
+                    style={{
+                      fontFamily: "Outfit",
+                      fontSize: 11.5,
+                      color: "#dc2626",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {customError}
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  onPress={handleSaveCustomShift}
+                  disabled={savingShift}
+                  activeOpacity={0.85}
+                  style={{
+                    backgroundColor: theme.iconActive,
+                    borderRadius: 8,
+                    paddingVertical: 11,
+                    alignItems: "center",
+                    opacity: savingShift ? 0.6 : 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: "#fff",
+                    }}
+                  >
+                    Save custom shift
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {savingShift && (
               <ActivityIndicator size="small" color={theme.iconActive} style={{ marginTop: 4 }} />
             )}
 
             <TouchableOpacity
-              onPress={() => setShiftModalVisible(false)}
+              onPress={() => {
+                setShiftModalVisible(false);
+                setCustomMode(false);
+                setCustomError(null);
+                setCustomStart("");
+                setCustomEnd("");
+              }}
               disabled={savingShift}
               activeOpacity={0.8}
               style={{
