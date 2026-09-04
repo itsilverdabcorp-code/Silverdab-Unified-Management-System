@@ -5,6 +5,7 @@
 // only, same split as FleetControlTowerPage.web.tsx / useFleetControlTowerData.ts.
 
 import React, { useState } from "react";
+import { Archive, RotateCcw } from "lucide-react";
 import { useTheme } from "../../../../theme/ThemeContext";
 import Calendar from "../../../../components/common/Calendar";
 import {
@@ -89,6 +90,8 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
     getAvailableVehicles, getAvailableDrivers,
     handleApprove, handleReassign, handleReject,
     handleMarkArrived, handleStartReturn, handleComplete,
+    handleArchive, handleUnarchive,
+    showArchived, setShowArchived,
     loading,
   } = data;
 
@@ -182,23 +185,37 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
             })}
           </div>
 
-          <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="rounded-lg border flex overflow-hidden flex-shrink-0 mb-1.5">
-            {(["table", "calendar"] as const).map((mode) => {
-              const active = viewMode === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  style={{
-                    backgroundColor: active ? theme.primary : "transparent",
-                    color: active ? theme.primaryText : theme.subtext,
-                  }}
-                  className="text-[11.5px] font-semibold px-3 py-1.5 whitespace-nowrap capitalize"
-                >
-                  {mode === "table" ? "Table" : "Calendar"}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2 flex-shrink-0 mb-1.5">
+            <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="rounded-lg border flex overflow-hidden">
+              {(["table", "calendar"] as const).map((mode) => {
+                const active = viewMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    style={{
+                      backgroundColor: active ? theme.primary : "transparent",
+                      color: active ? theme.primaryText : theme.subtext,
+                    }}
+                    className="text-[11.5px] font-semibold px-3 py-1.5 whitespace-nowrap capitalize"
+                  >
+                    {mode === "table" ? "Table" : "Calendar"}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setShowArchived((prev) => !prev)}
+              style={{
+                backgroundColor: showArchived ? theme.primary : theme.surface,
+                borderColor: theme.border,
+                color: showArchived ? theme.primaryText : theme.subtext,
+              }}
+              className="text-[11.5px] font-semibold px-3 py-1.5 whitespace-nowrap rounded-lg border"
+            >
+              {showArchived ? "Viewing Archived" : "Archived"}
+            </button>
           </div>
         </div>
       </div>
@@ -218,7 +235,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
             >
               <thead>
                 <tr>
-                  {["Trip ID", "Pickup", "Drop-off", "Purpose", "Employee", "Vehicle", "Driver", "Date Booked", "Schedule", "Status"].map((h) => (
+                  {["Trip ID", "Pickup", "Drop-off", "Purpose", "Employee", "Vehicle", "Driver", "Date Booked", "Schedule", "Status", ""].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -240,7 +257,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
               <tbody>
                 {filteredTrips.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ color: theme.subtext }} className="text-xs text-center px-4 py-6">
+                    <td colSpan={11} style={{ color: theme.subtext }} className="text-xs text-center px-4 py-6">
                       No trips match this filter.
                     </td>
                   </tr>
@@ -297,6 +314,37 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                         </td>
                         <td className="px-4 py-2.5 whitespace-nowrap">
                           <StatusBadge config={cfg} size="sm" />
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-right">
+                          {showArchived ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnarchive(trip);
+                              }}
+                              disabled={busyTripId === trip.id}
+                              style={{ color: theme.primary, opacity: busyTripId === trip.id ? 0.5 : 1 }}
+                              className="inline-flex items-center justify-center p-1.5 rounded-md hover:bg-black/5"
+                              title="Restore trip"
+                              aria-label="Restore trip"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchive(trip);
+                              }}
+                              disabled={busyTripId === trip.id}
+                              style={{ color: "#ef4444", opacity: busyTripId === trip.id ? 0.5 : 1 }}
+                              className="inline-flex items-center justify-center p-1.5 rounded-md hover:bg-black/5"
+                              title="Archive trip"
+                              aria-label="Archive trip"
+                            >
+                              <Archive size={14} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -742,13 +790,42 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
               }
 
               return (
-                <button
-                  onClick={() => setViewingTrip(null)}
-                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                  className="w-full rounded-xl py-2.5 border text-sm font-semibold"
-                >
-                  Close
-                </button>
+                <div className="flex flex-col gap-2.5">
+                  {(viewingTrip as any).isArchived ? (
+                    <button
+                      onClick={async () => {
+                        await handleUnarchive(viewingTrip);
+                        setViewingTrip(null);
+                      }}
+                      disabled={isBusy}
+                      style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: isBusy ? 0.6 : 1 }}
+                      className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw size={15} />
+                      {isBusy ? "Restoring…" : "Restore Trip"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        await handleArchive(viewingTrip);
+                        setViewingTrip(null);
+                      }}
+                      disabled={isBusy}
+                      style={{ backgroundColor: "#fee2e2", color: "#991b1b", opacity: isBusy ? 0.6 : 1 }}
+                      className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+                    >
+                      <Archive size={15} />
+                      {isBusy ? "Archiving…" : "Archive Trip"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setViewingTrip(null)}
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                    className="w-full rounded-xl py-2.5 border text-sm font-semibold"
+                  >
+                    Close
+                  </button>
+                </div>
               );
             })()}
           </div>

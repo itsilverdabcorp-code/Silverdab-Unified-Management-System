@@ -128,6 +128,7 @@ function mapTripRow(row: any): FleetTrip {
     updatedAt: row.updatedAt ?? "",
     statusHistory: Array.isArray(row.statusHistory) ? row.statusHistory : [],
     calendarSynced: !!row.calendarSynced,
+    isArchived: !!row.isArchived,
   };
 }
 
@@ -344,16 +345,19 @@ export async function deleteFleetDriver(driverId: string): Promise<void> {
 
 // ─── Reads ──────────────────────────────────────────────────────────────────
 
-export async function getAllFleetTrips(): Promise<FleetTrip[]> {
+export async function getAllFleetTrips(includeArchived = false): Promise<FleetTrip[]> {
   try {
     const token = await getServiceToken();
     if (!token) return [];
 
-    const res = await fetch(`${BACKEND_URL}/fleet/trips`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const res = await fetch(
+      `${BACKEND_URL}/fleet/trips${includeArchived ? "?includeArchived=true" : ""}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
     const data = await readJsonResponse<{
       success?: boolean;
       trips?: any[];
@@ -370,6 +374,14 @@ export async function getAllFleetTrips(): Promise<FleetTrip[]> {
     console.warn("getAllFleetTrips error:", err);
     return [];
   }
+}
+
+export async function archiveFleetTrip(tripId: string): Promise<void> {
+  return postTripAction(tripId, "archive", "Failed to archive trip.");
+}
+
+export async function unarchiveFleetTrip(tripId: string): Promise<void> {
+  return postTripAction(tripId, "unarchive", "Failed to restore trip.");
 }
 
 export async function getAllFleetVehicles(): Promise<FleetVehicle[]> {

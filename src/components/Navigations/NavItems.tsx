@@ -360,12 +360,7 @@ export const FleetDriverIcon: React.FC<{ color: string; size?: number }> = ({
       stroke={color}
       strokeWidth="2"
     />
-    <Path
-      d="M9 6h6"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
+    <Path d="M9 6h6" stroke={color} strokeWidth="2" strokeLinecap="round" />
     <Circle cx="12" cy="14" r="1.4" fill={color} />
   </Svg>
 );
@@ -586,18 +581,50 @@ export const SeatPlanIcon: React.FC<{ color: string; size?: number }> = ({
   size = 20,
 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect x="3" y="3" width="18" height="18" rx="2" stroke={color} strokeWidth="2" />
+    <Rect
+      x="3"
+      y="3"
+      width="18"
+      height="18"
+      rx="2"
+      stroke={color}
+      strokeWidth="2"
+    />
     <Rect x="6" y="7" width="4" height="3" rx="0.5" fill={color} />
-    <Rect x="14" y="7" width="4" height="3" rx="0.5" fill={color} opacity="0.7" />
-    <Rect x="6" y="14" width="4" height="3" rx="0.5" fill={color} opacity="0.7" />
-    <Rect x="14" y="14" width="4" height="3" rx="0.5" fill={color} opacity="0.5" />
+    <Rect
+      x="14"
+      y="7"
+      width="4"
+      height="3"
+      rx="0.5"
+      fill={color}
+      opacity="0.7"
+    />
+    <Rect
+      x="6"
+      y="14"
+      width="4"
+      height="3"
+      rx="0.5"
+      fill={color}
+      opacity="0.7"
+    />
+    <Rect
+      x="14"
+      y="14"
+      width="4"
+      height="3"
+      rx="0.5"
+      fill={color}
+      opacity="0.5"
+    />
   </Svg>
 );
 
-export const RoomReservationIcon: React.FC<{ color: string; size?: number }> = ({
-  color,
-  size = 20,
-}) => (
+export const RoomReservationIcon: React.FC<{
+  color: string;
+  size?: number;
+}> = ({ color, size = 20 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Rect
       x="3"
@@ -705,7 +732,6 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           icon: UsersIcon,
           href: href("users"),
         },
-        
       ],
     },
     {
@@ -799,7 +825,6 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           icon: FleetDriverIcon,
           href: href("fleetdriver"),
         },
-        
       ],
     },
     {
@@ -813,7 +838,6 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
         },
       ],
     },
-    
   ],
   admin: [
     {
@@ -982,7 +1006,12 @@ export function getNavSectionsForUser(user: {
       items: [
         // { key: "dashboard",       label: "Dashboard",        icon: DashboardIcon,    href: href("dashboard")       },
         // { key: "submitticket",    label: "Submit Ticket",    icon: SubmitTicketIcon, href: href("submitticket")    },
-         { key: "mytickets",       label: "My Tickets",       icon: MyTicketsIcon,    href: href("mytickets")       },
+        {
+          key: "mytickets",
+          label: "My Tickets",
+          icon: MyTicketsIcon,
+          href: href("mytickets"),
+        },
         // { key: "supplyinventory", label: "Supply Inventory", icon: SuppliesIcon,     href: href("supplyinventory") },
       ],
     };
@@ -1007,6 +1036,12 @@ export function getNavSectionsForUser(user: {
             label: "IT Consumables",
             icon: ConsumablesIcon,
             href: href("consumables"),
+          },
+          {
+            key: "seatplan",
+            label: "Seat Plan",
+            icon: SeatPlanIcon,
+            href: href("seatplan"),
           },
         ]
       : [];
@@ -1106,7 +1141,10 @@ export function getNavSectionsForUser(user: {
     }
 
     if (fleetControlItems.length > 0) {
-      sections.push({ sectionLabel: "Fleet Management", items: fleetControlItems });
+      sections.push({
+        sectionLabel: "Fleet Management",
+        items: fleetControlItems,
+      });
     }
 
     // Room Reservation is available to every employee/admin, independent

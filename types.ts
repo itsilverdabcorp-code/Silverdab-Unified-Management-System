@@ -292,6 +292,7 @@ export type FleetTrip = {
   updatedAt: string;
   statusHistory?: FleetTripStatusLogEntry[];
   calendarSynced: boolean;
+  isArchived?: boolean;
 };
 
 export type FleetVehicle = {
@@ -308,7 +309,7 @@ export type FleetVehicle = {
   tramigoDeviceId?: string | null;
 };
 
-export type DriverDutyStatus = "off_duty" | "active" | "personal";
+export type DriverDutyStatus = "off_duty" | "active" | "personal" | "leave";
 
 export type FleetDriver = {
   id: string;
@@ -321,6 +322,7 @@ export type FleetDriver = {
   dutyStatus: DriverDutyStatus;
   shiftStart: string | null; // "HH:MM:SS" from DB, or null if unset
   shiftEnd: string | null;
+  dutyStatusUpdatedAt?: string | null;
 };
 
 export type FleetLocation = {

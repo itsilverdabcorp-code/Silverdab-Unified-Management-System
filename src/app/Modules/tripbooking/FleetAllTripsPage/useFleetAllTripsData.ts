@@ -17,6 +17,8 @@ import {
   markTripArrived,
   startTripReturn,
   completeFleetTrip,
+  archiveFleetTrip,
+  unarchiveFleetTrip,
 } from "../../../../services/fleetOps";
 import { ADUser, FleetTrip, FleetVehicle, FleetDriver, TripStatus } from "../../../../../types";
 
@@ -113,6 +115,7 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
   const [rowError, setRowError] = useState<Record<string, string>>({});
   const [busyTripId, setBusyTripId] = useState<string | null>(null);
   const [reassignOpen, setReassignOpen] = useState<Record<string, boolean>>({});
+  const [showArchived, setShowArchived] = useState(false);
 
   const isFirstLoad = useRef(true);
 
@@ -120,7 +123,7 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
     if (isFirstLoad.current) setLoading(true);
     try {
       const [t, v, d] = await Promise.all([
-        getAllFleetTrips(),
+        getAllFleetTrips(true), // always fetch archived too; filtered client-side by showArchived
         getAllFleetVehicles(),
         getAllFleetDrivers(),
       ]);
@@ -158,14 +161,15 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
   // derived from this so every badge reflects the current search term
   // without being narrowed by whichever tab happens to be selected.
   const searchFilteredTrips = useMemo(() => {
+    const scoped = trips.filter((t) => !!(t as any).isArchived === showArchived);
     const q = search.trim().toLowerCase();
-    if (!q) return trips;
-    return trips.filter((t) =>
+    if (!q) return scoped;
+    return scoped.filter((t) =>
       [t.pickupLabel, t.dropoffLabel, t.requestorName, t.vehiclePlate, t.driverName, t.tripRef, t.purpose]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(q)),
     );
-  }, [trips, search]);
+  }, [trips, search, showArchived]);
 
   const tabCounts = useMemo(() => {
     const counts: Record<"all" | TripStatus, number> = {
@@ -333,6 +337,32 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
     }
   }
 
+  async function handleArchive(trip: FleetTrip) {
+    setBusyTripId(trip.id);
+    try {
+      await archiveFleetTrip(trip.id);
+      await loadAll();
+    } catch (err) {
+      console.error("Archive trip failed:", err);
+      setRowError((prev) => ({ ...prev, [trip.id]: "Failed to archive — try again." }));
+    } finally {
+      setBusyTripId(null);
+    }
+  }
+
+  async function handleUnarchive(trip: FleetTrip) {
+    setBusyTripId(trip.id);
+    try {
+      await unarchiveFleetTrip(trip.id);
+      await loadAll();
+    } catch (err) {
+      console.error("Restore trip failed:", err);
+      setRowError((prev) => ({ ...prev, [trip.id]: "Failed to restore — try again." }));
+    } finally {
+      setBusyTripId(null);
+    }
+  }
+
   return {
     user,
     trips, vehicles, drivers, loading,
@@ -349,6 +379,8 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
     getAvailableVehicles, getAvailableDrivers,
     handleApprove, handleReassign, handleReject,
     handleMarkArrived, handleStartReturn, handleComplete,
+    handleArchive, handleUnarchive,
+    showArchived, setShowArchived,
     loadAll,
   };
 }

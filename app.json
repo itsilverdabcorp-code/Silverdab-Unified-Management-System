@@ -14,7 +14,7 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#00000000",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/logo_padded_square.png"
       },
       "predictiveBackGestureEnabled": false,

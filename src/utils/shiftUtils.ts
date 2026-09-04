@@ -66,6 +66,12 @@ export function isWithinShift(
 
 // The driver's effective duty status: a manual "personal" override always
 // wins; otherwise it's derived from the shift window, with no button press.
+// 0 = Sunday, 6 = Saturday
+export function isWeekend(now: Date = new Date()): boolean {
+  const day = now.getDay();
+  return day === 0 || day === 6;
+}
+
 export function computeAutoDutyStatus(
   shiftStart: string | null | undefined,
   shiftEnd: string | null | undefined,
@@ -73,5 +79,6 @@ export function computeAutoDutyStatus(
   now: Date = new Date(),
 ): "active" | "off_duty" | "personal" {
   if (manualOverride === "personal") return "personal";
+  if (isWeekend(now)) return "off_duty";
   return isWithinShift(shiftStart, shiftEnd, now) ? "active" : "off_duty";
 }

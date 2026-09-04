@@ -482,6 +482,11 @@ const DUTY_STATUS_CARD_STYLE: Record<
     title: "Personal Use",
     subtitle: "Not available for trip assignment",
   },
+  leave: {
+    bg: "#8B5CF6",
+    title: "On Leave",
+    subtitle: "Not available — resumes on your next shift",
+  },
 };
 
 function VanIcon({ color, slashed }: { color: string; slashed?: boolean }) {
@@ -1043,6 +1048,38 @@ export default function DriverPortalPage({ user }: Props) {
   // POLL_INTERVAL_MS) so it self-corrects as the clock crosses a boundary.
   useEffect(() => {
     if (!myDriver) return;
+
+    // "leave" is a manual override that must survive the auto-sync poll,
+    // same as "personal" — but unlike "personal" it should only clear
+    // itself automatically the NEXT time today's shift start passes,
+    // on a day after it was set. Until then, leave it alone.
+    if (myDriver.dutyStatus === "leave") {
+      const setAt = myDriver.dutyStatusUpdatedAt
+        ? new Date(myDriver.dutyStatusUpdatedAt)
+        : null;
+      const now = new Date();
+      const setOnAnEarlierDay =
+        !setAt || setAt.toDateString() !== now.toDateString();
+
+      if (setOnAnEarlierDay && myDriver.shiftStart) {
+        const [h, m] = myDriver.shiftStart.split(":").map(Number);
+        const shiftStartToday = new Date();
+        shiftStartToday.setHours(h, m, 0, 0);
+
+        if (now >= shiftStartToday) {
+          const auto = computeAutoDutyStatus(
+            myDriver.shiftStart,
+            myDriver.shiftEnd,
+            null,
+          );
+          setDriverDutyStatus(myDriver.id, auto).catch((err) =>
+            console.error("Auto duty-status sync failed:", err),
+          );
+        }
+      }
+      return;
+    }
+
     const auto = computeAutoDutyStatus(
       myDriver.shiftStart,
       myDriver.shiftEnd,

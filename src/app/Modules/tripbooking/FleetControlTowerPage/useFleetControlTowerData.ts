@@ -182,6 +182,7 @@ export const DUTY_STATUS_CONFIG: Record<string, { label: string; bg: string; tex
   off_duty: { label: "Off Duty", bg: "#f1f5f9", text: "#64748b" },
   active: { label: "Available", bg: "#dcfce7", text: "#166534" },
   personal: { label: "Personal Use", bg: "#fef3c7", text: "#92400e" },
+  leave: { label: "On Leave", bg: "#fee2e2", text: "#991b1b" },
 };
 
 export const FILTER_TABS: { key: "all" | TripStatus; label: string }[] = [

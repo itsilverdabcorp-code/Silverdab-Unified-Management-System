@@ -568,7 +568,29 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
               )}
             </TouchableOpacity>
 
-            {customMode && (
+            {customMode && Platform.OS !== "web" && (
+              <View
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor: theme.background,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    color: theme.subtext,
+                  }}
+                >
+                  Custom time entry isn't available on this device yet. Please
+                  pick one of the preset shifts above, or use the app on web.
+                </Text>
+              </View>
+            )}
+
+            {customMode && Platform.OS === "web" && (
               <View style={{ marginBottom: 10 }}>
                 <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
                   <View style={{ flex: 1 }}>
@@ -713,6 +735,7 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
                 </TouchableOpacity>
               </View>
             )}
+            {false && customError}
 
             {savingShift && (
               <ActivityIndicator size="small" color={theme.iconActive} style={{ marginTop: 4 }} />
