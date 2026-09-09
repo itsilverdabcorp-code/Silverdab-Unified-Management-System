@@ -805,17 +805,45 @@ function TicketRow({
 
       {/* Col 3 — Title + subtitle (flex fill) */}
       <View style={{ flex: 1, paddingRight: 10 }}>
-        <Text
-          style={{
-            fontFamily: "Outfit-medium",
-            fontSize: 13,
-            color: theme.textActive ?? theme.text,
-            lineHeight: 18,
-          }}
-          numberOfLines={1}
-        >
-          {ticket.title}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+              lineHeight: 18,
+              flexShrink: 1,
+            }}
+            numberOfLines={1}
+          >
+            {ticket.title}
+          </Text>
+          {ticket._source === "trip" &&
+            (ticket.fleetTrip?.additionalDropoffs?.length ?? 0) > 0 && (
+              <View
+                style={{
+                  backgroundColor: theme.background,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 100,
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  flexShrink: 0,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Outfit-medium",
+                    fontSize: 9.5,
+                    color: theme.subtext,
+                  }}
+                >
+                  +{ticket.fleetTrip!.additionalDropoffs!.length} stop
+                  {ticket.fleetTrip!.additionalDropoffs!.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
+        </View>
         {ticket._source === "it" && (
           <Text
             style={{
@@ -903,17 +931,44 @@ function TicketCard({
         <StatusBadge status={ticket.displayStatus ?? ticket.status} />
       </View>
 
-      <Text
-        style={{
-          fontFamily: "Outfit-medium",
-          fontSize: 13,
-          color: theme.textActive ?? theme.text,
-          marginBottom: 3,
-        }}
-        numberOfLines={1}
-      >
-        {ticket.title}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 }}>
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 13,
+            color: theme.textActive ?? theme.text,
+            flexShrink: 1,
+          }}
+          numberOfLines={1}
+        >
+          {ticket.title}
+        </Text>
+        {ticket._source === "trip" &&
+          (ticket.fleetTrip?.additionalDropoffs?.length ?? 0) > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.background,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: 100,
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                flexShrink: 0,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 9.5,
+                  color: theme.subtext,
+                }}
+              >
+                +{ticket.fleetTrip!.additionalDropoffs!.length} stop
+                {ticket.fleetTrip!.additionalDropoffs!.length !== 1 ? "s" : ""}
+              </Text>
+            </View>
+          )}
+      </View>
 
       <View
         style={{
@@ -1751,7 +1806,22 @@ function TripDetailContent({
         fields={[
           { label: "Trip Ref", value: trip.tripRef },
           { label: "Pickup", value: trip.pickupLabel || "—" },
-          { label: "Drop-off", value: trip.dropoffLabel || "—" },
+          // Extra stops (beyond the primary dropoffLabel) come from
+          // fleet_trip_stops via GET /fleet/trips as additionalDropoffs —
+          // render one "Drop-off N" row per stop when there's more than one.
+          ...(() => {
+            const extraStops = trip.additionalDropoffs ?? [];
+            const allLabels = [
+              trip.dropoffLabel || "—",
+              ...extraStops.map((s) => s.locationText || "—"),
+            ];
+            return allLabels.length > 1
+              ? allLabels.map((label, i) => ({
+                  label: `Drop-off ${i + 1}`,
+                  value: label,
+                }))
+              : [{ label: "Drop-off", value: allLabels[0] }];
+          })(),
           { label: "Departure", value: toReadableDate(trip.departureDatetime) },
           {
             label: "Return",

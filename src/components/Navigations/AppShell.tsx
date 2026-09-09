@@ -26,6 +26,7 @@ import AuditTrailPage from "@/app/Modules/it/AuditTrailPage";
 import ConsumablesPage from "@/app/Modules/it/consumables/ConsumablesPage";
 import FleetControlTowerPage from "@/app/Modules/tripbooking/FleetControlTowerPage";
 import DriverPortalPage from "@/app/Modules/tripbooking/DriverPortalPage";
+import { setupExpoPushNotifications } from "@/services/pushNotifications";
 import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPage";
 import PageErrorBoundary from "../common/PageErrorBoundary";
 import RoomReservationPage from "@/app/Modules/roomreservation/RoomReservationPage";
@@ -188,6 +189,10 @@ function renderPage(
 
 export default function AppShell({ user, onLogout }: Props) {
   const sections = getNavSectionsForUser(user);
+  console.log("APPSHELL DEBUG",
+  JSON.stringify(user.permissions),
+  JSON.stringify(sections.map(s => ({ label: s.sectionLabel, keys: s.items.map(i => i.key) })))
+);
   const allowedKeys = sections.flatMap((s) => s.items.map((i) => i.key));
   const defaultKeyForUser = allowedKeys[0] ?? "dashboard";
 
@@ -207,6 +212,15 @@ export default function AppShell({ user, onLogout }: Props) {
   const [deliverItem, setDeliverItem] = useState<OfficeInventoryItem | null>(
     null,
   );
+
+  // Registers this device's Expo push token for the logged-in user, once
+  // per AppShell mount — mirrors DriverPortalPage's driver-specific
+  // registration, but here for any logged-in user (office admins included)
+  // so backend calls like sendExpoPushToUser/a future admin equivalent can
+  // reach their device.
+  useEffect(() => {
+    setupExpoPushNotifications();
+  }, []);
 
   // On mount: prefer the current browser URL (so a refresh/shared link lands
   // on the right page), falling back to the last page cached in
@@ -305,13 +319,22 @@ export default function AppShell({ user, onLogout }: Props) {
 
   if (!restored) return null;
 
-  const isDriverOnly =
-    Boolean(user.permissions?.fleetDriver) &&
-    !user.permissions?.itAccess &&
-    !user.permissions?.officeSupplies &&
-    !user.permissions?.fleetControl &&
-    user.role !== "superadmin";
+const hasOfficeAccess = Boolean(
+  user.permissions?.officeAllAccess ||
+  user.permissions?.officeSupplies ||
+  user.permissions?.officeDashboard ||
+  user.permissions?.officeInventory ||
+  user.permissions?.officeSupplyRequest ||
+  user.permissions?.officeMonthlyReport ||
+  user.permissions?.officeActivity
+);
 
+const isDriverOnly =
+  Boolean(user.permissions?.fleetDriver) &&
+  !user.permissions?.itAccess &&
+  !hasOfficeAccess &&
+  !user.permissions?.fleetControl &&
+  user.role !== "superadmin";
   return (
     <View style={{ flex: 1, flexDirection: isMobile ? "column" : "row" }}>
       {isDriverOnly ? (

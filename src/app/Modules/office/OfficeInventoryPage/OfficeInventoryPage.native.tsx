@@ -3,16 +3,21 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
   Modal,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { Lock, LockOpen, SquarePen, SlidersHorizontal } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { OfficeInventoryItem } from "../../../../../types";
 import {
   adjustStock,
   addDelivery,
+  createInventoryItem,
+  getAllInventoryItems,
   updateInventoryItem,
   archiveInventoryItem,
 } from "../../../../services/Officeinventory";
@@ -70,9 +75,9 @@ function IconActionBtn({
       onPress={onPress}
       disabled={disabled}
       style={{
-        width: 30,
-        height: 30,
-        borderRadius: 7,
+        width: 34,
+        height: 34,
+        borderRadius: 9,
         borderWidth: 1,
         borderColor: theme.border,
         alignItems: "center",
@@ -91,12 +96,105 @@ const Glyph = ({ children, theme }: { children: React.ReactNode; theme: any }) =
   <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700", lineHeight: 16 }}>{children}</Text>
 );
 
-function ItemCard({
+const CATEGORY_COLORS: Record<string, string> = {
+  office_supplies: "#8B7FD6",
+  cleaning: "#F5A623",
+  ppe: "#4FA8E8",
+  medicine: "#D65FB8",
+  pantry: "#3FBF7F",
+};
+const DEFAULT_CATEGORY_COLOR = "#94A3B8";
+
+function categoryColor(category: string): string {
+  return CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
+}
+const CATEGORY_PREFIX: Record<OfficeCategory, string> = {
+  office_supplies: "OS",
+  cleaning: "CS",
+  ppe: "PPE",
+  medicine: "MS",
+  pantry: "PT",
+};
+
+function getNextCode(items: { itemCode: string }[], category: OfficeCategory): string {
+  const prefix = CATEGORY_PREFIX[category];
+  const nums = items
+    .map((i) => i.itemCode)
+    .filter((c) => c.toUpperCase().startsWith(prefix))
+    .map((c) => parseInt(c.slice(prefix.length), 10))
+    .filter((n) => !isNaN(n));
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+}
+
+function ManageStockSheet({
+  visible,
   item,
-  viewMode,
+  onClose,
   onAdjust,
   onDeliver,
   onEdit,
+  theme,
+}: {
+  visible: boolean;
+  item: OfficeInventoryItem | null;
+  onClose: () => void;
+  onAdjust: (item: OfficeInventoryItem) => void;
+  onDeliver: (item: OfficeInventoryItem) => void;
+  onEdit: (item: OfficeInventoryItem) => void;
+  theme: any;
+}) {
+  if (!item) return null;
+
+  const options: { label: string; onPress: () => void; disabled?: boolean; color?: string }[] = [
+    { label: "Add delivery (+)", onPress: () => onDeliver(item) },
+    { label: "Deduct stock (−)", onPress: () => onAdjust(item), disabled: item.currentStock === 0 },
+    { label: "Edit item", onPress: () => onEdit(item) },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity activeOpacity={1} onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 24 }}>
+          <View style={{ alignItems: "center", paddingVertical: 10 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.border }} />
+          </View>
+          <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700", paddingHorizontal: 18, marginBottom: 4 }}>
+            {item.name}
+          </Text>
+          <Text style={{ color: theme.subtext, fontSize: 12, paddingHorizontal: 18, marginBottom: 12 }}>
+            {item.currentStock} {item.unit} in stock
+          </Text>
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt.label}
+              onPress={() => {
+                if (opt.disabled) return;
+                onClose();
+                opt.onPress();
+              }}
+              disabled={opt.disabled}
+              style={{
+                paddingHorizontal: 18,
+                paddingVertical: 14,
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
+                opacity: opt.disabled ? 0.4 : 1,
+              }}
+            >
+              <Text style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}>{opt.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const ItemCard = React.memo(function ItemCard({
+  item,
+  viewMode,
+  onManageStock,
   onToggleRestriction,
   onRestore,
   onDelete,
@@ -104,85 +202,89 @@ function ItemCard({
 }: {
   item: OfficeInventoryItem;
   viewMode: "active" | "archived";
-  onAdjust: (item: OfficeInventoryItem) => void;
-  onDeliver: (item: OfficeInventoryItem) => void;
-  onEdit: (item: OfficeInventoryItem) => void;
+  onManageStock: (item: OfficeInventoryItem) => void;
   onToggleRestriction: (item: OfficeInventoryItem) => void;
   onRestore: (id: string) => void;
   onDelete: (item: OfficeInventoryItem) => void;
   theme: any;
 }) {
-  const stockColor =
-    item.stockStatus === "out_of_stock"
-      ? "#ef4444"
-      : item.stockStatus === "low_stock"
-        ? "#f59e0b"
-        : theme.text;
-
   return (
     <View
       style={{
         backgroundColor: theme.surface,
         borderColor: theme.border,
         borderWidth: 1,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: 12,
         marginBottom: 10,
       }}
     >
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700" }} numberOfLines={1}>
-              {item.name}
-            </Text>
-            {item.isRestricted && <Text style={{ fontSize: 11 }}>🔒</Text>}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 7,
+              backgroundColor: categoryColor(item.category),
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z" />
+              <Path d="M10 21.9V14L2.1 9.1" />
+              <Path d="m10 14 11.9-6.9" />
+              <Path d="M14 19.8v-8.1" />
+              <Path d="M18 17.5V9.4" />
+            </Svg>
           </View>
-          <Text style={{ color: theme.subtext, fontSize: 11, marginTop: 1 }}>
-            {item.itemCode}
-            {item.brand ? ` · ${item.brand}` : ""}
+          <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "700" }}>
+            #{item.itemCode}
           </Text>
         </View>
         <StockBadge item={item} theme={theme} />
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 12 }}>
-        <Text style={{ color: stockColor, fontSize: 20, fontWeight: "700" }}>{item.currentStock}</Text>
-        <Text style={{ color: theme.subtext, fontSize: 12 }}>
-          {item.unit} · {formatPeso(item.pricePerUnit)}
-        </Text>
-      </View>
+      <Text style={{ color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 8 }} numberOfLines={1}>
+        {item.name}
+      </Text>
 
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {viewMode === "archived" ? (
-          <>
-            <IconActionBtn onPress={() => onRestore(item.id)} theme={theme}>
-              <Glyph theme={theme}>↺</Glyph>
-            </IconActionBtn>
-            <IconActionBtn onPress={() => onDelete(item)} theme={theme}>
-              <Glyph theme={theme}>🗑</Glyph>
-            </IconActionBtn>
-          </>
-        ) : (
-          <>
-            <IconActionBtn onPress={() => onAdjust(item)} disabled={item.currentStock === 0} theme={theme}>
-              <Glyph theme={theme}>−</Glyph>
-            </IconActionBtn>
-            <IconActionBtn onPress={() => onDeliver(item)} theme={theme}>
-              <Glyph theme={theme}>+</Glyph>
-            </IconActionBtn>
-            <IconActionBtn onPress={() => onEdit(item)} theme={theme}>
-              <Glyph theme={theme}>✎</Glyph>
-            </IconActionBtn>
-            <IconActionBtn onPress={() => onToggleRestriction(item)} theme={theme}>
-              <Glyph theme={theme}>{item.isRestricted ? "🔓" : "🔒"}</Glyph>
-            </IconActionBtn>
-          </>
-        )}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Text style={{ fontSize: 13 }} numberOfLines={1}>
+          <Text style={{ color: theme.primary, fontWeight: "700" }}>{item.currentStock}</Text>
+          <Text style={{ color: theme.subtext }}> {item.unit}(s) · {formatPeso(item.pricePerUnit)}</Text>
+        </Text>
+
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {viewMode === "archived" ? (
+            <>
+              <IconActionBtn onPress={() => onRestore(item.id)} theme={theme}>
+                <Glyph theme={theme}>↺</Glyph>
+              </IconActionBtn>
+              <IconActionBtn onPress={() => onDelete(item)} theme={theme}>
+                <Glyph theme={theme}>🗑</Glyph>
+              </IconActionBtn>
+            </>
+          ) : (
+            <>
+              <IconActionBtn onPress={() => onManageStock(item)} theme={theme}>
+                <SquarePen color={theme.text} size={16} />
+              </IconActionBtn>
+              <IconActionBtn onPress={() => onToggleRestriction(item)} theme={theme}>
+                {item.isRestricted ? (
+                  <LockOpen color={theme.text} size={16} />
+                ) : (
+                  <Lock color={theme.text} size={16} />
+                )}
+              </IconActionBtn>
+            </>
+          )}
+        </View>
       </View>
     </View>
   );
-}
+});
 
 // ─── Minimal native modal shells ────────────────────────────────────────
 // These stand in for the web-only AddItemModal / EditItemModal /
@@ -249,6 +351,12 @@ const UNIT_CHOICES: OfficeUnit[] = [
   "pack", "pad", "pair", "piece", "ream", "refill", "roll", "set", "unit",
 ];
 
+const STOCK_STATUS_CHOICES: { value: OfficeInventoryItem["stockStatus"]; label: string }[] = [
+  { value: "in_stock", label: "In Stock" },
+  { value: "low_stock", label: "Low Stock" },
+  { value: "out_of_stock", label: "Out of Stock" },
+];
+
 function PillSelect<T extends string>({
   options,
   value,
@@ -288,7 +396,72 @@ function PillSelect<T extends string>({
     </ScrollView>
   );
 }
-
+function StockStatusFilterSheet({
+  visible,
+  value,
+  onChange,
+  onClose,
+  theme,
+}: {
+  visible: boolean;
+  value: OfficeInventoryItem["stockStatus"] | null;
+  onChange: (v: OfficeInventoryItem["stockStatus"] | null) => void;
+  onClose: () => void;
+  theme: any;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 170, paddingRight: 16 }}
+      >
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: theme.border,
+            paddingVertical: 8,
+            width: 200,
+          }}
+        >
+          {STOCK_STATUS_CHOICES.map((opt) => {
+            const active = value === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                onPress={() => {
+                  onChange(active ? null : opt.value);
+                  onClose();
+                }}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  backgroundColor: active ? (theme.primarySubtle ?? theme.background) : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: active ? "700" : "500",
+                    color: active ? theme.primary : theme.text,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+                {active && <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "700" }}>✓</Text>}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
 function AdjustStockNativeModal({
   visible,
   item,
@@ -413,12 +586,16 @@ function AdjustStockNativeModal({
 function AddDeliveryNativeModal({
   visible,
   item,
+  items,
+  onSelectItem,
   onCancel,
   onSuccess,
   theme,
 }: {
   visible: boolean;
   item: OfficeInventoryItem | null;
+  items: OfficeInventoryItem[];
+  onSelectItem: (item: OfficeInventoryItem) => void;
   onCancel: () => void;
   onSuccess: () => void;
   theme: any;
@@ -427,16 +604,88 @@ function AddDeliveryNativeModal({
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = React.useState("");
 
   React.useEffect(() => {
     if (visible) {
       setQty("");
       setNotes("");
       setError(null);
+      setPickerSearch("");
     }
   }, [visible, item]);
 
-  if (!item) return null;
+  if (!visible) return null;
+
+  if (!item) {
+    const filtered = items.filter((it) =>
+      `${it.name} ${it.itemCode} ${it.brand ?? ""}`.toLowerCase().includes(pickerSearch.toLowerCase())
+    );
+    return (
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "80%" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingHorizontal: 18,
+                paddingVertical: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700" }}>Select an item</Text>
+              <TouchableOpacity onPress={onCancel}>
+                <Text style={{ color: theme.subtext, fontSize: 18 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 14 }}>
+              <TextInput
+                placeholder="Search item code, name, brand..."
+                placeholderTextColor={theme.subtext}
+                value={pickerSearch}
+                onChangeText={setPickerSearch}
+                style={{
+                  borderWidth: 1,
+                  borderColor: theme.inputBorder,
+                  backgroundColor: theme.inputBg,
+                  color: theme.inputText,
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 9,
+                  fontSize: 13,
+                }}
+              />
+            </View>
+            <FlatList
+              data={filtered}
+              keyExtractor={(it) => it.id}
+              style={{ maxHeight: 360 }}
+              contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 14 }}
+              renderItem={({ item: it }) => (
+                <TouchableOpacity
+                  onPress={() => onSelectItem(it)}
+                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}
+                >
+                  <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>{it.name}</Text>
+                  <Text style={{ color: theme.subtext, fontSize: 11, marginTop: 2 }}>
+                    #{it.itemCode} · {it.currentStock} {it.unit} in stock
+                  </Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text style={{ color: theme.subtext, fontSize: 12, textAlign: "center", paddingVertical: 20 }}>
+                  No items match your search.
+                </Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   const total = Number(qty) > 0 ? (item.pricePerUnit * Number(qty)).toFixed(2) : "0.00";
 
@@ -809,6 +1058,260 @@ function EditItemNativeModal({
   );
 }
 
+function AddItemNativeModal({
+  visible,
+  onClose,
+  onSuccess,
+  theme,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  theme: any;
+}) {
+  const [form, setForm] = React.useState({
+    name: "",
+    brand: "",
+    category: "office_supplies" as OfficeCategory,
+    unit: "piece" as OfficeUnit,
+    pricePerUnit: "",
+    beginningInventory: "",
+    lowStockThreshold: "",
+    inStockThreshold: "",
+    isRestricted: false,
+  });
+  const [nextCodes, setNextCodes] = React.useState<Record<OfficeCategory, string>>({
+    office_supplies: "OS001",
+    cleaning: "CS001",
+    ppe: "PPE001",
+    medicine: "MS001",
+    pantry: "PT001",
+  });
+  const [codesLoading, setCodesLoading] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    setForm({
+      name: "",
+      brand: "",
+      category: "office_supplies",
+      unit: "piece",
+      pricePerUnit: "",
+      beginningInventory: "",
+      lowStockThreshold: "",
+      inStockThreshold: "",
+      isRestricted: false,
+    });
+    setError(null);
+    setCodesLoading(true);
+    getAllInventoryItems(true) // include archived so codes stay globally unique
+      .then((items) => {
+        const categories: OfficeCategory[] = ["office_supplies", "cleaning", "ppe", "medicine", "pantry"];
+        const codes = {} as Record<OfficeCategory, string>;
+        categories.forEach((cat) => {
+          codes[cat] = getNextCode(items, cat);
+        });
+        setNextCodes(codes);
+      })
+      .finally(() => setCodesLoading(false));
+  }, [visible]);
+
+  const fieldStyle = {
+    borderWidth: 1,
+    borderColor: theme.inputBorder,
+    backgroundColor: theme.inputBg,
+    color: theme.inputText,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+  };
+
+  const currentCode = nextCodes[form.category];
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!form.name.trim()) return setError("Item name is required.");
+    if (codesLoading) return setError("Still assigning an item code — try again in a moment.");
+
+    setSubmitting(true);
+    try {
+      await createInventoryItem({
+        itemCode: currentCode,
+        name: form.name.trim(),
+        brand: form.brand.trim() || undefined,
+        category: form.category,
+        unit: form.unit,
+        pricePerUnit: Number(form.pricePerUnit) || 0,
+        beginningInventory: Number(form.beginningInventory) || 0,
+        lowStockThreshold: Number(form.lowStockThreshold) || 5,
+        inStockThreshold: Number(form.inStockThreshold) || 10,
+        isRestricted: form.isRestricted,
+      });
+      onSuccess();
+    } catch (err: any) {
+      setError(err?.message ?? "Unable to add item.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "88%" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 18,
+              paddingVertical: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.border,
+            }}
+          >
+            <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700" }}>Add item</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color: theme.subtext, fontSize: 18 }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 18, gap: 14 }}>
+            {error && (
+              <View style={{ backgroundColor: "#fef2f2", borderRadius: 8, padding: 10 }}>
+                <Text style={{ color: "#b91c1c", fontSize: 11 }}>{error}</Text>
+              </View>
+            )}
+
+            <View>
+              <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Item code</Text>
+              <View style={{ ...fieldStyle, opacity: codesLoading ? 0.5 : 1 }}>
+                <Text style={{ color: theme.text, fontFamily: "monospace", fontSize: 13 }}>
+                  {codesLoading ? "Loading…" : currentCode}
+                </Text>
+              </View>
+              <Text style={{ color: theme.subtext, fontSize: 10, marginTop: 4 }}>
+                Auto-assigned · not editable
+              </Text>
+            </View>
+
+            <View>
+              <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Item name</Text>
+              <TextInput value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={fieldStyle} />
+            </View>
+
+            <View>
+              <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Brand / Description</Text>
+              <TextInput value={form.brand} onChangeText={(v) => setForm((f) => ({ ...f, brand: v }))} style={fieldStyle} />
+            </View>
+
+            <View>
+              <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Category</Text>
+              <PillSelect
+                options={CATEGORY_CHOICES}
+                value={form.category}
+                onChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                theme={theme}
+              />
+            </View>
+
+            <View>
+              <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Unit</Text>
+              <PillSelect
+                options={UNIT_CHOICES.map((u) => ({ value: u, label: u }))}
+                value={form.unit}
+                onChange={(v) => setForm((f) => ({ ...f, unit: v }))}
+                theme={theme}
+              />
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Price per unit (₱)</Text>
+                <TextInput
+                  keyboardType="decimal-pad"
+                  value={form.pricePerUnit}
+                  onChangeText={(v) => setForm((f) => ({ ...f, pricePerUnit: v }))}
+                  style={fieldStyle}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Beginning inventory</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={form.beginningInventory}
+                  onChangeText={(v) => setForm((f) => ({ ...f, beginningInventory: v }))}
+                  placeholder="0"
+                  style={fieldStyle}
+                />
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>Low stock threshold</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={form.lowStockThreshold}
+                  onChangeText={(v) => setForm((f) => ({ ...f, lowStockThreshold: v }))}
+                  style={fieldStyle}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.subtext, fontSize: 11, fontWeight: "600", marginBottom: 5 }}>In stock threshold</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={form.inStockThreshold}
+                  onChangeText={(v) => setForm((f) => ({ ...f, inStockThreshold: v }))}
+                  style={fieldStyle}
+                />
+              </View>
+            </View>
+            <Text style={{ color: theme.subtext, fontSize: 10, marginTop: -8 }}>
+              Stock at or below the in-stock threshold shows as Low Stock; 0 always shows as Out of Stock.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setForm((f) => ({ ...f, isRestricted: !f.isRestricted }))}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 4,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: form.isRestricted ? theme.primary : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {form.isRestricted && <Text style={{ color: theme.primaryText ?? "#fff", fontSize: 12 }}>✓</Text>}
+              </View>
+              <Text style={{ color: theme.text, fontSize: 12 }}>Restrict to admin/superadmin only</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingHorizontal: 18, paddingVertical: 14, borderTopWidth: 1, borderTopColor: theme.border }}>
+            <TouchableOpacity onPress={onClose} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: theme.border }}>
+              <Text style={{ color: theme.text, fontSize: 12, fontWeight: "600" }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSubmit} disabled={submitting || codesLoading} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: theme.primary, opacity: submitting || codesLoading ? 0.6 : 1 }}>
+              <Text style={{ color: theme.primaryText ?? "#fff", fontSize: 12, fontWeight: "600" }}>
+                {submitting ? "Saving…" : "Add item"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function OfficeInventoryPage({
@@ -824,6 +1327,7 @@ export default function OfficeInventoryPage({
     search, setSearch,
     activeFilter, setActiveFilter,
     activeTab, setActiveTab,
+    addVisible, setAddVisible,
     adjustTarget, setAdjustTarget,
     deliverTarget, setDeliverTarget,
     adjustModalOpen, setAdjustModalOpen,
@@ -839,37 +1343,133 @@ export default function OfficeInventoryPage({
   } = useOfficeInventoryData({ initialFilter, initialDeliverItem, onDeliverModalOpened });
 
   const [editTarget, setEditTarget] = React.useState<OfficeInventoryItem | null>(null);
+  const [stockStatusFilter, setStockStatusFilter] = React.useState<OfficeInventoryItem["stockStatus"] | null>(null);
+  const [statusFilterSheetOpen, setStatusFilterSheetOpen] = React.useState(false);
 
   const isLoading = viewMode === "archived" ? archivedLoading : loading;
+
+  const displayedItems = React.useMemo(
+    () => (stockStatusFilter ? sortedFiltered.filter((it) => it.stockStatus === stockStatusFilter) : sortedFiltered),
+    [sortedFiltered, stockStatusFilter]
+  );
+
+  const [manageStockTarget, setManageStockTarget] = React.useState<OfficeInventoryItem | null>(null);
+
+  const handleManageStock = React.useCallback((it: OfficeInventoryItem) => setManageStockTarget(it), []);
+
+  const handleAdjust = React.useCallback((it: OfficeInventoryItem) => {
+    setAdjustTarget(it);
+    setAdjustModalOpen(true);
+  }, [setAdjustTarget, setAdjustModalOpen]);
+
+  const handleDeliver = React.useCallback((it: OfficeInventoryItem) => {
+    setDeliverTarget(it);
+    setDeliverModalOpen(true);
+  }, [setDeliverTarget, setDeliverModalOpen]);
+
+  const handleEdit = React.useCallback((it: OfficeInventoryItem) => setEditTarget(it), [setEditTarget]);
+  const handleDeleteTarget = React.useCallback((it: OfficeInventoryItem) => setDeleteTarget(it), [setDeleteTarget]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={{ padding: 16, paddingBottom: 0 }}>
-        <Text style={{ color: theme.text, fontSize: 20, fontWeight: "700" }}>
-          Office Inventory{viewMode === "archived" ? " · Archived" : ""}
-        </Text>
-        <Text style={{ color: theme.subtext, fontSize: 12, marginTop: 2 }}>
-          {sortedFiltered.length} of {data.length} items
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: "700" }}>
+              Office Inventory{viewMode === "archived" ? " · Archived" : ""}
+            </Text>
+            <Text style={{ color: theme.subtext, fontSize: 12, marginTop: 2 }}>
+              {displayedItems.length} of {data.length} items
+            </Text>
+          </View>
 
-        <TextInput
-          placeholder="Search item code, name, brand..."
-          placeholderTextColor={theme.subtext}
-          value={search}
-          onChangeText={setSearch}
-          style={{
-            backgroundColor: theme.inputBg,
-            borderColor: theme.inputBorder,
-            borderWidth: 1,
-            color: theme.inputText,
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 9,
-            fontSize: 13,
-            marginTop: 12,
-            marginBottom: 10,
-          }}
-        />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setDeliverTarget(null);
+                setDeliverModalOpen(true);
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                borderWidth: 1.5,
+                borderColor: theme.primary,
+              }}
+            >
+              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "700" }}>+</Text>
+              <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "700" }}>Add Delivery</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setAddVisible(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: theme.primary,
+              }}
+            >
+              <Text style={{ color: theme.primaryText ?? "#fff", fontSize: 13, fontWeight: "700" }}>+</Text>
+              <Text style={{ color: theme.primaryText ?? "#fff", fontSize: 13, fontWeight: "700" }}>Add Item</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, marginBottom: 10 }}>
+          <TextInput
+            placeholder="Search item code, name, brand..."
+            placeholderTextColor={theme.subtext}
+            value={search}
+            onChangeText={setSearch}
+            style={{
+              flex: 1,
+              backgroundColor: theme.inputBg,
+              borderColor: theme.inputBorder,
+              borderWidth: 1,
+              color: theme.inputText,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 9,
+              fontSize: 13,
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={() => setStatusFilterSheetOpen(true)}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: theme.inputBorder,
+              backgroundColor: theme.inputBg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SlidersHorizontal color={theme.primary} size={18} />
+            {stockStatusFilter && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -3,
+                  right: -3,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: theme.primary,
+                }}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
 
         {activeFilter && (
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
@@ -895,9 +1495,27 @@ export default function OfficeInventoryPage({
         )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            {CATEGORY_TABS.map((tab) => {
-              const active = viewMode === "active" && activeTab === tab.value;
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setViewMode("active");
+                setActiveTab("all" as any);
+              }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 999,
+                backgroundColor: viewMode === "active" && activeTab === ("all" as any) ? theme.primary : (theme.primarySubtle ?? theme.surface),
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "600", color: viewMode === "active" && activeTab === ("all" as any) ? (theme.primaryText ?? "#fff") : theme.text }}>
+                All
+              </Text>
+            </TouchableOpacity>
+
+            {CATEGORY_TABS.filter((tab) => tab.value !== ("all" as any)).map((tab) => {
+              const color = categoryColor(tab.value as string);
+              const isActive = viewMode === "active" && activeTab === tab.value;
               return (
                 <TouchableOpacity
                   key={tab.value}
@@ -906,16 +1524,38 @@ export default function OfficeInventoryPage({
                     setActiveTab(tab.value);
                   }}
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 7,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
                     borderRadius: 999,
-                    backgroundColor: active ? theme.primary : theme.surface,
+                    backgroundColor: isActive ? (theme.primarySubtle ?? theme.surface) : "transparent",
                     borderWidth: 1,
-                    borderColor: active ? theme.primary : theme.border,
+                    borderColor: isActive ? color : "transparent",
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? (theme.primaryText ?? "#fff") : theme.subtext }}>
-                    {tab.label} ({tabCounts[tab.value]})
+                  <View
+                    style={{
+                      minWidth: 26,
+                      height: 26,
+                      paddingHorizontal: 6,
+                      borderRadius: 13,
+                      backgroundColor: color,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{tabCounts[tab.value]}</Text>
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: isActive ? "700" : "600",
+                      color: isActive ? color : theme.text,
+                    }}
+                  >
+                    {tab.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -943,36 +1583,53 @@ export default function OfficeInventoryPage({
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={theme.primary ?? "#4169E1"} />
         </View>
-      ) : sortedFiltered.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <Text style={{ color: theme.subtext, fontSize: 13, textAlign: "center" }}>
-            {viewMode === "archived" ? "No archived items." : "No inventory items found."}
-          </Text>
-        </View>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 40 }}>
-          {sortedFiltered.map((item) => (
+        <FlatList
+          data={displayedItems}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 40 }}
+          renderItem={({ item }) => (
             <ItemCard
-              key={item.id}
               item={item}
               viewMode={viewMode}
-              onAdjust={(it) => {
-                setAdjustTarget(it);
-                setAdjustModalOpen(true);
-              }}
-              onDeliver={(it) => {
-                setDeliverTarget(it);
-                setDeliverModalOpen(true);
-              }}
-              onEdit={(it) => setEditTarget(it)}
+              onManageStock={handleManageStock}
               onToggleRestriction={handleToggleRestriction}
               onRestore={handleRestore}
-              onDelete={(it) => setDeleteTarget(it)}
+              onDelete={handleDeleteTarget}
               theme={theme}
             />
-          ))}
-        </ScrollView>
+          )}
+          ListEmptyComponent={
+            <View style={{ alignItems: "center", justifyContent: "center", padding: 24 }}>
+              <Text style={{ color: theme.subtext, fontSize: 13, textAlign: "center" }}>
+                {viewMode === "archived" ? "No archived items." : "No inventory items found."}
+              </Text>
+            </View>
+          }
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
+        />
       )}
+
+      <StockStatusFilterSheet
+        visible={statusFilterSheetOpen}
+        value={stockStatusFilter}
+        onChange={setStockStatusFilter}
+        onClose={() => setStatusFilterSheetOpen(false)}
+        theme={theme}
+      />
+
+      <ManageStockSheet
+        visible={manageStockTarget !== null}
+        item={manageStockTarget}
+        onClose={() => setManageStockTarget(null)}
+        onAdjust={handleAdjust}
+        onDeliver={handleDeliver}
+        onEdit={handleEdit}
+        theme={theme}
+      />
 
       {/* ── Stock actions (adjust / deliver) ── */}
       <AdjustStockNativeModal
@@ -993,6 +1650,8 @@ export default function OfficeInventoryPage({
       <AddDeliveryNativeModal
         visible={deliverModalOpen}
         item={deliverTarget}
+        items={data}
+        onSelectItem={setDeliverTarget}
         onCancel={() => {
           setDeliverModalOpen(false);
           setDeliverTarget(null);
@@ -1000,6 +1659,16 @@ export default function OfficeInventoryPage({
         onSuccess={() => {
           setDeliverModalOpen(false);
           setDeliverTarget(null);
+          fetchData();
+        }}
+        theme={theme}
+      />
+
+      <AddItemNativeModal
+        visible={addVisible}
+        onClose={() => setAddVisible(false)}
+        onSuccess={() => {
+          setAddVisible(false);
           fetchData();
         }}
         theme={theme}

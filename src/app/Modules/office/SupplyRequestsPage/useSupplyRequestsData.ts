@@ -291,12 +291,36 @@ export function useSupplyRequestsData({
           return [];
         }),
       ]);
-      setRequests(data);
-      setLiveStock(
-        Object.fromEntries(
+      setRequests((prev) => {
+        if (prev.length !== data.length) return data;
+        const changed = prev.some((p, i) => {
+          const n = data[i];
+          return (
+            !n ||
+            p.id !== n.id ||
+            p.status !== n.status ||
+            p.reviewedAt !== n.reviewedAt ||
+            p.approvedAt !== n.approvedAt ||
+            p.deliveredAt !== n.deliveredAt ||
+            p.failedAt !== n.failedAt ||
+            p.cancelledAt !== n.cancelledAt
+          );
+        });
+        return changed ? data : prev;
+      });
+
+      setLiveStock((prev) => {
+        const next = Object.fromEntries(
           items.map((it) => [it.id, toRequestStockStatus(it.stockStatus)]),
-        ),
-      );
+        );
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(next);
+        const changed =
+          prevKeys.length !== nextKeys.length ||
+          nextKeys.some((k) => prev[k] !== next[k]);
+        return changed ? next : prev;
+      });
+
       setError("");
     } catch (err) {
       console.error(err);
@@ -410,6 +434,10 @@ export function useSupplyRequestsData({
     (x) => x.status === "out_for_delivery",
   ).length;
 
+  const notYetIssuedCount = requests.filter(
+    (x) => x.status === "pending" || x.status === "awaiting_stock" || x.status === "out_for_delivery",
+  ).length;
+
   const handleApproveAll = async (request: SupplyRequest) => {
     setApprovingId(request.id);
     setError("");
@@ -456,7 +484,7 @@ export function useSupplyRequestsData({
     }
   };
 
-  const handleMarkDelivered = async (request: SupplyRequest) => {
+  const handleMarkDelivered = useCallback(async (request: SupplyRequest) => {
     setDelivActionId(request.id);
     setError("");
     try {
@@ -467,7 +495,7 @@ export function useSupplyRequestsData({
     } finally {
       setDelivActionId(null);
     }
-  };
+  }, [user, loadRequests]);
 
   const handleConfirmFailed = async (reason: string) => {
     if (!failTarget) return;
@@ -539,6 +567,7 @@ export function useSupplyRequestsData({
     requestCounts,
     delivCounts,
     pendingDeliveryCount,
+    notYetIssuedCount,
     handleApproveAll,
     handleApprovePartial,
     handleConfirmReject,

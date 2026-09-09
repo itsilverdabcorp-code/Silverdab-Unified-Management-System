@@ -3,12 +3,16 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
   Modal,
   Keyboard,
+  StyleSheet,
 } from "react-native";
+import Svg, { Path, Circle } from "react-native-svg";
+import { SlidersHorizontal } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, SupplyRequest, SupplyRequestItem } from "../../../../../types";
 import { getAllInventoryItems } from "../../../../services/Officeinventory";
@@ -42,7 +46,60 @@ function Badge({ label, colors }: { label: string; colors: { bg: string; fg: str
   );
 }
 
-function RequestCard({
+const ITEM_ICON_COLOR = "#64748b";
+
+function activityVerb(kind: string): string {
+  switch (kind) {
+    case "requested":
+      return "Requested by";
+    case "approved":
+      return "Approved by";
+    case "rejected":
+      return "Rejected by";
+    case "delivered":
+      return "Delivered by";
+    case "failed":
+      return "Delivery failed";
+    case "cancelled":
+      return "Cancelled by";
+    default:
+      return kind;
+  }
+}
+
+type ActivityEntry = { kind: string; actorName?: string | null; timestamp: string };
+
+function buildActivity(request: SupplyRequest): ActivityEntry[] {
+  const entries: ActivityEntry[] = [];
+
+  entries.push({ kind: "requested", actorName: request.requestedByName, timestamp: request.createdAt });
+
+  if (request.reviewedAt) {
+    entries.push({
+      kind: request.status === "rejected" ? "rejected" : "approved",
+      actorName: request.reviewedByName,
+      timestamp: request.reviewedAt,
+    });
+  } else if (request.approvedAt) {
+    entries.push({ kind: "approved", actorName: request.approvedByName, timestamp: request.approvedAt });
+  }
+
+  if (request.deliveredAt) {
+    entries.push({ kind: "delivered", actorName: request.deliveredByName, timestamp: request.deliveredAt });
+  }
+
+  if (request.failedAt) {
+    entries.push({ kind: "failed", actorName: null, timestamp: request.failedAt });
+  }
+
+  if (request.cancelledAt) {
+    entries.push({ kind: "cancelled", actorName: request.cancelledByName, timestamp: request.cancelledAt });
+  }
+
+  return entries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+}
+
+const RequestCard = React.memo(function RequestCard({
   request,
   liveStock,
   onApprove,
@@ -65,7 +122,9 @@ function RequestCard({
   const status = effectiveStatus(request, liveStock);
   const { primaryLabel, extraCount, qtyLabel } = itemSummary(request.items);
   const isPending = request.status === "pending" || request.status === "awaiting_stock";
+  const isOutForDelivery = request.status === "out_for_delivery";
   const isApproving = approvingId === request.id;
+  const statusColors = statusBadgeColors(status);
 
   return (
     <TouchableOpacity
@@ -74,81 +133,102 @@ function RequestCard({
         backgroundColor: theme.surface,
         borderColor: theme.border,
         borderWidth: 1,
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 8,
+        borderRadius: 14,
+        padding: 12,
+        marginBottom: 10,
       }}
     >
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
-          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: theme.primaryText, fontSize: 8, fontWeight: "600" }}>
-              {getInitials(request.requestedByName)}
-            </Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 7,
+              backgroundColor: ITEM_ICON_COLOR,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z" />
+              <Path d="M10 21.9V14L2.1 9.1" />
+              <Path d="m10 14 11.9-6.9" />
+              <Path d="M14 19.8v-8.1" />
+              <Path d="M18 17.5V9.4" />
+            </Svg>
           </View>
-          <Text style={{ color: theme.text, fontSize: 12, fontWeight: "700" }}>
+          <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "700" }}>
             #{request.ticketNumber.replace(/^SR-\d+-/, "")}
           </Text>
-          <Text style={{ color: theme.subtext, fontSize: 11 }} numberOfLines={1}>
-            {request.requestedByName}
-          </Text>
         </View>
-        <Badge label={statusLabel(status)} colors={statusBadgeColors(status)} />
+        <Badge label={statusLabel(status)} colors={statusColors} />
       </View>
 
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+        <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700", flex: 1 }} numberOfLines={1}>
           {primaryLabel}{extraCount > 0 ? `  +${extraCount}` : ""}
         </Text>
         <Badge label={stockLabel(stock)} colors={stockBadgeColors(stock)} />
       </View>
 
-      <Text style={{ color: theme.subtext, fontSize: 11, marginBottom: 8 }}>
-        {qtyLabel} · {formatDate(request.createdAt)}
-      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: isPending || isOutForDelivery ? 10 : 0,
+        }}
+      >
+        <Text style={{ color: theme.subtext, fontSize: 11 }} numberOfLines={1}>
+          {request.requestedByName} · {qtyLabel}
+        </Text>
+        <Text style={{ color: theme.subtext, fontSize: 11 }}>{formatDate(request.createdAt)}</Text>
+      </View>
 
       {isPending ? (
         <TouchableOpacity
           onPress={() => onApprove(request)}
           disabled={isApproving}
-          style={{ backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 8, alignItems: "center", opacity: isApproving ? 0.6 : 1 }}
+          style={{ backgroundColor: theme.primary, borderRadius: 10, paddingVertical: 10, alignItems: "center", opacity: isApproving ? 0.6 : 1 }}
         >
           <Text style={{ color: theme.primaryText, fontSize: 12, fontWeight: "600" }}>
             {isApproving ? "Reviewing…" : "Review"}
           </Text>
         </TouchableOpacity>
-      ) : request.status === "out_for_delivery" ? (
-        <View style={{ flexDirection: "row", gap: 6 }}>
-          <TouchableOpacity
-            onPress={() => onDeliver(request)}
-            disabled={isApproving}
-            style={{ flex: 1, backgroundColor: "#16a34a", borderRadius: 8, paddingVertical: 8, alignItems: "center", opacity: isApproving ? 0.6 : 1 }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
-              {isApproving ? "Saving…" : "✓ Deliver"}
-            </Text>
-          </TouchableOpacity>
+      ) : isOutForDelivery ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             onPress={() => onFail(request)}
             disabled={isApproving}
-            style={{ backgroundColor: "#D97706", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, opacity: isApproving ? 0.6 : 1 }}
+            style={{
+              width: 42,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: isApproving ? 0.6 : 1,
+            }}
           >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>✕</Text>
+            <Text style={{ color: theme.subtext, fontSize: 14, fontWeight: "600" }}>✕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onDeliver(request)}
+            disabled={isApproving}
+            style={{ flex: 1, backgroundColor: "#16a34a", borderRadius: 10, paddingVertical: 10, alignItems: "center", opacity: isApproving ? 0.6 : 1 }}
+          >
+            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+              {isApproving ? "Saving…" : "Mark as Delivered"}
+            </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableOpacity
-          onPress={() => onView(request)}
-          style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
-        >
-          <Text style={{ color: theme.text, fontSize: 12, fontWeight: "600" }}>View</Text>
-        </TouchableOpacity>
-      )}
+      ) : null}
     </TouchableOpacity>
   );
-}
+});
 
-function DeliveryCard({
+const DeliveryCard = React.memo(function DeliveryCard({
   request,
   onDeliver,
   onFail,
@@ -171,55 +251,98 @@ function DeliveryCard({
   return (
     <TouchableOpacity
       onPress={() => onView(request)}
-      style={{ backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 8 }}
+      style={{
+        backgroundColor: theme.surface,
+        borderColor: theme.border,
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 12,
+        marginBottom: 10,
+      }}
     >
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <Text style={{ color: theme.text, fontSize: 12, fontWeight: "700" }}>
-          #{request.ticketNumber.replace(/^SR-\d+-/, "")}
-        </Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 7,
+              backgroundColor: ITEM_ICON_COLOR,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z" />
+              <Path d="M10 21.9V14L2.1 9.1" />
+              <Path d="m10 14 11.9-6.9" />
+              <Path d="M14 19.8v-8.1" />
+              <Path d="M18 17.5V9.4" />
+            </Svg>
+          </View>
+          <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "700" }}>
+            #{request.ticketNumber.replace(/^SR-\d+-/, "")}
+          </Text>
+        </View>
         <Badge label={statusLabel(status)} colors={statusBadgeColors(status)} />
       </View>
-      <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }} numberOfLines={1}>
-        {primaryLabel}{extraCount > 0 ? `  +${extraCount}` : ""}
-      </Text>
-      <Text style={{ color: theme.subtext, fontSize: 11, marginVertical: 6 }}>
-        {qtyLabel} · Approved {formatDate(request.approvedAt ?? "")}
-      </Text>
+
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <Text style={{ color: theme.text, fontSize: 14, fontWeight: "700", flex: 1 }} numberOfLines={1}>
+          {primaryLabel}{extraCount > 0 ? `  +${extraCount}` : ""}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
+        <Text style={{ color: theme.subtext, fontSize: 11 }} numberOfLines={1}>
+          {qtyLabel} · Approved {formatDate(request.approvedAt ?? "")}
+        </Text>
+      </View>
+
       {status === "failed_delivery" && request.failedReason && (
-        <Text style={{ color: theme.subtext, fontSize: 11, marginBottom: 6 }} numberOfLines={1}>
+        <Text style={{ color: theme.subtext, fontSize: 11, marginBottom: 10 }} numberOfLines={1}>
           {request.failedReason}
         </Text>
       )}
+
       {isForDelivery ? (
-        <View style={{ flexDirection: "row", gap: 6 }}>
-          <TouchableOpacity
-            onPress={() => onDeliver(request)}
-            disabled={isActive}
-            style={{ flex: 1, backgroundColor: "#16a34a", borderRadius: 8, paddingVertical: 8, alignItems: "center", opacity: isActive ? 0.6 : 1 }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
-              {isActive ? "Saving…" : "✓ Deliver"}
-            </Text>
-          </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             onPress={() => onFail(request)}
             disabled={isActive}
-            style={{ backgroundColor: "#D97706", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, opacity: isActive ? 0.6 : 1 }}
+            style={{
+              width: 42,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: isActive ? 0.6 : 1,
+            }}
           >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>✕</Text>
+            <Text style={{ color: theme.subtext, fontSize: 14, fontWeight: "600" }}>✕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onDeliver(request)}
+            disabled={isActive}
+            style={{ flex: 1, backgroundColor: "#16a34a", borderRadius: 10, paddingVertical: 10, alignItems: "center", opacity: isActive ? 0.6 : 1 }}
+          >
+            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+              {isActive ? "Saving…" : "Mark as Delivered"}
+            </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableOpacity
-          onPress={() => onView(request)}
-          style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
-        >
-          <Text style={{ color: theme.text, fontSize: 12, fontWeight: "600" }}>View</Text>
-        </TouchableOpacity>
-      )}
+      ) : null}
     </TouchableOpacity>
   );
-}
+});
 
 // ─── Partial approval modal ─────────────────────────────────────────────
 // Defined here directly, not imported — this page is the only native
@@ -595,17 +718,209 @@ function PartialApprovalNativeModal({
   );
 }
 
+// ─── Request Detail Modal ────────────────────────────────────────────────
+
+function RequestDetailModal({
+  request,
+  liveStock,
+  onClose,
+  theme,
+}: {
+  request: SupplyRequest | null;
+  liveStock: Record<string, StockStatus>;
+  onClose: () => void;
+  theme: any;
+}) {
+  const statusColors = request ? statusBadgeColors(request.status) : { bg: "transparent", fg: "transparent" };
+  const totalQty = request ? request.items.reduce((s, i) => s + i.quantityRequested, 0) : 0;
+  const history = request ? buildActivity(request) : [];
+
+  return (
+    <Modal visible={request !== null} transparent animationType="none" onRequestClose={onClose}>
+      {!request ? (
+        <View style={{ flex: 1 }} />
+      ) : (
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}>
+        <TouchableOpacity activeOpacity={1} onPress={onClose} style={StyleSheet.absoluteFill} />
+        <View
+          style={{
+            backgroundColor: theme.background,
+            borderRadius: 16,
+            maxHeight: "85%",
+            overflow: "hidden",
+          }}
+        >
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                backgroundColor: ITEM_ICON_COLOR,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z" />
+                <Path d="M10 21.9V14L2.1 9.1" />
+                <Path d="m10 14 11.9-6.9" />
+                <Path d="M14 19.8v-8.1" />
+                <Path d="M18 17.5V9.4" />
+              </Svg>
+            </View>
+            <Badge label={statusLabel(request.status)} colors={statusColors} />
+          </View>
+
+          <Text style={{ color: theme.text, fontSize: 18, fontWeight: "700", marginBottom: 6 }}>
+            {itemSummary(request.items).primaryLabel}
+          </Text>
+
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>
+              #{request.ticketNumber.replace(/^SR-\d+-/, "")}
+            </Text>
+            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>
+              {formatDate(request.createdAt)}
+            </Text>
+          </View>
+
+          <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>Details</Text>
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 18,
+              gap: 8,
+            }}
+          >
+            {[
+              ["Requested by", request.requestedByName],
+              ["Date Requested", formatDate(request.createdAt)],
+              ["Total items", String(request.items.length)],
+              ["Total Qty.", String(totalQty)],
+            ].map(([label, value]) => (
+              <View key={label} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.subtext, fontSize: 12 }}>{label}</Text>
+                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>{value}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>
+            Items ({request.items.length})
+          </Text>
+          <View style={{ gap: 8, marginBottom: 18 }}>
+            {request.items.map((item) => {
+              const itemStock = worstStockStatus([item], liveStock);
+              return (
+                <View
+                  key={item.itemId}
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderRadius: 12,
+                    padding: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                      <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700" }} numberOfLines={1}>
+                        {item.itemName}
+                      </Text>
+                      <Badge label={stockLabel(itemStock)} colors={stockBadgeColors(itemStock)} />
+                    </View>
+                    <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>
+                      x{item.quantityRequested}
+                    </Text>
+                  </View>
+                  <Text style={{ color: theme.subtext, fontSize: 11 }}>
+                    {item.itemCode}
+                    {item.category ? ` - ${item.category}` : ""}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {request.notes ? (
+            <>
+              <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>Notes</Text>
+              <View
+                style={{
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 18,
+                }}
+              >
+                <Text style={{ color: theme.subtext, fontSize: 12 }}>{request.notes}</Text>
+              </View>
+            </>
+          ) : null}
+
+          {history.length > 0 && (
+            <>
+              <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700", marginBottom: 10 }}>Activity</Text>
+              <View style={{ marginBottom: 18 }}>
+                {history.map((entry, idx) => (
+                  <View key={`${entry.kind}-${entry.timestamp}-${idx}`} style={{ flexDirection: "row", gap: 10 }}>
+                    <View style={{ alignItems: "center", width: 10 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary, marginTop: 4 }} />
+                      {idx < history.length - 1 && (
+                        <View style={{ flex: 1, width: 1, borderStyle: "dashed", borderLeftWidth: 1, borderColor: theme.border, marginTop: 2 }} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, paddingBottom: 14 }}>
+                      <Text style={{ color: theme.text, fontSize: 12 }}>
+                        {activityVerb(entry.kind)}
+                        {entry.actorName ? (
+                          <Text style={{ color: theme.primary, fontWeight: "600" }}> {entry.actorName}</Text>
+                        ) : null}
+                      </Text>
+                      <Text style={{ color: theme.subtext, fontSize: 11, marginTop: 2 }}>{formatDate(entry.timestamp)}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        </ScrollView>
+
+        <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: theme.border }}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{ backgroundColor: theme.surface, borderRadius: 10, paddingVertical: 12, alignItems: "center" }}
+          >
+            <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>Back</Text>
+          </TouchableOpacity>
+        </View>
+        </View>
+      </View>
+      )}
+    </Modal>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function SupplyRequestsPage({ user, initialApprovalRequest, onApprovalModalOpened }: Props) {
   const { theme } = useTheme();
+  const [filterMenuVisible, setFilterMenuVisible] = React.useState(false);
   const {
     pageTab, setPageTab,
     loading,
     search, setSearch,
     statusFilter, setStatusFilter,
     delivFilter, setDelivFilter,
-    setDetailRequest,
+    detailRequest, setDetailRequest,
     setRejectTarget,
     setFailTarget,
     approvalTarget, setApprovalTarget,
@@ -618,11 +933,18 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
     requestCounts,
     delivCounts,
     pendingDeliveryCount,
+    notYetIssuedCount,
     handleApproveAll,
     handleApprovePartial,
     handleMarkDelivered,
     handleReject,
   } = useSupplyRequestsData({ user, initialApprovalRequest, onApprovalModalOpened });
+
+  const handleApprove = React.useCallback((x: SupplyRequest) => setApprovalTarget(x), [setApprovalTarget]);
+  const handleView = React.useCallback((x: SupplyRequest) => setDetailRequest(x), [setDetailRequest]);
+  const handleFail = React.useCallback((x: SupplyRequest) => setFailTarget(x), [setFailTarget]);
+  const handleCloseDetail = React.useCallback(() => setDetailRequest(null), [setDetailRequest]);
+  const handleCloseApproval = React.useCallback(() => setApprovalTarget(null), [setApprovalTarget]);
 
   if (loading) {
     return (
@@ -638,77 +960,114 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
         <Text style={{ color: theme.text, fontSize: 20, fontWeight: "700" }}>Supply requests</Text>
         <Text style={{ color: theme.subtext, fontSize: 12, marginTop: 2, marginBottom: 12 }}>
           {pageTab === "requests"
-            ? `${filteredRequests.length} of ${filteredRequests.length} requests`
-            : `${filteredDeliveries.length} deliveries`}
+            ? `${filteredRequests.length} of ${filteredRequests.length} Requests`
+            : `${filteredDeliveries.length} Deliveries`}
         </Text>
 
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
-          {(["requests", "deliveries"] as const).map((tab) => (
-            <TouchableOpacity key={tab} onPress={() => setPageTab(tab)}>
-              <Text
-                style={{
-                  color: pageTab === tab ? theme.primary : theme.subtext,
-                  fontSize: 13,
-                  fontWeight: "600",
-                  paddingBottom: 6,
-                  borderBottomWidth: pageTab === tab ? 2 : 0,
-                  borderBottomColor: theme.primary,
-                }}
-              >
-                {tab === "requests" ? "Supply Requests" : `Deliveries${pendingDeliveryCount > 0 ? ` (${pendingDeliveryCount})` : ""}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: theme.inputBg,
+              borderColor: theme.inputBorder,
+              borderWidth: 1,
+              borderRadius: 14,
+              paddingHorizontal: 12,
+            }}
+          >
+            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={theme.subtext} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+              <Circle cx={11} cy={11} r={8} />
+              <Path d="m21 21-4.34-4.34" />
+            </Svg>
+            <TextInput
+              placeholder="Search by name, item, category"
+              placeholderTextColor={theme.subtext}
+              value={search}
+              onChangeText={setSearch}
+              style={{
+                flex: 1,
+                color: theme.inputText,
+                paddingVertical: 10,
+                fontSize: 13,
+              }}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setFilterMenuVisible(true)}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: theme.inputBorder,
+              backgroundColor: theme.inputBg,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SlidersHorizontal color={theme.primary} size={18} />
+          </TouchableOpacity>
         </View>
 
-        <TextInput
-          placeholder="Search…"
-          placeholderTextColor={theme.subtext}
-          value={search}
-          onChangeText={setSearch}
+        <View
           style={{
-            backgroundColor: theme.inputBg,
-            borderColor: theme.inputBorder,
-            borderWidth: 1,
-            color: theme.inputText,
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            fontSize: 13,
-            marginBottom: 10,
+            flexDirection: "row",
+            marginBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
           }}
-        />
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            {(pageTab === "requests" ? REQUEST_STATUS_TABS : DELIVERY_STATUS_TABS).map((tab) => {
-              const active = pageTab === "requests" ? statusFilter === tab.value : delivFilter === tab.value;
-              const count = pageTab === "requests"
-                ? (requestCounts[tab.value] ?? 0)
-                : (delivCounts[tab.value as keyof typeof delivCounts] ?? 0);
-              return (
-                <TouchableOpacity
-                  key={tab.value}
-                  onPress={() =>
-                    pageTab === "requests" ? setStatusFilter(tab.value as any) : setDelivFilter(tab.value as any)
-                  }
+        >
+          {(["requests", "deliveries"] as const).map((tab) => {
+            const badgeCount = tab === "requests" ? notYetIssuedCount : pendingDeliveryCount;
+            const active = pageTab === tab;
+            return (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setPageTab(tab)}
+                style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingBottom: 10 }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 7,
-                    borderRadius: 999,
-                    backgroundColor: active ? theme.primary : theme.surface,
-                    borderWidth: 1,
-                    borderColor: active ? theme.primary : theme.border,
+                    color: active ? theme.text : theme.subtext,
+                    fontSize: 14,
+                    fontWeight: "700",
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: active ? (theme.primaryText ?? "#fff") : theme.subtext }}>
-                    {tab.label} ({count})
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
+                  {tab === "requests" ? "Requests" : "Deliveries"}
+                </Text>
+                {badgeCount > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: tab === "requests" ? theme.primary : "#16a34a",
+                      borderRadius: 999,
+                      minWidth: 20,
+                      height: 20,
+                      paddingHorizontal: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>{badgeCount}</Text>
+                  </View>
+                )}
+                {active && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: -1,
+                      left: 0,
+                      right: 0,
+                      height: 2,
+                      backgroundColor: theme.primary,
+                    }}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {error ? (
           <View style={{ backgroundColor: "#fef2f2", borderRadius: 8, padding: 10, marginBottom: 10 }}>
@@ -717,59 +1076,134 @@ export default function SupplyRequestsPage({ user, initialApprovalRequest, onApp
         ) : null}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 40 }}>
-        {pageTab === "requests" ? (
-          filteredRequests.length === 0 ? (
+      {pageTab === "requests" ? (
+        <FlatList
+          data={filteredRequests}
+          keyExtractor={(r) => r.id}
+          contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 40 }}
+          renderItem={({ item: r }) => (
+            <RequestCard
+              request={r}
+              liveStock={liveStock}
+              onApprove={handleApprove}
+              onView={handleView}
+              onDeliver={handleMarkDelivered}
+              onFail={handleFail}
+              approvingId={approvingId}
+              theme={theme}
+            />
+          )}
+          ListEmptyComponent={
             <Text style={{ color: theme.subtext, fontSize: 13, textAlign: "center", paddingVertical: 32 }}>
               No requests found.
             </Text>
-          ) : (
-            filteredRequests.map((r) => (
-              <RequestCard
-                key={r.id}
-                request={r}
-                liveStock={liveStock}
-                onApprove={(x) => setApprovalTarget(x)}
-                onView={(x) => setDetailRequest(x)}
-                onDeliver={handleMarkDelivered}
-                onFail={(x) => setFailTarget(x)}
-                approvingId={approvingId}
-                theme={theme}
-              />
-            ))
-          )
-        ) : filteredDeliveries.length === 0 ? (
-          <Text style={{ color: theme.subtext, fontSize: 13, textAlign: "center", paddingVertical: 32 }}>
-            No deliveries found.
-          </Text>
-        ) : (
-          filteredDeliveries.map((r) => (
+          }
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
+        />
+      ) : (
+        <FlatList
+          data={filteredDeliveries}
+          keyExtractor={(r) => r.id}
+          contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 40 }}
+          renderItem={({ item: r }) => (
             <DeliveryCard
-              key={r.id}
               request={r}
               onDeliver={handleMarkDelivered}
-              onFail={(x) => setFailTarget(x)}
-              onView={(x) => setDetailRequest(x)}
+              onFail={handleFail}
+              onView={handleView}
               actionId={delivActionId}
               theme={theme}
             />
-          ))
-        )}
-      </ScrollView>
+          )}
+          ListEmptyComponent={
+            <Text style={{ color: theme.subtext, fontSize: 13, textAlign: "center", paddingVertical: 32 }}>
+              No deliveries found.
+            </Text>
+          }
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
+        />
+      )}
+
+      <Modal visible={filterMenuVisible} transparent animationType="fade" onRequestClose={() => setFilterMenuVisible(false)}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setFilterMenuVisible(false)}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 170, paddingRight: 16 }}
+        >
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingVertical: 8,
+              width: 200,
+            }}
+          >
+            {(pageTab === "requests" ? REQUEST_STATUS_TABS : DELIVERY_STATUS_TABS).map((tab) => {
+              const active = pageTab === "requests" ? statusFilter === tab.value : delivFilter === tab.value;
+              return (
+                <TouchableOpacity
+                  key={tab.value}
+                  onPress={() => {
+                    if (pageTab === "requests") setStatusFilter(tab.value as any);
+                    else setDelivFilter(tab.value as any);
+                    setFilterMenuVisible(false);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    backgroundColor: active ? (theme.primarySubtle ?? theme.background) : "transparent",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: active ? "700" : "500",
+                      color: active ? theme.primary : theme.text,
+                    }}
+                  >
+                    {tab.label}
+                  </Text>
+                  {active && (
+                    <Text style={{ color: theme.primary, fontSize: 13, fontWeight: "700" }}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <PartialApprovalNativeModal
         visible={approvalTarget !== null}
         request={approvalTarget}
-        onClose={() => setApprovalTarget(null)}
+        onClose={handleCloseApproval}
         onApproveAll={handleApproveAll}
         onApprovePartial={handleApprovePartial}
         onReject={handleReject}
         theme={theme}
       />
 
-      {/* Detail drawer, reject modal, failed-delivery modal, and archive
-          modal are web-only <div>-based components in this pass — they'll
-          throw on native if rendered. Build native versions of these (or a
+      <RequestDetailModal
+        request={detailRequest}
+        liveStock={liveStock}
+        onClose={handleCloseDetail}
+        theme={theme}
+      />
+
+      {/* Reject modal, failed-delivery modal, and archive modal are
+          web-only <div>-based components in this pass — they'll throw
+          on native if rendered. Build native versions of these (or a
           shared cross-platform modal primitive) before shipping this to
           mobile; for now they're intentionally omitted here. */}
     </View>

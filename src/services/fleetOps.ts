@@ -108,8 +108,32 @@ function mapTripRow(row: any): FleetTrip {
     requestorName: row.requestorName ?? "Unknown",
     pickupLocationId: row.pickupLocationId ?? null,
     pickupLabel: row.pickupLabel ?? "—",
+    pickupLatitude:
+      row.pickupLatitude != null
+        ? Number(row.pickupLatitude)
+        : row.pickup_latitude != null
+          ? Number(row.pickup_latitude)
+          : null,
+    pickupLongitude:
+      row.pickupLongitude != null
+        ? Number(row.pickupLongitude)
+        : row.pickup_longitude != null
+          ? Number(row.pickup_longitude)
+          : null,
     dropoffLocationId: row.dropoffLocationId ?? null,
     dropoffLabel: row.dropoffLabel ?? "—",
+    dropoffLatitude:
+      row.dropoffLatitude != null
+        ? Number(row.dropoffLatitude)
+        : row.dropoff_latitude != null
+          ? Number(row.dropoff_latitude)
+          : null,
+    dropoffLongitude:
+      row.dropoffLongitude != null
+        ? Number(row.dropoffLongitude)
+        : row.dropoff_longitude != null
+          ? Number(row.dropoff_longitude)
+          : null,
     tripType: row.tripType,
     departureDatetime: row.departureDatetime,
     returnDatetime: row.returnDatetime ?? null,
@@ -127,6 +151,9 @@ function mapTripRow(row: any): FleetTrip {
     createdAt: row.createdAt ?? "",
     updatedAt: row.updatedAt ?? "",
     statusHistory: Array.isArray(row.statusHistory) ? row.statusHistory : [],
+    additionalDropoffs: Array.isArray(row.additionalDropoffs)
+      ? row.additionalDropoffs
+      : [],
     calendarSynced: !!row.calendarSynced,
     isArchived: !!row.isArchived,
   };
@@ -511,8 +538,21 @@ export async function getFleetLiveLocations(): Promise<FleetLiveLocation[]> {
 export async function submitTripRequest(payload: {
   pickupLocationId?: string;
   pickupLocationText?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
   dropoffLocationId?: string;
   dropoffLocationText?: string;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  // Extra stops beyond the primary drop-off above, in visit order — for
+  // multi-stop trips. Each carries its own coords so the backend can store
+  // a full ordered route, not just text.
+  additionalDropoffs?: Array<{
+    locationId?: string;
+    locationText: string;
+    latitude: number;
+    longitude: number;
+  }>;
   tripType: "oneway" | "roundtrip";
   departureDatetime: string;
   returnDatetime?: string;

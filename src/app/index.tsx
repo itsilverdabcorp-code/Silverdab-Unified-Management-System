@@ -30,11 +30,15 @@ export default function HomeScreen() {
 const handleLoginSuccess = (loggedInUser: ADUser, token?: string) => {
   setUser(loggedInUser);
   setShowEmailPrefModal(true);
-  console.log("PUSH DEBUG:", { hasToken: !!token, role: loggedInUser.role, officeSupplies: loggedInUser.permissions?.officeSupplies }); // ← add this
   if (
     token &&
     (loggedInUser.role === "superadmin" ||
-      loggedInUser.permissions?.officeSupplies)
+      loggedInUser.permissions?.officeSupplies ||
+      loggedInUser.permissions?.officeAllAccess ||
+      loggedInUser.permissions?.officeSupplyRequest ||
+      loggedInUser.permissions?.fleetControl ||
+      loggedInUser.permissions?.fleetDriver ||
+      loggedInUser.permissions?.itAccess)
   ) {
     setupPushNotifications(token);
   }

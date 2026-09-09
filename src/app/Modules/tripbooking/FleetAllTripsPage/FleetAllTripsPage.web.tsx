@@ -4,7 +4,7 @@
 // All state/logic lives in useFleetAllTripsData.ts — this file is JSX
 // only, same split as FleetControlTowerPage.web.tsx / useFleetControlTowerData.ts.
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Archive, RotateCcw } from "lucide-react";
 import { useTheme } from "../../../../theme/ThemeContext";
 import Calendar from "../../../../components/common/Calendar";
@@ -94,6 +94,78 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
     showArchived, setShowArchived,
     loading,
   } = data;
+
+  const [archiveConfirmTrip, setArchiveConfirmTrip] = useState<typeof trips[number] | null>(null);
+  const [restoreConfirmTrip, setRestoreConfirmTrip] = useState<typeof trips[number] | null>(null);
+
+  type SortKey =
+    | "tripRef"
+    | "pickupLabel"
+    | "dropoffLabel"
+    | "purpose"
+    | "requestorName"
+    | "vehiclePlate"
+    | "driverName"
+    | "createdAt"
+    | "departureDatetime"
+    | "status";
+
+  const DEFAULT_SORT_KEY: SortKey = "tripRef";
+  const DEFAULT_SORT_DIR: "asc" | "desc" = "desc";
+
+  const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(DEFAULT_SORT_DIR);
+  const [isDefaultSort, setIsDefaultSort] = useState(true);
+
+  const TABLE_COLUMNS: { label: string; key?: SortKey }[] = [
+    { label: "Trip ID", key: "tripRef" },
+    { label: "Pickup", key: "pickupLabel" },
+    { label: "Drop-off", key: "dropoffLabel" },
+    { label: "Purpose", key: "purpose" },
+    { label: "Employee", key: "requestorName" },
+    { label: "Vehicle", key: "vehiclePlate" },
+    { label: "Driver", key: "driverName" },
+    { label: "Date Booked", key: "createdAt" },
+    { label: "Schedule", key: "departureDatetime" },
+    { label: "Status", key: "status" },
+    { label: "" },
+  ];
+
+  const handleSort = (key: SortKey) => {
+    if (!isDefaultSort && sortKey === key) {
+      if (sortDir === "asc") {
+        setSortDir("desc");
+      } else {
+        // third click on the same column -> revert to default
+        setSortKey(DEFAULT_SORT_KEY);
+        setSortDir(DEFAULT_SORT_DIR);
+        setIsDefaultSort(true);
+      }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+      setIsDefaultSort(false);
+    }
+  };
+
+  const sortedTrips = useMemo(() => {
+    const list = [...filteredTrips];
+    list.sort((a: any, b: any) => {
+      let av = a[sortKey];
+      let bv = b[sortKey];
+      if (sortKey === "createdAt" || sortKey === "departureDatetime") {
+        av = av ? new Date(av).getTime() : 0;
+        bv = bv ? new Date(bv).getTime() : 0;
+      } else {
+        av = (av ?? "").toString().toLowerCase();
+        bv = (bv ?? "").toString().toLowerCase();
+      }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [filteredTrips, sortKey, sortDir]);
 
   if (loading) {
     return (
@@ -235,9 +307,10 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
             >
               <thead>
                 <tr>
-                  {["Trip ID", "Pickup", "Drop-off", "Purpose", "Employee", "Vehicle", "Driver", "Date Booked", "Schedule", "Status", ""].map((h) => (
+                  {TABLE_COLUMNS.map((col) => (
                     <th
-                      key={h}
+                      key={col.label || "actions"}
+                      onClick={col.key ? () => handleSort(col.key as SortKey) : undefined}
                       style={{
                         color: theme.subtext,
                         borderBottom: `1px solid ${theme.border}`,
@@ -246,23 +319,35 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                         top: 0,
                         zIndex: 10,
                         boxShadow: `0 1px 0 ${theme.border}`,
+                        cursor: col.key ? "pointer" : "default",
+                        userSelect: "none",
                       }}
                       className="text-left text-[10.5px] font-semibold uppercase tracking-wide px-4 py-2 whitespace-nowrap"
                     >
-                      {h}
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {col.key && (
+                          <span
+                            style={{ opacity: !isDefaultSort && sortKey === col.key ? 1 : 0.35 }}
+                            className="text-[9px]"
+                          >
+                            {!isDefaultSort && sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "▲▼"}
+                          </span>
+                        )}
+                      </span>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredTrips.length === 0 ? (
+                {sortedTrips.length === 0 ? (
                   <tr>
                     <td colSpan={11} style={{ color: theme.subtext }} className="text-xs text-center px-4 py-6">
                       No trips match this filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredTrips.map((trip, index) => {
+                  sortedTrips.map((trip, index) => {
                     const cfg = TRIP_STATUS_CONFIG[trip.status];
                     return (
                       <tr
@@ -274,7 +359,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                           cursor: "pointer",
                         }}
                       >
-                        <td style={{ color: theme.text }} className="px-4 py-2.5 text-[11.5px] font-mono whitespace-nowrap">
+                        <td style={{ color: theme.text }} className="px-4 py-2.5 text-[12.5px] font-semibold whitespace-nowrap">
                           #{trip.tripRef.slice(-4)}
                         </td>
                         <td className="px-4 py-2.5 max-w-[180px]">
@@ -320,7 +405,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleUnarchive(trip);
+                                setRestoreConfirmTrip(trip);
                               }}
                               disabled={busyTripId === trip.id}
                               style={{ color: theme.primary, opacity: busyTripId === trip.id ? 0.5 : 1 }}
@@ -334,7 +419,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleArchive(trip);
+                                setArchiveConfirmTrip(trip);
                               }}
                               disabled={busyTripId === trip.id}
                               style={{ color: "#ef4444", opacity: busyTripId === trip.id ? 0.5 : 1 }}
@@ -793,29 +878,23 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                 <div className="flex flex-col gap-2.5">
                   {(viewingTrip as any).isArchived ? (
                     <button
-                      onClick={async () => {
-                        await handleUnarchive(viewingTrip);
-                        setViewingTrip(null);
-                      }}
+                      onClick={() => setRestoreConfirmTrip(viewingTrip)}
                       disabled={isBusy}
                       style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: isBusy ? 0.6 : 1 }}
                       className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
                     >
                       <RotateCcw size={15} />
-                      {isBusy ? "Restoring…" : "Restore Trip"}
+                      Restore Trip
                     </button>
                   ) : (
                     <button
-                      onClick={async () => {
-                        await handleArchive(viewingTrip);
-                        setViewingTrip(null);
-                      }}
+                      onClick={() => setArchiveConfirmTrip(viewingTrip)}
                       disabled={isBusy}
                       style={{ backgroundColor: "#fee2e2", color: "#991b1b", opacity: isBusy ? 0.6 : 1 }}
                       className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
                     >
                       <Archive size={15} />
-                      {isBusy ? "Archiving…" : "Archive Trip"}
+                      Archive Trip
                     </button>
                   )}
                   <button
@@ -828,6 +907,96 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Archive confirmation modal */}
+      {archiveConfirmTrip && (
+        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1100 }}>
+          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-7 w-full max-w-[380px] border flex flex-col items-center text-center">
+            <div style={{ backgroundColor: "#fee2e2" }} className="w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <Archive size={22} color="#ef4444" />
+            </div>
+
+            <p style={{ color: theme.text }} className="text-base font-bold mb-1.5">
+              Archive this trip?
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-1">
+              #{archiveConfirmTrip.tripRef.slice(-4)} · {archiveConfirmTrip.requestorName}
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-6 max-w-[280px]">
+              This trip will be moved to the archived list and hidden from the default view.
+            </p>
+
+            <div className="flex gap-2.5 w-full">
+              <button
+                onClick={() => setArchiveConfirmTrip(null)}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const trip = archiveConfirmTrip;
+                  setArchiveConfirmTrip(null);
+                  await handleArchive(trip);
+                  if (viewingTrip?.id === trip.id) setViewingTrip(null);
+                }}
+                disabled={busyTripId === archiveConfirmTrip.id}
+                style={{ backgroundColor: "#ef4444", color: "#fff", opacity: busyTripId === archiveConfirmTrip.id ? 0.6 : 1 }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+              >
+                <Archive size={14} />
+                {busyTripId === archiveConfirmTrip.id ? "Archiving…" : "Archive"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore confirmation modal */}
+      {restoreConfirmTrip && (
+        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1100 }}>
+          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-7 w-full max-w-[380px] border flex flex-col items-center text-center">
+            <div style={{ backgroundColor: "#dcfce7" }} className="w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <RotateCcw size={22} color="#16a34a" />
+            </div>
+
+            <p style={{ color: theme.text }} className="text-base font-bold mb-1.5">
+              Restore this trip?
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-1">
+              #{restoreConfirmTrip.tripRef.slice(-4)} · {restoreConfirmTrip.requestorName}
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-6 max-w-[280px]">
+              This trip will be moved back to the default trip list.
+            </p>
+
+            <div className="flex gap-2.5 w-full">
+              <button
+                onClick={() => setRestoreConfirmTrip(null)}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const trip = restoreConfirmTrip;
+                  setRestoreConfirmTrip(null);
+                  await handleUnarchive(trip);
+                  if (viewingTrip?.id === trip.id) setViewingTrip(null);
+                }}
+                disabled={busyTripId === restoreConfirmTrip.id}
+                style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: busyTripId === restoreConfirmTrip.id ? 0.6 : 1 }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw size={14} />
+                {busyTripId === restoreConfirmTrip.id ? "Restoring…" : "Restore"}
+              </button>
+            </div>
           </div>
         </div>
       )}

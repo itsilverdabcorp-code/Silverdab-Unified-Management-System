@@ -19,6 +19,7 @@
 // Uses the same CDN-load approach as FleetLiveMap.tsx.
 
 import React, { useEffect, useRef, useState } from "react";
+import { LocateFixed } from "lucide-react-native";
 import { FleetLocation } from "../../../../types";
 
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
@@ -192,6 +193,18 @@ type Props = {
   // and switching tabs shows the right text back in the search bar.
   searchValue?: string;
   onSearchChange?: (text: string) => void;
+  // When provided, every stop's pin (pickup + all drop-offs) is rendered
+  // on the map simultaneously — numbered, colored by type — and the map
+  // fits its viewport to show them all at once instead of only the
+  // active one. `activeKey` highlights which stop is currently selected
+  // (matches TripBookingModal's activeMapField). Falls back to the old
+  // single-`value`-marker behavior when omitted.
+  allStops?: { key: string; label: string; point: PickedPoint | null }[];
+  activeKey?: string;
+  // When true, hides the address search bar entirely — used for
+  // read-only map views (e.g. Fleet Control Tower's trip detail modal)
+  // where there's nothing to search for since the pins are already set.
+  hideSearch?: boolean;
 };
 
 export default function FleetLocationPickerMap({
@@ -202,13 +215,60 @@ export default function FleetLocationPickerMap({
   height = 220,
   searchValue,
   onSearchChange,
+  allStops,
+  activeKey,
+  hideSearch = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const pickMarkerRef = useRef<any>(null);
   const presetMarkersRef = useRef<any[]>([]);
+  const stopMarkersRef = useRef<any[]>([]);
+  const userLocationMarkerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
+
+  // -- Requestor's current position (browser geolocation) -----------------
+  // Shown as a blue "you are here" dot, separate from the pickup/drop-off
+  // pins. Only requested when the person taps the locate button below, so
+  // the map never fires a location-permission prompt just from opening it.
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState("");
+
+  function handleLocateMe() {
+    if (!navigator.geolocation) {
+      setLocateError("Geolocation isn't supported on this device.");
+      return;
+    }
+    setLocating(true);
+    setLocateError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const point = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        setUserLocation(point);
+        setLocating(false);
+        if (mapRef.current) {
+          mapRef.current.flyTo({
+            center: [point.longitude, point.latitude],
+            zoom: Math.max(mapRef.current.getZoom?.() ?? 0, 15),
+            duration: 800,
+            essential: true,
+          });
+        }
+      },
+      (err) => {
+        console.error("Geolocation failed:", err);
+        setLocateError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location access was denied."
+            : "Couldn't get your location.",
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   // -- Address search state --------------------------------------------
   const [searchQuery, setSearchQuery] = useState("");
@@ -311,6 +371,38 @@ export default function FleetLocationPickerMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // -- Render the requestor's current-location marker (blue dot) ----------
+  useEffect(() => {
+    if (!ready || !mapRef.current || !window.maplibregl) return;
+    const maplibregl = window.maplibregl;
+
+    if (!userLocation) {
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.remove();
+        userLocationMarkerRef.current = null;
+      }
+      return;
+    }
+
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
+      return;
+    }
+
+    const el = document.createElement("div");
+    el.style.width = "18px";
+    el.style.height = "18px";
+    el.style.borderRadius = "50%";
+    el.style.background = "#4285F4";
+    el.style.border = "3px solid #fff";
+    el.style.boxShadow = "0 0 0 4px rgba(66,133,244,0.35), 0 2px 5px rgba(0,0,0,0.4)";
+
+    userLocationMarkerRef.current = new maplibregl.Marker({ element: el })
+      .setLngLat([userLocation.longitude, userLocation.latitude])
+      .setPopup(new maplibregl.Popup({ offset: 12 }).setText("Your location"))
+      .addTo(mapRef.current);
+  }, [ready, userLocation]);
+
   // -- Render preset pins (grey, reference only, not clickable) -----------
   useEffect(() => {
     if (!ready || !mapRef.current || !window.maplibregl) return;
@@ -337,8 +429,10 @@ export default function FleetLocationPickerMap({
   }, [ready, presets]);
 
   // -- Render/move the pick marker whenever value changes -----------------
+  // Steps aside once `allStops` is supplied — the multi-stop effect below
+  // takes over rendering every pin (including the active one) in that case.
   useEffect(() => {
-    if (!ready || !mapRef.current || !window.maplibregl) return;
+    if (!ready || !mapRef.current || !window.maplibregl || allStops) return;
     const maplibregl = window.maplibregl;
 
     if (!value) {
@@ -375,7 +469,81 @@ export default function FleetLocationPickerMap({
       duration: 500,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, value?.latitude, value?.longitude]);
+  }, [ready, value?.latitude, value?.longitude, allStops]);
+
+  // -- Render every stop's pin at once (pickup + all drop-offs) -----------
+  // Pickup = green "P" pin; drop-offs = red pins numbered in visit order.
+  // The currently active stop (matches activeKey) gets a highlighted ring
+  // so it's still clear which one you're editing. The map fits its
+  // viewport to show every pin simultaneously — no more clicking through
+  // tabs one at a time to see where each stop actually is.
+  const stopsSignature = (allStops ?? [])
+    .map(
+      (s) =>
+        `${s.key}:${s.point ? `${s.point.latitude.toFixed(6)},${s.point.longitude.toFixed(6)}` : ""}`,
+    )
+    .join("|");
+
+  useEffect(() => {
+    if (!ready || !mapRef.current || !window.maplibregl || !allStops) return;
+    const maplibregl = window.maplibregl;
+
+    stopMarkersRef.current.forEach((m) => m.remove());
+    stopMarkersRef.current = [];
+
+    const validStops = allStops.filter((s) => s.point);
+    if (validStops.length === 0) return;
+
+    let dropoffCount = 0;
+    validStops.forEach((stop) => {
+      const isPickup = stop.key === "pickup";
+      const isActive = stop.key === activeKey;
+      const numberLabel = isPickup ? "P" : String(++dropoffCount);
+      const color = isPickup ? "#22c55e" : "#ef4444";
+
+      const el = document.createElement("div");
+      el.style.width = "28px";
+      el.style.height = "28px";
+      el.style.borderRadius = "50%";
+      el.style.background = color;
+      el.style.border = isActive
+        ? `3px solid ${theme.primary ?? "#2563eb"}`
+        : "2px solid #fff";
+      el.style.boxShadow = isActive
+        ? `0 0 0 4px ${color}44, 0 2px 6px rgba(0,0,0,0.5)`
+        : "0 2px 5px rgba(0,0,0,0.4)";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.style.color = "#fff";
+      el.style.fontSize = "12px";
+      el.style.fontWeight = "700";
+      el.style.fontFamily = "sans-serif";
+      el.style.cursor = "pointer";
+      el.textContent = numberLabel;
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([stop.point!.longitude, stop.point!.latitude])
+        .setPopup(new maplibregl.Popup({ offset: 16 }).setText(stop.label))
+        .addTo(mapRef.current);
+      stopMarkersRef.current.push(marker);
+    });
+
+    // Fit the map to show every pin at once instead of only the active one.
+    if (validStops.length === 1) {
+      const only = validStops[0];
+      mapRef.current.easeTo({
+        center: [only.point!.longitude, only.point!.latitude],
+        zoom: Math.max(mapRef.current.getZoom?.() ?? 0, 15),
+        duration: 500,
+      });
+    } else {
+      const bounds = new maplibregl.LngLatBounds();
+      validStops.forEach((s) => bounds.extend([s.point!.longitude, s.point!.latitude]));
+      mapRef.current.fitBounds(bounds, { padding: 50, maxZoom: 16, duration: 600 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, stopsSignature, activeKey]);
 
   // -- Debounced address search --------------------------------------------
   useEffect(() => {
@@ -458,7 +626,8 @@ export default function FleetLocationPickerMap({
       style={{ borderColor: theme.border }}
       className="rounded-lg border overflow-hidden relative"
     >
-      {/* Address search bar */}
+      {/* Address search bar — hidden when hideSearch is set (read-only map views) */}
+      {!hideSearch && (
       <div
         style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         className="relative border-b p-2"
@@ -545,6 +714,7 @@ export default function FleetLocationPickerMap({
           </div>
         )}
       </div>
+      )}
 
       {loadError ? (
         <div className="p-3">
@@ -574,6 +744,107 @@ export default function FleetLocationPickerMap({
               className="rounded-md border px-2 py-1 text-[10.5px] font-medium shadow"
             >
               Tap the map or search above to set this location's pin
+            </div>
+          )}
+
+          {/* Locate-me button — shows the requestor's current position as
+              a blue dot on the map. Sits above the top-right nav controls
+              so it doesn't collide with MapLibre's zoom buttons. */}
+          <button
+            type="button"
+            onClick={handleLocateMe}
+            disabled={locating}
+            title="Show my location"
+            style={{
+              position: "absolute",
+              right: 8,
+              bottom: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              backgroundColor: theme.surface,
+              border: `1px solid ${theme.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: locating ? "default" : "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+              opacity: locating ? 0.6 : 1,
+            }}
+          >
+            <LocateFixed
+              size={15}
+              color={locating ? theme.subtext : (theme.primary ?? "#4285F4")}
+              strokeWidth={2}
+            />
+          </button>
+
+          {locateError && (
+            <div
+              style={{
+                position: "absolute",
+                right: 8,
+                bottom: 44,
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: "#dc2626",
+                maxWidth: 180,
+              }}
+              className="rounded-md border px-2 py-1 text-[10.5px] font-medium shadow"
+            >
+              {locateError}
+            </div>
+          )}
+
+          {/* Legend — lists every pin currently on the map (pickup green,
+              drop-offs red + number), bolding whichever stop is active. */}
+          {allStops && allStops.some((s) => s.point) && (
+            <div
+              style={{
+                position: "absolute",
+                right: 8,
+                top: 8,
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                maxWidth: 170,
+              }}
+              className="rounded-md border px-2.5 py-2 shadow z-10"
+            >
+              {allStops
+                .filter((s) => s.point)
+                .map((s, idx, arr) => {
+                  const isPickup = s.key === "pickup";
+                  const isActive = s.key === activeKey;
+                  return (
+                    <div
+                      key={s.key}
+                      style={{ marginBottom: idx === arr.length - 1 ? 0 : 4 }}
+                      className="flex items-center gap-1.5"
+                    >
+                      <span
+                        style={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: "50%",
+                          backgroundColor: isPickup ? "#22c55e" : "#ef4444",
+                          flexShrink: 0,
+                          boxShadow: isActive
+                            ? `0 0 0 2px ${theme.primary ?? "#2563eb"}`
+                            : undefined,
+                        }}
+                      />
+                      <span
+                        style={{
+                          color: isActive ? theme.text : theme.subtext,
+                          fontWeight: isActive ? 600 : 400,
+                        }}
+                        className="text-[10.5px] truncate"
+                      >
+                        {s.label}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>

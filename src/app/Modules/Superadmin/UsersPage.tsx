@@ -479,7 +479,7 @@ export default function UsersPage({ currentUser }: Props) {
     label: string;
   }[] = [
     { key: "itAccess", label: "IT Access" },
-    { key: "officeSupplies", label: "Office Supplies" },
+    { key: "officeAllAccess", label: "Office Supplies" },
     { key: "fleetControl", label: "Fleet Control Tower" },
   ];
 
@@ -1322,29 +1322,8 @@ export default function UsersPage({ currentUser }: Props) {
               {permissionUser.displayName} · {permissionUser.username}
             </Text>
 
-            {(
-              ["itAccess", "officeSupplies", "fleetControl"] as const
-            ).map((key) => {
-              const labels: Record<
-                string,
-                { label: string; description: string }
-              > = {
-                itAccess: {
-                  label: "IT Access",
-                  description:
-                    "Shows Tickets, IT Inventory, Consumables under IT section",
-                },
-                officeSupplies: {
-                  label: "Office Supplies",
-                  description:
-                    "Shows full Office Supplies section in the sidebar",
-                 },
-                fleetControl: {
-                  label: "Fleet Control Tower",
-                  description:
-                    "Dispatch access — approve trip requests, assign vehicles and drivers, manage fleet roster",
-                },
-              };
+                        {/* IT Access — unchanged */}
+            {(["itAccess"] as const).map((key) => {
               const granted = permissionUser.permissions?.[key] ?? false;
               return (
                 <TouchableOpacity
@@ -1354,10 +1333,7 @@ export default function UsersPage({ currentUser }: Props) {
                       prev
                         ? {
                             ...prev,
-                            permissions: {
-                              ...prev.permissions,
-                              [key]: !granted,
-                            },
+                            permissions: { ...prev.permissions, [key]: !granted },
                           }
                         : prev,
                     )
@@ -1370,17 +1346,179 @@ export default function UsersPage({ currentUser }: Props) {
                   }}
                 >
                   <View className="flex-1 pr-3">
-                    <Text
-                      className="text-sm font-semibold"
-                      style={{ color: theme.text }}
-                    >
-                      {labels[key].label}
+                    <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                      IT Access
                     </Text>
-                    <Text
-                      className="text-xs mt-0.5"
-                      style={{ color: theme.subtext }}
+                    <Text className="text-xs mt-0.5" style={{ color: theme.subtext }}>
+                      Shows Tickets, IT Inventory, Consumables under IT section
+                    </Text>
+                  </View>
+                  <View
+                    className="w-11 h-6 rounded-full justify-center px-1"
+                    style={{
+                      backgroundColor: granted ? "#22c55e" : theme.border,
+                      alignItems: granted ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    <View className="w-[18px] h-[18px] rounded-full bg-white" />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Office Supplies — master toggle */}
+            {(() => {
+              const masterGranted =
+                permissionUser.permissions?.officeAllAccess ?? false;
+              return (
+                <TouchableOpacity
+                  onPress={() =>
+                    setPermissionUser((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            permissions: {
+                              ...prev.permissions,
+                              officeAllAccess: !masterGranted,
+                            },
+                          }
+                        : prev,
+                    )
+                  }
+                  className="flex-row items-center justify-between rounded-xl p-3.5 mb-2.5"
+                  style={{
+                    backgroundColor: theme.bgActive,
+                    borderWidth: 1,
+                    borderColor: masterGranted ? "#22c55e" : theme.border,
+                  }}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                      Office Supplies
+                    </Text>
+                    <Text className="text-xs mt-0.5" style={{ color: theme.subtext }}>
+                      Full access to Dashboard, Inventory, Supply Request, Monthly
+                      Report and Activity. Turn off to pick individual pages below.
+                    </Text>
+                  </View>
+                  <View
+                    className="w-11 h-6 rounded-full justify-center px-1"
+                    style={{
+                      backgroundColor: masterGranted ? "#22c55e" : theme.border,
+                      alignItems: masterGranted ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    <View className="w-[18px] h-[18px] rounded-full bg-white" />
+                  </View>
+                </TouchableOpacity>
+              );
+            })()}
+
+            {/* Granular office pages — only usable while master is OFF */}
+            {!permissionUser.permissions?.officeAllAccess &&
+              (
+                [
+                  "officeDashboard",
+                  "officeInventory",
+                  "officeSupplyRequest",
+                  "officeMonthlyReport",
+                  "officeActivity",
+                ] as const
+              ).map((key) => {
+                const labels: Record<string, { label: string; description: string }> = {
+                  officeDashboard: {
+                    label: "Office Dashboard",
+                    description: "Shows the Office Supplies dashboard/overview page",
+                  },
+                  officeInventory: {
+                    label: "Office Supplies (Inventory)",
+                    description: "Shows the Office Supplies inventory page only",
+                  },
+                  officeSupplyRequest: {
+                    label: "Supply Request",
+                    description: "Shows the Supply Request page only",
+                  },
+                  officeMonthlyReport: {
+                    label: "Monthly Report",
+                    description: "Shows the Office Supplies monthly report page only",
+                  },
+                  officeActivity: {
+                    label: "Activity",
+                    description: "Shows the Office Supplies activity log page only",
+                  },
+                };
+                const granted = permissionUser.permissions?.[key] ?? false;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() =>
+                      setPermissionUser((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              permissions: { ...prev.permissions, [key]: !granted },
+                            }
+                          : prev,
+                      )
+                    }
+                    className="flex-row items-center justify-between rounded-xl p-3 mb-2 ml-4"
+                    style={{
+                      backgroundColor: theme.bgActive,
+                      borderWidth: 1,
+                      borderColor: granted ? "#22c55e" : theme.border,
+                    }}
+                  >
+                    <View className="flex-1 pr-3">
+                      <Text className="text-xs font-semibold" style={{ color: theme.text }}>
+                        {labels[key].label}
+                      </Text>
+                      <Text className="text-[11px] mt-0.5" style={{ color: theme.subtext }}>
+                        {labels[key].description}
+                      </Text>
+                    </View>
+                    <View
+                      className="w-10 h-5 rounded-full justify-center px-1"
+                      style={{
+                        backgroundColor: granted ? "#22c55e" : theme.border,
+                        alignItems: granted ? "flex-end" : "flex-start",
+                      }}
                     >
-                      {labels[key].description}
+                      <View className="w-[14px] h-[14px] rounded-full bg-white" />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+            {/* Fleet Control Tower — unchanged */}
+            {(["fleetControl"] as const).map((key) => {
+              const granted = permissionUser.permissions?.[key] ?? false;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() =>
+                    setPermissionUser((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            permissions: { ...prev.permissions, [key]: !granted },
+                          }
+                        : prev,
+                    )
+                  }
+                  className="flex-row items-center justify-between rounded-xl p-3.5 mb-2.5"
+                  style={{
+                    backgroundColor: theme.bgActive,
+                    borderWidth: 1,
+                    borderColor: granted ? "#22c55e" : theme.border,
+                  }}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                      Fleet Control Tower
+                    </Text>
+                    <Text className="text-xs mt-0.5" style={{ color: theme.subtext }}>
+                      Dispatch access — approve trip requests, assign vehicles and
+                      drivers, manage fleet roster
                     </Text>
                   </View>
                   <View

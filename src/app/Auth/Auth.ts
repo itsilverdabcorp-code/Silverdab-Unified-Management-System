@@ -24,7 +24,12 @@ type LoginApiResponse = {
   };
 };
 
-type AuthResult = { success: boolean; user?: ADUser; token?: string; message?: string };
+type AuthResult = {
+  success: boolean;
+  user?: ADUser;
+  token?: string;
+  message?: string;
+};
 
 const DEFAULT_PERMISSIONS: UserPermissions = {
   itAccess: false,
@@ -32,6 +37,14 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   consumables: false,
   tickets: false,
   officeSupplies: false,
+  officeAllAccess: false,
+  officeDashboard: false,
+  officeInventory: false,
+  officeSupplyRequest: false,
+  officeMonthlyReport: false,
+  officeActivity: false,
+  fleetControl: false,
+  fleetDriver: false,
 };
 
 function mapRowToPermissions(row: any): UserPermissions {
@@ -40,7 +53,13 @@ function mapRowToPermissions(row: any): UserPermissions {
     itInventory: !!row.perm_it_inventory,
     consumables: !!row.perm_consumables,
     tickets: !!row.perm_tickets,
-    officeSupplies: !!row.perm_office_supplies,
+    officeSupplies: !!row.perm_office_supplies, // legacy, kept for fallback
+    officeAllAccess: !!row.perm_office_all_access,
+    officeDashboard: !!row.perm_office_dashboard,
+    officeInventory: !!row.perm_office_inventory,
+    officeSupplyRequest: !!row.perm_office_supply_request,
+    officeMonthlyReport: !!row.perm_office_monthly_report,
+    officeActivity: !!row.perm_office_activity,
     fleetControl: !!row.perm_fleet_control,
     fleetDriver: !!row.perm_fleet_driver,
   };
@@ -51,21 +70,33 @@ async function fetchUserRow(
 ): Promise<{ role: BackendRole; permissions: UserPermissions } | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/users`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    if (!data.success) return null;
+    if (!data.success) {
+      console.log("FETCHUSERROW DEBUG: /users call failed", data);
+      return null;
+    }
 
     const row = (data.users as any[]).find(
       (u) => u.username?.toLowerCase() === username.toLowerCase(),
     );
-    if (!row) return null;
+    if (!row) {
+      console.log(
+        "FETCHUSERROW DEBUG: no matching row for username",
+        username,
+        "total users:",
+        data.users?.length,
+      );
+      return null;
+    }
+
+    const permissions = mapRowToPermissions(row);
+    console.log("FETCHUSERROW DEBUG", username, JSON.stringify(permissions));
 
     return {
       role: (row.role as BackendRole) ?? "employee",
-      permissions: mapRowToPermissions(row),
+      permissions,
     };
   } catch (err) {
     console.error("Fetch user row error:", err);
@@ -168,7 +199,7 @@ export async function authenticateWithAD(
       permissions: row?.permissions ?? DEFAULT_PERMISSIONS,
     };
 
-   return { success: true, user, token: data.token };
+    return { success: true, user, token: data.token };
   } catch (err) {
     console.error("AD login error:", err);
     return {

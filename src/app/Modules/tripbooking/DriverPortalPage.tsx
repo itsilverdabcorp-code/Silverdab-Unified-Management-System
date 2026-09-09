@@ -255,6 +255,7 @@ function openTripDirections(
   pickupText: string,
   dropoff: LatLng | null,
   dropoffText: string,
+  waypoints?: { latitude: number; longitude: number; text: string }[],
 ) {
   const originParam = pickup
     ? `${pickup.latitude},${pickup.longitude}`
@@ -262,7 +263,15 @@ function openTripDirections(
   const destParam = dropoff
     ? `${dropoff.latitude},${dropoff.longitude}`
     : encodeURIComponent(dropoffText);
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}&travelmode=driving`;
+  // Extra stops before the final drop-off — Google Maps takes these as a
+  // pipe-separated "waypoints" param, visited in the order given.
+  const waypointsParam =
+    waypoints && waypoints.length > 0
+      ? `&waypoints=${waypoints
+          .map((w) => `${w.latitude},${w.longitude}`)
+          .join("|")}`
+      : "";
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}${waypointsParam}&travelmode=driving`;
   Linking.openURL(url).catch((err) =>
     console.error("Failed to open Google Maps:", err),
   );
@@ -801,35 +810,42 @@ function TripCard({
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
-        <View style={{ width: 20, alignItems: "center" }}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
-            <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
-          </Svg>
-        </View>
-        <View style={{ flex: 1, paddingTop: 1 }}>
-          <Text
-            style={{
-              fontFamily: "Outfit-medium",
-              fontSize: 15,
-              color: theme.textActive ?? theme.text,
-              lineHeight: 21,
-            }}
+      {[trip.dropoffLabel, ...(trip.additionalDropoffs ?? []).map((s) => s.locationText)].map(
+        (label, i, arr) => (
+          <View
+            key={i}
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: i === arr.length - 1 ? 16 : 6 }}
           >
-            {trip.dropoffLabel}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Outfit",
-              fontSize: 12.5,
-              color: theme.subtext,
-              marginTop: 2,
-            }}
-          >
-            Drop-off
-          </Text>
-        </View>
-      </View>
+            <View style={{ width: 20, alignItems: "center" }}>
+              <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
+                <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+              </Svg>
+            </View>
+            <View style={{ flex: 1, paddingTop: 1 }}>
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 15,
+                  color: theme.textActive ?? theme.text,
+                  lineHeight: 21,
+                }}
+              >
+                {label}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Outfit",
+                  fontSize: 12.5,
+                  color: theme.subtext,
+                  marginTop: 2,
+                }}
+              >
+                {arr.length > 1 ? `Drop-off ${i + 1}` : "Drop-off"}
+              </Text>
+            </View>
+          </View>
+        ),
+      )}
 
       {/* Meta row — time, requestor, vehicle */}
       <View
@@ -888,7 +904,10 @@ function TripCard({
       <TouchableOpacity
         onPress={(e) => {
           e.stopPropagation?.();
-          openTripDirections(pickupCoords, trip.pickupLabel, dropoffCoords, trip.dropoffLabel);
+          const extraStops = (trip.additionalDropoffs ?? [])
+            .filter((s) => s.latitude != null && s.longitude != null)
+            .map((s) => ({ latitude: s.latitude as number, longitude: s.longitude as number, text: s.locationText }));
+          openTripDirections(pickupCoords, trip.pickupLabel, dropoffCoords, trip.dropoffLabel, extraStops);
         }}
         activeOpacity={0.8}
         style={{
@@ -1731,46 +1750,57 @@ export default function DriverPortalPage({ user }: Props) {
                       </View>
                     </View>
 
-                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
-                      <View style={{ width: 20, alignItems: "center" }}>
-                        <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
-                          <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
-                        </Svg>
-                      </View>
-                      <View style={{ flex: 1, paddingTop: 1 }}>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit-medium",
-                            fontSize: 15,
-                            color: theme.textActive ?? theme.text,
-                            lineHeight: 21,
-                          }}
+                    {[viewingTrip.dropoffLabel, ...(viewingTrip.additionalDropoffs ?? []).map((s) => s.locationText)].map(
+                      (label, i, arr) => (
+                        <View
+                          key={i}
+                          style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: i === arr.length - 1 ? 16 : 6 }}
                         >
-                          {viewingTrip.dropoffLabel}
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: "Outfit",
-                            fontSize: 12.5,
-                            color: theme.subtext,
-                            marginTop: 2,
-                          }}
-                        >
-                          Drop-off
-                        </Text>
-                      </View>
-                    </View>
+                          <View style={{ width: 20, alignItems: "center" }}>
+                            <Svg width={20} height={20} viewBox="0 0 24 24" fill="#DC2626">
+                              <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+                            </Svg>
+                          </View>
+                          <View style={{ flex: 1, paddingTop: 1 }}>
+                            <Text
+                              style={{
+                                fontFamily: "Outfit-medium",
+                                fontSize: 15,
+                                color: theme.textActive ?? theme.text,
+                                lineHeight: 21,
+                              }}
+                            >
+                              {label}
+                            </Text>
+                            <Text
+                              style={{
+                                fontFamily: "Outfit",
+                                fontSize: 12.5,
+                                color: theme.subtext,
+                                marginTop: 2,
+                              }}
+                            >
+                              {arr.length > 1 ? `Drop-off ${i + 1}` : "Drop-off"}
+                            </Text>
+                          </View>
+                        </View>
+                      ),
+                    )}
 
                     {/* View route & directions — outlined pill button */}
                     <TouchableOpacity
-                      onPress={() =>
+                      onPress={() => {
+                        const extraStops = (viewingTrip.additionalDropoffs ?? [])
+                          .filter((s) => s.latitude != null && s.longitude != null)
+                          .map((s) => ({ latitude: s.latitude as number, longitude: s.longitude as number, text: s.locationText }));
                         openTripDirections(
                           pickupCoords,
                           viewingTrip.pickupLabel,
                           dropoffCoords,
                           viewingTrip.dropoffLabel,
-                        )
-                      }
+                          extraStops,
+                        );
+                      }}
                       activeOpacity={0.8}
                       style={{
                         flexDirection: "row",

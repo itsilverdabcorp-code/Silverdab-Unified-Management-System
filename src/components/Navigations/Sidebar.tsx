@@ -56,29 +56,7 @@ export default function Sidebar({
   const { theme, themeMode, setThemeMode } = useTheme();
   const C = getNavColors(theme);
 
-  // ✅ Normalize permissions so undefined fields default to false
-  //    This ensures officeSupplies (and any future key) always evaluates correctly
-  const normalizedUser: ADUser = {
-    ...user,
-    permissions: {
-      itAccess:
-        Boolean(user.permissions?.itAccess) ||
-        Boolean(user.permissions?.itInventory) ||
-        Boolean(user.permissions?.consumables) ||
-        Boolean(user.permissions?.tickets),
-      itInventory: user.permissions?.itInventory ?? false,
-      consumables: user.permissions?.consumables ?? false,
-      tickets: user.permissions?.tickets ?? false,
-      officeSupplies: Boolean(
-        user.permissions?.officeSupplies ||
-        (user.permissions as any)?.officesupplies,
-      ),
-      fleetControl: Boolean(user.permissions?.fleetControl),
-      fleetDriver: Boolean(user.permissions?.fleetDriver),
-    },
-  };
-
-  const sections = getNavSectionsForUser(normalizedUser);
+  const sections = getNavSectionsForUser(user);
 
   const animatedWidth = useRef(new Animated.Value(EXPANDED_W)).current;
   const animatedExpand = useRef(new Animated.Value(1)).current;

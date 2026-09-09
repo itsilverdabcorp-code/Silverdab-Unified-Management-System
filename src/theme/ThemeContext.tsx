@@ -167,8 +167,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const theme = resolvedMode === "dark" ? darkTheme : lightTheme;
 
+  const contextValue = React.useMemo(
+    () => ({ theme, themeMode, setThemeMode }),
+    [theme, themeMode],
+  );
+
   return (
-    <ThemeContext.Provider value={{ theme, themeMode, setThemeMode }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

@@ -992,7 +992,12 @@ export function getNavSectionsForUser(user: {
     consumables?: boolean;
     tickets?: boolean;
     officeSupplies?: boolean;
-    officesupplies?: boolean;
+    officeAllAccess?: boolean;
+    officeDashboard?: boolean;
+    officeInventory?: boolean;
+    officeSupplyRequest?: boolean;
+    officeMonthlyReport?: boolean;
+    officeActivity?: boolean;
     fleetControl?: boolean;
     fleetDriver?: boolean;
   };
@@ -1046,45 +1051,95 @@ export function getNavSectionsForUser(user: {
         ]
       : [];
 
-    const hasOfficeSuppliesAccess = Boolean(
-      user.permissions?.officeSupplies || user.permissions?.officesupplies,
+    // "officeAllAccess" is the MASTER office-supplies toggle. Legacy rows
+    // that still have the old blanket "officeSupplies" flag and nothing else
+    // set are treated the same as a granted master toggle.
+    const legacyOfficeSupplies = Boolean(user.permissions?.officeSupplies);
+    const officeMasterGranted = Boolean(
+      user.permissions?.officeAllAccess || legacyOfficeSupplies,
     );
 
-    // Office Supplies section — all 5 items, shown only if toggle is on
-    const officeItems: NavItem[] = hasOfficeSuppliesAccess
-      ? [
-          {
-            key: "officedashboard",
-            label: "Dashboard",
-            icon: OfficeDashboardIcon,
-            href: href("officedashboard"),
-          },
-          {
-            key: "officeinventory",
-            label: "Office Supplies",
-            icon: OfficeSuppliesIcon,
-            href: href("officeinventory"),
-          },
-          {
-            key: "supplyrequest",
-            label: "Supply Request",
-            icon: SupplyRequestIcon,
-            href: href("supplyrequest"),
-          },
-          {
-            key: "monthlyreport",
-            label: "Monthly Report",
-            icon: MonthlyReportIcon,
-            href: href("monthlyreport"),
-          },
-          {
-            key: "activity",
-            label: "Activity",
-            icon: ActivityIcon,
-            href: href("activity"),
-          },
-        ]
-      : [];
+    const officeItems: NavItem[] = [];
+
+    if (officeMasterGranted) {
+      // Master ON — full access to every office page.
+      officeItems.push(
+        {
+          key: "officedashboard",
+          label: "Dashboard",
+          icon: OfficeDashboardIcon,
+          href: href("officedashboard"),
+        },
+        {
+          key: "officeinventory",
+          label: "Office Supplies",
+          icon: OfficeSuppliesIcon,
+          href: href("officeinventory"),
+        },
+        {
+          key: "supplyrequest",
+          label: "Supply Request",
+          icon: SupplyRequestIcon,
+          href: href("supplyrequest"),
+        },
+        {
+          key: "monthlyreport",
+          label: "Monthly Report",
+          icon: MonthlyReportIcon,
+          href: href("monthlyreport"),
+        },
+        {
+          key: "activity",
+          label: "Activity",
+          icon: ActivityIcon,
+          href: href("activity"),
+        },
+      );
+    } else {
+      // Master OFF — only the individually granted granular pages show up.
+      if (user.permissions?.officeDashboard) {
+        officeItems.push({
+          key: "officedashboard",
+          label: "Dashboard",
+          icon: OfficeDashboardIcon,
+          href: href("officedashboard"),
+        });
+      }
+      if (user.permissions?.officeInventory) {
+        officeItems.push({
+          key: "officeinventory",
+          label: "Office Supplies",
+          icon: OfficeSuppliesIcon,
+          href: href("officeinventory"),
+        });
+      }
+      if (user.permissions?.officeSupplyRequest) {
+        officeItems.push({
+          key: "supplyrequest",
+          label: "Supply Request",
+          icon: SupplyRequestIcon,
+          href: href("supplyrequest"),
+        });
+      }
+      if (user.permissions?.officeMonthlyReport) {
+        officeItems.push({
+          key: "monthlyreport",
+          label: "Monthly Report",
+          icon: MonthlyReportIcon,
+          href: href("monthlyreport"),
+        });
+      }
+      if (user.permissions?.officeActivity) {
+        officeItems.push({
+          key: "activity",
+          label: "Activity",
+          icon: ActivityIcon,
+          href: href("activity"),
+        });
+      }
+    }
+
+    const hasOfficeSuppliesAccess = officeItems.length > 0;
 
     const sections: NavSection[] = [];
 
@@ -1147,10 +1202,11 @@ export function getNavSectionsForUser(user: {
       });
     }
 
-    // Room Reservation is available to every employee/admin, independent
-    // of the Office Supplies permission toggle — except driver-only users,
-    // who should see nothing but Driver View.
-    if (!isDriverOnly) {
+    // Room Reservation is admin/superadmin only — employees should not see
+    // it (superadmin already gets it unconditionally via MENU_BY_ROLE.superadmin
+    // above). Also excluded for driver-only users, who should see nothing
+    // but Driver View.
+    if (!isDriverOnly && normalizedRole === "admin") {
       sections.push({
         sectionLabel: "Facilities",
         items: [

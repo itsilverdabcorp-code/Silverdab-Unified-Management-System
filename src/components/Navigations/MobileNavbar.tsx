@@ -61,27 +61,7 @@ export default function MobileNavbar({
   const C = getNavColors(theme);
   const insets = useSafeAreaInsets();
 
-  const normalizedUser: ADUser = {
-    ...user,
-    permissions: {
-      itAccess:
-        Boolean(user.permissions?.itAccess) ||
-        Boolean(user.permissions?.itInventory) ||
-        Boolean(user.permissions?.consumables) ||
-        Boolean(user.permissions?.tickets),
-      itInventory: user.permissions?.itInventory ?? false,
-      consumables: user.permissions?.consumables ?? false,
-      tickets: user.permissions?.tickets ?? false,
-      officeSupplies: Boolean(
-        user.permissions?.officeSupplies ||
-        (user.permissions as any)?.officesupplies,
-      ),
-      fleetControl: Boolean(user.permissions?.fleetControl),
-      fleetDriver: Boolean(user.permissions?.fleetDriver),
-    },
-  };
-
-  const sections = getNavSectionsForUser(normalizedUser);
+  const sections = getNavSectionsForUser(user);
 
   const translateX = useRef(new Animated.Value(-DRAWER_W)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -244,6 +224,7 @@ export default function MobileNavbar({
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
+            paddingTop: 40,
             zIndex: 0,
           }}
           pointerEvents="box-none"

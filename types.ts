@@ -5,7 +5,15 @@ export type UserPermissions = {
   itInventory?: boolean;
   consumables?: boolean;
   tickets?: boolean;
+  /** @deprecated kept for backward compat with old saved rows — treat as officeAllAccess */
   officeSupplies?: boolean;
+  /** Master toggle — grants all 5 Office Supplies pages */
+  officeAllAccess?: boolean;
+  officeDashboard?: boolean;
+  officeInventory?: boolean;
+  officeSupplyRequest?: boolean;
+  officeMonthlyReport?: boolean;
+  officeActivity?: boolean;
   fleetControl?: boolean; // Fleet Control Tower — dispatch/admin
   fleetDriver?: boolean; // Fleet Driver View — assigned drivers
 };
@@ -272,8 +280,12 @@ export type FleetTrip = {
   requestorName: string;
   pickupLocationId?: string | null;
   pickupLabel: string;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
   dropoffLocationId?: string | null;
   dropoffLabel: string;
+  dropoffLatitude?: number | null;
+  dropoffLongitude?: number | null;
   tripType: "oneway" | "roundtrip";
   departureDatetime: string; // ISO
   returnDatetime?: string | null;
@@ -291,6 +303,14 @@ export type FleetTrip = {
   createdAt: string;
   updatedAt: string;
   statusHistory?: FleetTripStatusLogEntry[];
+  // Extra drop-off stops beyond the primary dropoffLabel, in visit order —
+  // populated from fleet_trip_stops by GET /fleet/trips.
+  additionalDropoffs?: {
+    locationId: string | null;
+    locationText: string;
+    latitude: number | null;
+    longitude: number | null;
+  }[];
   calendarSynced: boolean;
   isArchived?: boolean;
 };
