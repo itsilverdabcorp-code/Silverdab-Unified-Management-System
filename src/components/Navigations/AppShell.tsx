@@ -189,10 +189,10 @@ function renderPage(
 
 export default function AppShell({ user, onLogout }: Props) {
   const sections = getNavSectionsForUser(user);
-  console.log("APPSHELL DEBUG",
-  JSON.stringify(user.permissions),
-  JSON.stringify(sections.map(s => ({ label: s.sectionLabel, keys: s.items.map(i => i.key) })))
-);
+//   console.log("APPSHELL DEBUG",
+//   JSON.stringify(user.permissions),
+//   JSON.stringify(sections.map(s => ({ label: s.sectionLabel, keys: s.items.map(i => i.key) })))
+// );
   const allowedKeys = sections.flatMap((s) => s.items.map((i) => i.key));
   const defaultKeyForUser = allowedKeys[0] ?? "dashboard";
 

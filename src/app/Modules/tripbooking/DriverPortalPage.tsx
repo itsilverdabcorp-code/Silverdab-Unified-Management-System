@@ -90,7 +90,7 @@ import {
   completeFleetTrip,
   setDriverDutyStatus,
 } from "../../../services/fleetOps";
-import { findShiftOption, computeAutoDutyStatus } from "@/utils/shiftUtils";
+import { findShiftOption, formatShiftLabel, computeAutoDutyStatus } from "@/utils/shiftUtils";
 import { setupExpoPushNotifications } from "../../../services/pushNotifications";
 import {
   ADUser,
@@ -150,6 +150,41 @@ function isTripLate(trip: FleetTrip): boolean {
     return !isNaN(ret) && now > ret;
   }
   return false;
+}
+
+// True when the trip's departure date falls on the current calendar day
+// (local time), regardless of whether that time has already passed —
+// used to highlight "this is happening today" independent of isTripLate's
+// separate "this is overdue" signal.
+function isTripToday(trip: FleetTrip): boolean {
+  const departure = new Date(trip.departureDatetime);
+  if (isNaN(departure.getTime())) return false;
+  const now = new Date();
+  return (
+    departure.getFullYear() === now.getFullYear() &&
+    departure.getMonth() === now.getMonth() &&
+    departure.getDate() === now.getDate()
+  );
+}
+
+// Plain-language "how far away is this" label for the schedule row, so an
+// older driver doesn't have to subtract dates in their head — "Tomorrow",
+// "In 3 days", or "X days ago" for something that slipped past. Compares
+// calendar dates (midnight to midnight), not raw hours, so a trip later
+// tonight and one first thing tomorrow are correctly "Today" vs "Tomorrow".
+function getDaysUntilLabel(trip: FleetTrip): string {
+  const departure = new Date(trip.departureDatetime);
+  if (isNaN(departure.getTime())) return "";
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round(
+    (startOfDay(departure) - startOfDay(new Date())) / 86_400_000,
+  );
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays > 1) return `In ${diffDays} days`;
+  if (diffDays === -1) return "Yesterday";
+  if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
+  return "";
 }
 
 const STATUS_DISPLAY: Record<TripStatus, string> = {
@@ -358,9 +393,11 @@ function LateBadge() {
 
 function AssignedVehicleRow({
   plateNumber,
+  model,
   theme,
 }: {
   plateNumber?: string;
+  model?: string;
   theme: any;
 }) {
   return (
@@ -411,7 +448,7 @@ function AssignedVehicleRow({
           color: theme.subtext,
         }}
       >
-        {plateNumber ?? "—"}
+        {plateNumber ? (model ? `${model} - ${plateNumber}` : plateNumber) : "—"}
       </Text>
     </View>
   );
@@ -535,7 +572,17 @@ function DutyStatusCard({
   onSelect: (status: DriverDutyStatus) => void;
 }) {
   const disabled = locked || busy;
-  const cardStyle = DUTY_STATUS_CARD_STYLE[current];
+  // While actually on a trip, override the normal duty-status color with a
+  // distinct "on trip" look instead of just dimming whatever color the
+  // driver's last status happened to be — makes the locked state instantly
+  // recognizable rather than just "the same card, a bit faded".
+  const cardStyle = locked
+    ? {
+        bg: "#3D6FE0",
+        title: "You're On a Trip",
+        subtitle: "Duty status locked until it's completed",
+      }
+    : DUTY_STATUS_CARD_STYLE[current];
 
   // On Duty / Off Duty is now driven automatically by the driver's
   // assigned shift (computeAutoDutyStatus) — no manual toggle for it.
@@ -553,7 +600,7 @@ function DutyStatusCard({
         padding: 24,
         alignItems: "center",
         marginBottom: 16,
-        opacity: disabled ? 0.75 : 1,
+        opacity: busy ? 0.75 : 1,
       }}
     >
       <View
@@ -621,17 +668,22 @@ function DutyStatusCard({
         style={{
           width: "100%",
           borderWidth: 1.5,
-          borderColor: "rgba(255,255,255,0.6)",
+          borderColor: locked ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.6)",
           borderRadius: 10,
           paddingVertical: 12,
           alignItems: "center",
+          opacity: locked ? 0.5 : 1,
         }}
       >
         {busy ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
           <Text
-            style={{ fontFamily: "Outfit-medium", fontSize: 13.5, color: "#fff" }}
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 13.5,
+              color: locked ? "rgba(255,255,255,0.6)" : "#fff",
+            }}
           >
             {primaryLabel}
           </Text>
@@ -704,6 +756,7 @@ function TripCard({
   busy,
   isNext,
   locations,
+  vehicles,
   onAdvance,
   onViewDetails,
 }: {
@@ -712,6 +765,7 @@ function TripCard({
   busy: boolean;
   isNext?: boolean;
   locations: FleetLocation[];
+  vehicles: FleetVehicle[];
   onAdvance: (trip: FleetTrip) => void;
   onViewDetails: (trip: FleetTrip) => void;
 }) {
@@ -752,12 +806,80 @@ function TripCard({
             ? trip.status === "approved"
               ? "Next Trip"
               : "New Trip"
-            : `Trip ${trip.tripRef}`}
+            : trip.tripRef.replace(/^TRIP-\d{4}-/, "TRIP-")}
         </Text>
         <View style={{ alignItems: "flex-end", gap: 5 }}>
           <StatusBadge status={trip.status} theme={theme} />
           {late && <LateBadge />}
         </View>
+      </View>
+
+      {/* Schedule — pulled up top, full width, and emphasized so an older
+          driver can tell at a glance when the trip is without reading the
+          full date: a green "Today" badge, "Tomorrow", or "In N days" on
+          the right, in place of forcing them to do date math themselves. */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          marginBottom: 16,
+          paddingVertical: isTripToday(trip) ? 8 : 0,
+          paddingHorizontal: isTripToday(trip) ? 12 : 0,
+          borderRadius: 12,
+          backgroundColor: isTripToday(trip) ? "#DCFCE7" : "transparent",
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <MetaIcon
+            name="clock"
+            color={isTripToday(trip) ? "#166534" : "#3D6FE0"}
+          />
+          <Text
+            style={{
+              fontFamily: "Outfit-Bold",
+              fontSize: 17,
+              color: isTripToday(trip)
+                ? "#166534"
+                : theme.textActive ?? theme.text,
+            }}
+          >
+            {formatSchedule(trip.departureDatetime)}
+          </Text>
+        </View>
+        {isTripToday(trip) ? (
+          <View
+            style={{
+              backgroundColor: "#166534",
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 999,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Outfit-medium",
+                fontSize: 11,
+                color: "#fff",
+                textTransform: "uppercase",
+                letterSpacing: 0.3,
+              }}
+            >
+              Today
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={{
+              fontFamily: "Outfit-medium",
+              fontSize: 12.5,
+              color: theme.subtext,
+            }}
+          >
+            {getDaysUntilLabel(trip)}
+          </Text>
+        )}
       </View>
 
       {/* Route block — big circle/pin markers, address, small label */}
@@ -847,28 +969,17 @@ function TripCard({
         ),
       )}
 
-      {/* Meta row — time, requestor, vehicle */}
+      {/* Meta row — requestor, vehicle (time now lives up top) */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: "center",
           flexWrap: "wrap",
           gap: 18,
           marginBottom: 18,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <MetaIcon name="clock" color="#3D6FE0" />
-          <Text
-            style={{
-              fontFamily: "Outfit-medium",
-              fontSize: 13,
-              color: theme.textActive ?? theme.text,
-            }}
-          >
-            {formatSchedule(trip.departureDatetime)}
-          </Text>
-        </View>
         {trip.requestorName ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <MetaIcon name="person" color="#3D6FE0" />
@@ -893,7 +1004,12 @@ function TripCard({
                 color: theme.textActive ?? theme.text,
               }}
             >
-              {trip.vehiclePlate}
+              {(() => {
+                const v = vehicles.find((veh) => veh.id === trip.vehicleId);
+                return v?.model
+                  ? `${v.model} - ${trip.vehiclePlate}`
+                  : trip.vehiclePlate;
+              })()}
             </Text>
           </View>
         ) : null}
@@ -1029,7 +1145,16 @@ export default function DriverPortalPage({ user }: Props) {
   useEffect(() => {
     loadAll();
     const intervalId = setInterval(loadAll, POLL_INTERVAL_MS);
-    return () => clearInterval(intervalId);
+    const handleShiftUpdated = () => loadAll();
+    if (typeof document !== "undefined") {
+      document.addEventListener("fleet-driver-shift-updated", handleShiftUpdated);
+    }
+    return () => {
+      clearInterval(intervalId);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("fleet-driver-shift-updated", handleShiftUpdated);
+      }
+    };
   }, [loadAll]);
 
   async function handleRefresh() {
@@ -1059,6 +1184,13 @@ export default function DriverPortalPage({ user }: Props) {
     () => findShiftOption(myDriver?.shiftStart, myDriver?.shiftEnd),
     [myDriver],
   );
+  const myShiftLabel = useMemo(() => {
+    if (myShiftOption) return myShiftOption.label;
+    if (myDriver?.shiftStart && myDriver?.shiftEnd) {
+      return formatShiftLabel(myDriver.shiftStart, myDriver.shiftEnd);
+    }
+    return "No shift set";
+  }, [myShiftOption, myDriver]);
 
   // Auto-sync duty status from the driver's assigned shift — no button
   // press required. A manual "personal" override always wins; otherwise
@@ -1284,13 +1416,14 @@ export default function DriverPortalPage({ user }: Props) {
                 locked={isOnTrip}
                 busy={togglingDutyStatus}
                 theme={theme}
-                shiftLabel={myShiftOption?.label ?? "No shift set"}
+                shiftLabel={myShiftLabel}
                 onSelect={handleSetDutyStatus}
               />
             )}
 
             <AssignedVehicleRow
               plateNumber={myVehicle?.plateNumber}
+              model={myVehicle?.model}
               theme={theme}
             />
 
@@ -1386,6 +1519,7 @@ export default function DriverPortalPage({ user }: Props) {
                     busy={busyTripId === trip.id}
                     isNext={idx === 0}
                     locations={locations}
+                    vehicles={vehicles}
                     onAdvance={setConfirmingTrip}
                     onViewDetails={setViewingTrip}
                   />
@@ -1411,6 +1545,7 @@ export default function DriverPortalPage({ user }: Props) {
                   theme={theme}
                   busy={false}
                   locations={locations}
+                  vehicles={vehicles}
                   onAdvance={setConfirmingTrip}
                   onViewDetails={setViewingTrip}
                 />
@@ -1503,35 +1638,37 @@ export default function DriverPortalPage({ user }: Props) {
                       marginBottom: 3,
                     }}
                   />
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      gap: 6,
-                    }}
-                  >
+                  {[
+                    confirmingTrip.dropoffLabel,
+                    ...(confirmingTrip.additionalDropoffs ?? []).map((s) => s.locationText),
+                  ].map((label, i, arr) => (
                     <View
+                      key={i}
                       style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: 2,
-                        backgroundColor: "#3D6FE0",
-                        flexShrink: 0,
-                        marginTop: 4,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: "Outfit-medium",
-                        fontSize: 13,
-                        color: theme.textActive ?? theme.text,
-                        flex: 1,
-                        flexWrap: "wrap",
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 6,
+                        marginBottom: i === arr.length - 1 ? 0 : 3,
                       }}
                     >
-                      {confirmingTrip.dropoffLabel}
-                    </Text>
-                  </View>
+                      <View style={{ width: 12, alignItems: "center" }}>
+                        <Svg width={12} height={12} viewBox="0 0 24 24" fill="#DC2626">
+                          <Path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 8 12 8 12s8-6.4 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+                        </Svg>
+                      </View>
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: theme.textActive ?? theme.text,
+                          flex: 1,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
 
                 {/* Divider */}
@@ -1647,6 +1784,7 @@ export default function DriverPortalPage({ user }: Props) {
               backgroundColor: theme.surface,
               borderRadius: 16,
               padding: 20,
+              flexDirection: "column",
             }}
           >
             {viewingTrip &&
@@ -1662,15 +1800,23 @@ export default function DriverPortalPage({ user }: Props) {
 
                 const detailRows: [string, string][] = [
                   ["Departure", formatSchedule(viewingTrip.departureDatetime)],
-                  [
-                    "Trip Type",
-                    viewingTrip.tripType === "oneway" ? "One way" : "Round trip",
-                  ],
                   ["Purpose", viewingTrip.purpose || "—"],
                   ...(viewingTrip.status === "pending"
                     ? []
                     : ([
-                        ["Vehicle", viewingTrip.vehiclePlate ?? "Not assigned"],
+                        [
+                          "Vehicle",
+                          viewingTrip.vehiclePlate
+                            ? (() => {
+                                const v = vehicles.find(
+                                  (veh) => veh.id === viewingTrip.vehicleId,
+                                );
+                                return v?.model
+                                  ? `${v.model} - ${viewingTrip.vehiclePlate}`
+                                  : viewingTrip.vehiclePlate;
+                              })()
+                            : "Not assigned",
+                        ],
                       ] as [string, string][])),
                   ["Requestor", viewingTrip.requestorName],
                 ];
@@ -1678,7 +1824,11 @@ export default function DriverPortalPage({ user }: Props) {
                 const action = nextDriverAction(viewingTrip);
 
                 return (
-                  <ScrollView showsVerticalScrollIndicator={false}>
+                  <>
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    style={{ flexGrow: 0, flexShrink: 1 }}
+                  >
                     {/* Title + status badge */}
                     <View
                       style={{
@@ -1958,16 +2108,55 @@ export default function DriverPortalPage({ user }: Props) {
                         </View>
                       )}
 
-                    {/* Back + primary action, side by side */}
-                    <View style={{ flexDirection: "row", gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={() => setViewingTrip(null)}
-                        activeOpacity={0.8}
+                  </ScrollView>
+
+                  {/* Back + primary action, side by side — kept outside
+                      the ScrollView so it stays pinned to the bottom of
+                      the modal instead of scrolling out of view. */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 10,
+                      paddingTop: 14,
+                      borderTopWidth: 1,
+                      borderTopColor: theme.border,
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => setViewingTrip(null)}
+                      activeOpacity={0.8}
+                      style={{
+                        paddingVertical: 14,
+                        paddingHorizontal: 22,
+                        borderRadius: 999,
+                        backgroundColor: theme.background,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
                         style={{
-                          paddingVertical: 14,
-                          paddingHorizontal: 22,
+                          fontFamily: "Outfit-medium",
+                          fontSize: 14,
+                          color: theme.subtext,
+                        }}
+                      >
+                        Back
+                      </Text>
+                    </TouchableOpacity>
+
+                    {action && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setConfirmingTrip(viewingTrip);
+                          setViewingTrip(null);
+                        }}
+                        activeOpacity={0.85}
+                        style={{
+                          flex: 1,
+                          backgroundColor: action.color,
                           borderRadius: 999,
-                          backgroundColor: theme.background,
+                          paddingVertical: 14,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
@@ -1976,42 +2165,15 @@ export default function DriverPortalPage({ user }: Props) {
                           style={{
                             fontFamily: "Outfit-medium",
                             fontSize: 14,
-                            color: theme.subtext,
+                            color: "#fff",
                           }}
                         >
-                          Back
+                          {action.label}
                         </Text>
                       </TouchableOpacity>
-
-                      {action && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setConfirmingTrip(viewingTrip);
-                            setViewingTrip(null);
-                          }}
-                          activeOpacity={0.85}
-                          style={{
-                            flex: 1,
-                            backgroundColor: action.color,
-                            borderRadius: 999,
-                            paddingVertical: 14,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontFamily: "Outfit-medium",
-                              fontSize: 14,
-                              color: "#fff",
-                            }}
-                          >
-                            {action.label}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </ScrollView>
+                    )}
+                  </View>
+                  </>
                 );
               })()}
           </TouchableOpacity>

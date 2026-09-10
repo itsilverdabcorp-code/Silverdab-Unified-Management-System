@@ -470,11 +470,21 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                 </p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto fct-scroll pr-1">
-                  {sortedDrivers.map((d) => {
+                  {[...sortedDrivers]
+                    .sort((a, b) => {
+                      const aOnTrip = onTripDriverUserIds.has(a.userId);
+                      const bOnTrip = onTripDriverUserIds.has(b.userId);
+                      const aAvailable = a.dutyStatus === "active" && !aOnTrip;
+                      const bAvailable = b.dutyStatus === "active" && !bOnTrip;
+                      if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
+                      return 0;
+                    })
+                    .map((d) => {
                     const onTrip = onTripDriverUserIds.has(d.userId);
                     const showPlate = onTrip && !!d.vehiclePlate;
                     const dutyCfg = DUTY_STATUS_CONFIG[d.dutyStatus] ?? DUTY_STATUS_CONFIG.off_duty;
                     const isAvailable = d.dutyStatus === "active" && !onTrip;
+                    const onTripCfg = { label: "On Trip", bg: "#dbeafe", text: "#1d4ed8" };
                     return (
                       <div
                         key={d.id}
@@ -486,15 +496,17 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                             {d.name}
                           </p>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {showPlate ? (
+                            {onTrip ? (
                               <>
-                                <StatusBadge config={{ label: "On Trip", bg: "#dbeafe", text: "#1d4ed8" }} size="sm" />
-                                <span
-                                  style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono whitespace-nowrap"
-                                >
-                                  {d.vehiclePlate}
-                                </span>
+                                <StatusBadge config={onTripCfg} size="sm" />
+                                {d.vehiclePlate && (
+                                  <span
+                                    style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono whitespace-nowrap"
+                                  >
+                                    {d.vehiclePlate}
+                                  </span>
+                                )}
                               </>
                             ) : (
                               <StatusBadge config={dutyCfg} size="sm" />

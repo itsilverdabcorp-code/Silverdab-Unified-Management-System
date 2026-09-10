@@ -81,7 +81,7 @@ export async function setupExpoPushNotifications() {
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: EXPO_PROJECT_ID,
     });
-    console.log("📱 Expo push token:", tokenData.data);
+    //console.log("📱 Expo push token:", tokenData.data);
 
     await fetch(`${BACKEND_URL}/push/expo-token`, {
       method: "POST",

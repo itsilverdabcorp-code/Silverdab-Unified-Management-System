@@ -6,6 +6,7 @@ export type ShiftOption = {
 };
 
 export const SHIFT_OPTIONS: ShiftOption[] = [
+  { key: "6_3",     label: "6:00 AM – 3:00 PM",  start: "06:00", end: "15:00" },
   { key: "7_4",     label: "7:00 AM – 4:00 PM",  start: "07:00", end: "16:00" },
   { key: "730_430", label: "7:30 AM – 4:30 PM",  start: "07:30", end: "16:30" },
   { key: "8_5",     label: "8:00 AM – 5:00 PM",  start: "08:00", end: "17:00" },

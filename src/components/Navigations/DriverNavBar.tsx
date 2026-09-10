@@ -9,6 +9,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Clock as ClockIcon } from "lucide-react-native";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { getNavColors } from "./NavItems";
 import { useTheme } from "../../theme/ThemeContext";
 import { ADUser } from "../../../types";
@@ -59,6 +62,34 @@ function snapToWholeHour(value: string): string {
   return `${String(h).padStart(2, "0")}:00`;
 }
 
+// Native-picker equivalents of the "HH:MM" <-> Date conversions the web
+// <input type="time"> handles for free — the native picker works in Date
+// objects, not strings.
+function hhmmToDate(value: string): Date {
+  const d = new Date();
+  if (value) {
+    const [h, m] = value.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+  } else {
+    d.setHours(7, 0, 0, 0);
+  }
+  return d;
+}
+
+function dateToSnappedHHMM(d: Date): string {
+  const snapped = new Date(d);
+  if (snapped.getMinutes() >= 30) snapped.setHours(snapped.getHours() + 1);
+  snapped.setMinutes(0, 0, 0);
+  return `${String(snapped.getHours()).padStart(2, "0")}:00`;
+}
+
+function formatTimeLabel(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 // ── Driver top bar ──────────────────────────────────────────────────────────
 // Drivers have no side nav to open (no other modules to switch between), so
 // this is a plain fixed header: logo + wordmark, and an avatar on the right
@@ -79,6 +110,13 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
   const [customError, setCustomError] = useState<string | null>(null);
   const customStartRef = useRef<HTMLInputElement>(null);
   const customEndRef = useRef<HTMLInputElement>(null);
+  // Native-only (iOS/Android) time picker state — web keeps using the
+  // <input type="time"> elements above. "target" tracks which field is
+  // being edited; "pending" holds the in-progress value on iOS, whose
+  // spinner has no built-in dismiss, so nothing commits until Done is
+  // tapped. Android's dialog is one-shot and commits immediately.
+  const [nativePickerTarget, setNativePickerTarget] = useState<"start" | "end" | null>(null);
+  const [nativePendingTime, setNativePendingTime] = useState<Date | null>(null);
 
   const { theme, themeMode, setThemeMode } = useTheme();
   const C = getNavColors(theme);
@@ -149,11 +187,32 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
       setCustomError(null);
       setCustomStart("");
       setCustomEnd("");
+      // Nudge any mounted DriverPortalPage to refetch immediately instead
+      // of waiting up to POLL_INTERVAL_MS for the next poll cycle.
+      if (typeof document !== "undefined") {
+        document.dispatchEvent(new CustomEvent("fleet-driver-shift-updated"));
+      }
     } catch (err) {
       console.error("Set shift failed:", err);
     } finally {
       setSavingShift(false);
     }
+  }
+
+  // Android's dialog fires once then dismisses itself, so commit and close
+  // right away. iOS's inline spinner keeps firing as the driver scrolls —
+  // just track the value and let the Done/Cancel row below commit or drop it.
+  function handleNativeTimeChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS === "android") {
+      const target = nativePickerTarget;
+      setNativePickerTarget(null);
+      if (event.type === "dismissed" || !selected || !target) return;
+      const hhmm = dateToSnappedHHMM(selected);
+      if (target === "start") setCustomStart(hhmm);
+      else setCustomEnd(hhmm);
+      return;
+    }
+    if (selected) setNativePendingTime(selected);
   }
 
   function handleSaveCustomShift() {
@@ -569,24 +628,137 @@ export default function DriverNavbar({ user, onLogout }: DriverNavbarProps) {
             </TouchableOpacity>
 
             {customMode && Platform.OS !== "web" && (
-              <View
-                style={{
-                  padding: 12,
-                  borderRadius: 8,
-                  backgroundColor: theme.background,
-                  marginBottom: 12,
-                }}
-              >
-                <Text
+              <View style={{ marginBottom: 10 }}>
+                <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext, marginBottom: 6 }}>
+                      Start
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setNativePickerTarget("start");
+                        setNativePendingTime(hhmmToDate(customStart));
+                      }}
+                      disabled={savingShift}
+                      activeOpacity={0.8}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        backgroundColor: theme.background,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: theme.navBorder,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: customStart ? theme.textActive : theme.subtext }}>
+                        {customStart ? formatTimeLabel(customStart) : "Select"}
+                      </Text>
+                      <ClockIcon size={14} color={theme.subtext} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext, marginBottom: 6 }}>
+                      End
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setNativePickerTarget("end");
+                        setNativePendingTime(hhmmToDate(customEnd));
+                      }}
+                      disabled={savingShift}
+                      activeOpacity={0.8}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        backgroundColor: theme.background,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: theme.navBorder,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                      }}
+                    >
+                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: customEnd ? theme.textActive : theme.subtext }}>
+                        {customEnd ? formatTimeLabel(customEnd) : "Select"}
+                      </Text>
+                      <ClockIcon size={14} color={theme.subtext} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {customError && (
+                  <Text style={{ fontFamily: "Outfit", fontSize: 11.5, color: "#dc2626", marginBottom: 8 }}>
+                    {customError}
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  onPress={handleSaveCustomShift}
+                  disabled={savingShift}
+                  activeOpacity={0.85}
                   style={{
-                    fontFamily: "Outfit",
-                    fontSize: 12,
-                    color: theme.subtext,
+                    backgroundColor: theme.iconActive,
+                    borderRadius: 8,
+                    paddingVertical: 11,
+                    alignItems: "center",
+                    opacity: savingShift ? 0.6 : 1,
                   }}
                 >
-                  Custom time entry isn't available on this device yet. Please
-                  pick one of the preset shifts above, or use the app on web.
-                </Text>
+                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                    Save custom shift
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Android: mounting this immediately pops the native dialog
+                    and it unmounts itself in handleNativeTimeChange. iOS:
+                    renders an inline spinner with its own Done/Cancel row,
+                    since "spinner" mode has no built-in dismiss. */}
+                {nativePickerTarget && (
+                  <>
+                    <DateTimePicker
+                      value={nativePendingTime ?? hhmmToDate(nativePickerTarget === "start" ? customStart : customEnd)}
+                      mode="time"
+                      is24Hour={false}
+                      minuteInterval={30}
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onChange={handleNativeTimeChange}
+                    />
+                    {Platform.OS === "ios" && (
+                      <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setNativePickerTarget(null);
+                            setNativePendingTime(null);
+                          }}
+                          activeOpacity={0.8}
+                          style={{ flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: theme.navBorder, alignItems: "center" }}
+                        >
+                          <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (nativePendingTime) {
+                              const hhmm = dateToSnappedHHMM(nativePendingTime);
+                              if (nativePickerTarget === "start") setCustomStart(hhmm);
+                              else setCustomEnd(hhmm);
+                            }
+                            setNativePickerTarget(null);
+                            setNativePendingTime(null);
+                          }}
+                          activeOpacity={0.85}
+                          style={{ flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: theme.iconActive, alignItems: "center" }}
+                        >
+                          <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
             )}
 
