@@ -263,6 +263,9 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
     statusFilter, setStatusFilter,
     assignDrafts, setDraft, rowError, busyTripId,
     rejectingTrip, setRejectingTrip, rejectReason, setRejectReason, handleReject,
+    reschedulingTrip, setReschedulingTrip, rescheduleDate, setRescheduleDate,
+    rescheduleTime, setRescheduleTime, rescheduleError, rescheduleSubmitting,
+    openReschedule, handleReschedule,
     viewingTrip, setViewingTrip,
     addVehicleOpen, setAddVehicleOpen, addVehicleForm, setAddVehicleForm,
     addVehicleError, addVehicleWarning, setAddVehicleWarning, addVehicleSubmitting, handleAddVehicle,
@@ -597,6 +600,50 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
         </View>
       </ModalShell>
 
+      {/* Reschedule Trip modal */}
+      <ModalShell
+        visible={!!reschedulingTrip}
+        onClose={() => setReschedulingTrip(null)}
+        title="Reschedule Trip"
+        subtitle={reschedulingTrip ? `${reschedulingTrip.pickupLabel} → ${reschedulingTrip.dropoffLabel} · ${reschedulingTrip.requestorName}` : undefined}
+        theme={theme}
+      >
+        <LabeledInput
+          label="New departure date"
+          value={rescheduleDate}
+          onChangeText={setRescheduleDate}
+          theme={theme}
+          placeholder="YYYY-MM-DD"
+        />
+        <LabeledInput
+          label="New departure time"
+          value={rescheduleTime}
+          onChangeText={setRescheduleTime}
+          theme={theme}
+          placeholder="HH:MM (24h)"
+        />
+        {rescheduleError ? (
+          <Text style={{ color: "#dc2626", fontSize: 11, marginBottom: 10 }}>{rescheduleError}</Text>
+        ) : null}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => setReschedulingTrip(null)}
+            style={{ flex: 1, borderWidth: 1, borderColor: theme.border, borderRadius: 10, paddingVertical: 12, alignItems: "center" }}
+          >
+            <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700" }}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleReschedule}
+            disabled={rescheduleSubmitting}
+            style={{ flex: 1, backgroundColor: theme.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", opacity: rescheduleSubmitting ? 0.6 : 1 }}
+          >
+            <Text style={{ color: theme.primaryText ?? "#fff", fontSize: 13, fontWeight: "700" }}>
+              {rescheduleSubmitting ? "Saving…" : "Save new time"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ModalShell>
+
       {/* Review / View Trip modal */}
       <ModalShell
         visible={!!viewingTrip}
@@ -700,18 +747,32 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
 
               if (trip.status === "approved" || trip.status === "ongoing") {
                 return (
-                  <TouchableOpacity
-                    onPress={async () => {
-                      await handleMarkArrived(trip);
-                      setViewingTrip(null);
-                    }}
-                    disabled={isBusy}
-                    style={{ backgroundColor: "#dbeafe", borderRadius: 10, paddingVertical: 12, alignItems: "center", opacity: isBusy ? 0.6 : 1 }}
-                  >
-                    <Text style={{ color: "#1d4ed8", fontSize: 13, fontWeight: "700" }}>
-                      {isBusy ? "Updating…" : "Mark as Arrived"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ gap: 10 }}>
+                    {trip.status === "approved" && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          openReschedule(trip);
+                          setViewingTrip(null);
+                        }}
+                        disabled={isBusy}
+                        style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 10, paddingVertical: 12, alignItems: "center", opacity: isBusy ? 0.6 : 1 }}
+                      >
+                        <Text style={{ color: theme.text, fontSize: 13, fontWeight: "700" }}>Reschedule</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await handleMarkArrived(trip);
+                        setViewingTrip(null);
+                      }}
+                      disabled={isBusy}
+                      style={{ backgroundColor: "#dbeafe", borderRadius: 10, paddingVertical: 12, alignItems: "center", opacity: isBusy ? 0.6 : 1 }}
+                    >
+                      <Text style={{ color: "#1d4ed8", fontSize: 13, fontWeight: "700" }}>
+                        {isBusy ? "Updating…" : "Mark as Arrived"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 );
               }
 
@@ -1058,12 +1119,6 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
       >
         {editingDriver && (
           <>
-            <LabeledInput
-              label="License number"
-              value={editDriverForm.licenseNumber}
-              onChangeText={(t) => setEditDriverForm((f) => ({ ...f, licenseNumber: t }))}
-              theme={theme}
-            />
             <LabeledInput
               label="Contact number"
               value={editDriverForm.contactNumber}

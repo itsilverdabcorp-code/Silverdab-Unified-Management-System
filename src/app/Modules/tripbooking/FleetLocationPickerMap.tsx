@@ -171,6 +171,7 @@ const STREETS_STYLE: any = {
         "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
       ],
       tileSize: 256,
+      maxzoom: 19, // OSM's public tile servers top out at z19
       attribution: "&copy; OpenStreetMap contributors",
     },
   },
@@ -303,6 +304,8 @@ export default function FleetLocationPickerMap({
           style: STREETS_STYLE,
           center: value ? [value.longitude, value.latitude] : DEFAULT_CENTER,
           zoom: value ? 14 : DEFAULT_ZOOM,
+          maxZoom: 19, // OSM raster tiles don't exist past z19 — requesting
+                        // z20 fails and surfaces as a CORS/400 error
           attributionControl: false,
         });
         map.addControl(new maplibregl.NavigationControl(), "top-right");

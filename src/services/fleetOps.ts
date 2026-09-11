@@ -758,6 +758,30 @@ export async function cancelFleetTrip(tripId: string): Promise<void> {
   }
 }
 
+// ─── RESCHEDULE (requestor-initiated, only while pending/approved) ─────────
+
+export async function rescheduleFleetTrip(
+  tripId: string,
+  departureDatetime: string,
+  returnDatetime?: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/reschedule`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify({ departureDatetime, returnDatetime }),
+    },
+  );
+
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to reschedule trip.");
+  }
+}
+
 // ─── VEHICLE STATUS (idle/active/maintenance/personal/off_duty — driver-facing) ─
 
 export async function setVehicleStatus(

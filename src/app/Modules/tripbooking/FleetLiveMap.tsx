@@ -82,6 +82,7 @@ const RASTER_STYLES: Record<LayerKey, any> = {
           "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
         ],
         tileSize: 256,
+        maxzoom: 19, // OSM's public tile servers top out at z19
         attribution: "&copy; OpenStreetMap contributors",
       },
     },
@@ -96,6 +97,7 @@ const RASTER_STYLES: Record<LayerKey, any> = {
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         ],
         tileSize: 256,
+        maxzoom: 19,
         attribution: "Tiles &copy; Esri",
       },
     },
@@ -112,6 +114,7 @@ const RASTER_STYLES: Record<LayerKey, any> = {
           "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
         ],
         tileSize: 256,
+        maxzoom: 17, // OpenTopoMap only renders up to z17
         attribution: "&copy; OpenStreetMap contributors, SRTM &copy; OpenTopoMap",
       },
     },
@@ -285,6 +288,8 @@ export default function FleetLiveMap({ focusVehicle, vehicles = [], theme }: Pro
           style: RASTER_STYLES.streets,
           center: DEFAULT_CENTER,
           zoom: DEFAULT_ZOOM,
+          maxZoom: 19, // OSM/ArcGIS/OpenTopoMap raster tiles don't exist past z19 —
+                        // requesting z20 causes tile fetch failures (seen as CORS/400s)
           attributionControl: false,
         });
         map.addControl(new maplibregl.NavigationControl(), "top-right");
@@ -354,9 +359,18 @@ function switchLayer(key: LayerKey) {
   useEffect(() => {
     if (!focusVehicle || !ready || !mapRef.current) return;
     const marker = markersRef.current[focusVehicle.id];
-    if (!marker) return; // vehicle has no live report right now — nothing to pan to
-    mapRef.current.flyTo({ center: marker.getLngLat(), zoom: 16, duration: 600 });
-    marker.togglePopup();
+    if (marker) {
+      // Vehicle has its own standalone marker (not clustered).
+      mapRef.current.flyTo({ center: marker.getLngLat(), zoom: 16, duration: 600 });
+      marker.togglePopup();
+      setFollowedVehicleId(focusVehicle.id);
+      return;
+    }
+    // Vehicle is merged into a cluster badge — no marker keyed by its id.
+    // Fall back to its raw location so we can still fly to it and follow.
+    const loc = locations.find((l) => l.vehicleId === focusVehicle.id);
+    if (!loc) return; // vehicle has no live report right now — nothing to pan to
+    mapRef.current.flyTo({ center: [loc.longitude, loc.latitude], zoom: 17, duration: 600 });
     setFollowedVehicleId(focusVehicle.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusVehicle?.token, ready]);
@@ -459,12 +473,44 @@ function switchLayer(key: LayerKey) {
           </div>
         `;
         el.addEventListener("click", () => {
-          const bounds = new maplibregl.LngLatBounds();
-          cluster.ids.forEach((id) => {
-            const loc = locations.find((l) => l.vehicleId === id);
-            if (loc) bounds.extend([loc.longitude, loc.latitude]);
-          });
-          map.fitBounds(bounds, { padding: 80, maxZoom: 18, duration: 500 });
+          // Show a small popup listing each vehicle in the cluster so the
+          // admin can pick exactly one to fly to and follow — previously
+          // this only zoomed the map in, with no way to select a specific
+          // vehicle out of the group.
+          const listHtml = cluster.ids
+            .map((id) => {
+              const loc = locations.find((l) => l.vehicleId === id);
+              if (!loc) return "";
+              const vehicleName = (loc as any).vehicleModel ?? (loc as any).model ?? null;
+              const label = vehicleName ? `${vehicleName} — ${loc.plateNumber}` : loc.plateNumber;
+              return `<button class="fleet-cluster-popup-item" data-vehicle-id="${id}">${label}</button>`;
+            })
+            .join("");
+
+          const popup = new maplibregl.Popup({ offset: 20, closeButton: true })
+            .setLngLat([cluster.lng, cluster.lat])
+            .setHTML(`
+              <div class="fleet-cluster-popup">
+                <div class="fleet-cluster-popup-title">${cluster.ids.length} vehicles here</div>
+                ${listHtml}
+              </div>
+            `)
+            .addTo(map);
+
+          // Popup content is raw HTML, so wire up clicks after it's mounted.
+          const popupEl = popup.getElement() as HTMLElement | undefined;
+          popupEl
+            ?.querySelectorAll<HTMLElement>(".fleet-cluster-popup-item")
+            .forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const id = btn.dataset.vehicleId;
+                const loc = locations.find((l) => l.vehicleId === id);
+                if (!loc) return;
+                map.flyTo({ center: [loc.longitude, loc.latitude], zoom: 17, duration: 600 });
+                setFollowedVehicleId(id ?? null);
+                popup.remove();
+              });
+            });
         });
 
         const marker = new maplibregl.Marker({ element: el, anchor: "center" })
@@ -605,6 +651,37 @@ function switchLayer(key: LayerKey) {
           font-family: sans-serif;
           font-weight: 700;
           font-size: 12.5px;
+        }
+        .fleet-cluster-popup {
+          font-family: sans-serif;
+          min-width: 160px;
+        }
+        .fleet-cluster-popup-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          margin-bottom: 6px;
+        }
+        .fleet-cluster-popup-item {
+          display: block;
+          width: 100%;
+          text-align: left;
+          background: none;
+          border: none;
+          border-top: 1px solid #e5e7eb;
+          padding: 7px 2px;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: #1f2937;
+          cursor: pointer;
+        }
+        .fleet-cluster-popup-item:first-of-type {
+          border-top: none;
+        }
+        .fleet-cluster-popup-item:hover {
+          color: #2563eb;
         }
       `}</style>
       {pollFailed && (

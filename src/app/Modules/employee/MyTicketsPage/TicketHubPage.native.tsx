@@ -3552,25 +3552,6 @@ export default function TicketHubPage({ user }: Props) {
               Active and pending requests
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => {
-              setRefreshing(true);
-              load(true);
-            }}
-            activeOpacity={0.7}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              backgroundColor: theme.surface ?? theme.background,
-              borderWidth: 1,
-              borderColor: theme.border,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <RefreshCw size={14} color={theme.subtext} />
-          </TouchableOpacity>
         </View>
 
         {/* Step bar for HR multi-step */}

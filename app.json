@@ -51,6 +51,12 @@
         "projectId": "f98cf282-56fe-40e3-9133-5ff96fa4a3fd"
       }
     },
-    "owner": "hpatenio"
+    "owner": "hpatenio",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f98cf282-56fe-40e3-9133-5ff96fa4a3fd"
+    }
   }
 }

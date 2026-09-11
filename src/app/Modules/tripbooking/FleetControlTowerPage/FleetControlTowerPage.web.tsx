@@ -258,6 +258,9 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
     statusFilter, setStatusFilter,
     assignDrafts, setDraft, rowError, busyTripId, reassignOpen, setReassignOpen,
     rejectingTrip, setRejectingTrip, rejectReason, setRejectReason, handleReject,
+    reschedulingTrip, setReschedulingTrip, rescheduleDate, setRescheduleDate,
+    rescheduleTime, setRescheduleTime, rescheduleError, rescheduleSubmitting,
+    openReschedule, handleReschedule,
     focusVehicle, setFocusVehicle,
     viewingTrip, setViewingTrip, dayTripsView, setDayTripsView, calendarEvents,
     addVehicleOpen, setAddVehicleOpen, addVehicleForm, setAddVehicleForm,
@@ -278,6 +281,11 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
     sortedVehicles, sortedDrivers,
     handleApprove, handleReassign, handleMarkArrived, handleStartReturn, handleComplete,
   } = data;
+
+  // Refs so the themed calendar/clock buttons can open the native picker
+  // (same pattern as TicketHubPage's reschedule fields).
+  const rescheduleDateRef = useRef<HTMLInputElement>(null);
+  const rescheduleTimeRef = useRef<HTMLInputElement>(null);
 
   if (loading) {
     return (
@@ -303,6 +311,13 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
         .fct-scroll::-webkit-scrollbar-thumb:hover { background: ${theme.subtext}; }
         div.absolute.inset-0[style*="rgba(0,0,0,0.6)"] {
           z-index: 1000;
+        }
+        .fct-date-input::-webkit-calendar-picker-indicator {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .fct-date-input::-webkit-inner-spin-button {
+          display: none;
         }
       `}</style>
 
@@ -414,11 +429,15 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                             {v.seatingCapacity} pax
                           </span>
                         </div>
-                        {v.currentTripLabel && (
-                          <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between mt-1">
-                            <span>Current trip</span>
-                            <span style={{ color: theme.text }} className="font-semibold truncate ml-2">
-                              {v.currentTripLabel}
+                        {ongoingTripByVehicleId[v.id]?.dropoffLabel && (
+                          <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between gap-2 mt-1.5">
+                            <span className="flex-shrink-0">Drop-off</span>
+                            <span
+                              style={{ color: theme.text }}
+                              className="font-semibold truncate text-right"
+                              title={ongoingTripByVehicleId[v.id].dropoffLabel}
+                            >
+                              {ongoingTripByVehicleId[v.id].dropoffLabel}
                             </span>
                           </div>
                         )}
@@ -796,6 +815,104 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
         </div>
       )}
 
+      {/* Reschedule Trip modal */}
+      {reschedulingTrip && (
+        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}>
+          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-6 w-full max-w-[400px] border">
+            <p style={{ color: theme.text }} className="text-base font-bold mb-1">
+              Reschedule Trip
+            </p>
+            <div className="mb-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <span style={{ backgroundColor: "#22c55e", width: 6, height: 6, borderRadius: 3, flexShrink: 0 }} />
+                <p style={{ color: theme.subtext }} className="text-xs truncate" title={reschedulingTrip.pickupLabel}>
+                  {reschedulingTrip.pickupLabel}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 min-w-0 mt-1">
+                <span style={{ backgroundColor: "#ef4444", width: 6, height: 6, borderRadius: 3, flexShrink: 0 }} />
+                <p style={{ color: theme.subtext }} className="text-xs truncate" title={reschedulingTrip.dropoffLabel}>
+                  {reschedulingTrip.dropoffLabel}
+                </p>
+              </div>
+              <p style={{ color: theme.subtext }} className="text-xs mt-1.5">
+                {reschedulingTrip.requestorName}
+              </p>
+            </div>
+            <div className="flex gap-2.5 mb-4">
+              <div className="relative flex-1">
+                <input
+                  ref={rescheduleDateRef}
+                  type="date"
+                  value={rescheduleDate}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, colorScheme: theme.mode }}
+                  className="fct-date-input w-full text-sm pl-3 pr-9 py-2 border rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => rescheduleDateRef.current?.showPicker?.()}
+                  style={{ color: theme.subtext }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 flex items-center justify-center"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </button>
+              </div>
+              <div className="relative flex-1">
+                <input
+                  ref={rescheduleTimeRef}
+                  type="time"
+                  step={1800}
+                  value={rescheduleTime}
+                  onChange={(e) => setRescheduleTime(e.target.value)}
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, colorScheme: theme.mode }}
+                  className="fct-date-input w-full text-sm pl-3 pr-9 py-2 border rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => rescheduleTimeRef.current?.showPicker?.()}
+                  style={{ color: theme.subtext }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 flex items-center justify-center"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {rescheduleError && (
+              <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
+                {rescheduleError}
+              </p>
+            )}
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setReschedulingTrip(null)}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReschedule}
+                disabled={rescheduleSubmitting}
+                style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: rescheduleSubmitting ? 0.6 : 1 }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
+              >
+                {rescheduleSubmitting ? "Saving…" : "Save new time"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Day trips list modal */}
       {dayTripsView && (
         <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}>
@@ -996,19 +1113,30 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
             {(viewingTrip.status === "approved" || viewingTrip.status === "arrived") && (
               <div style={{ borderColor: theme.border }} className="border-t pt-4 mb-4">
                 {!reassignOpen[viewingTrip.id] ? (
-                  <button
-                    onClick={() => {
-                      setDraft(viewingTrip.id, {
-                        vehicleId: (viewingTrip as any).vehicleId ?? "",
-                        driverId: (viewingTrip as any).driverId ?? "",
-                      });
-                      setReassignOpen((prev) => ({ ...prev, [viewingTrip.id]: true }));
-                    }}
-                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                    className="w-full text-sm font-semibold px-3 py-2 rounded-lg border"
-                  >
-                    Change vehicle / driver
-                  </button>
+                  <div className="flex gap-2.5">
+                    <button
+                      onClick={() => {
+                        setDraft(viewingTrip.id, {
+                          vehicleId: (viewingTrip as any).vehicleId ?? "",
+                          driverId: (viewingTrip as any).driverId ?? "",
+                        });
+                        setReassignOpen((prev) => ({ ...prev, [viewingTrip.id]: true }));
+                      }}
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                      className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg border"
+                    >
+                      Change vehicle / driver
+                    </button>
+                    {viewingTrip.status === "approved" && (
+                      <button
+                        onClick={() => openReschedule(viewingTrip)}
+                        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                        className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg border"
+                      >
+                        Reschedule
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <p style={{ color: theme.text }} className="text-[12.5px] font-semibold mb-2">

@@ -24,6 +24,7 @@ import {
   markTripArrived,
   startTripReturn,
   completeFleetTrip,
+  rescheduleFleetTrip,
   createFleetVehicle,
   createFleetDriver,
   updateFleetVehicle,
@@ -230,6 +231,14 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
   // Reject-reason
   const [rejectingTrip, setRejectingTrip] = useState<FleetTrip | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Reschedule (approved trips only — same pattern as the requestor-facing
+  // reschedule in TicketHubPage's TripDetailContent, just admin-triggered).
+  const [reschedulingTrip, setReschedulingTrip] = useState<FleetTrip | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleError, setRescheduleError] = useState("");
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
 
   // Map focus (web-only concept, harmless to keep on native — just unused)
   const [focusVehicle, setFocusVehicle] = useState<{ id: string; token: number } | null>(null);
@@ -547,6 +556,47 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     }
   }
 
+  // Prefills from the trip's current departure so the admin is nudging an
+  // existing time rather than starting from a blank field.
+  function openReschedule(trip: FleetTrip) {
+    setReschedulingTrip(trip);
+    try {
+      const d = new Date(trip.departureDatetime);
+      if (!isNaN(d.getTime())) {
+        setRescheduleDate(d.toISOString().slice(0, 10));
+        setRescheduleTime(d.toTimeString().slice(0, 5));
+      } else {
+        setRescheduleDate("");
+        setRescheduleTime("");
+      }
+    } catch {
+      setRescheduleDate("");
+      setRescheduleTime("");
+    }
+    setRescheduleError("");
+  }
+
+  async function handleReschedule() {
+    if (!reschedulingTrip) return;
+    if (!rescheduleDate.trim() || !rescheduleTime.trim()) {
+      setRescheduleError("Pick a date and time.");
+      return;
+    }
+    setRescheduleSubmitting(true);
+    setRescheduleError("");
+    try {
+      const departureDatetime = `${rescheduleDate}T${rescheduleTime}:00+08:00`;
+      await rescheduleFleetTrip(reschedulingTrip.id, departureDatetime);
+      setReschedulingTrip(null);
+      await loadAll();
+    } catch (err) {
+      console.error("Reschedule trip failed:", err);
+      setRescheduleError(err instanceof Error ? err.message : "Failed to reschedule trip.");
+    } finally {
+      setRescheduleSubmitting(false);
+    }
+  }
+
   async function handleReject() {
     if (!rejectingTrip) return;
     setBusyTripId(rejectingTrip.id);
@@ -776,6 +826,10 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     assignDrafts, setDraft, rowError, busyTripId, reassignOpen, setReassignOpen,
     // reject
     rejectingTrip, setRejectingTrip, rejectReason, setRejectReason, handleReject,
+    // reschedule
+    reschedulingTrip, setReschedulingTrip, rescheduleDate, setRescheduleDate,
+    rescheduleTime, setRescheduleTime, rescheduleError, rescheduleSubmitting,
+    openReschedule, handleReschedule,
     // map focus
     focusVehicle, setFocusVehicle,
     // view / calendar

@@ -77,6 +77,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
 
   const {
     trips,
+    vehicles,
     search, setSearch,
     statusFilter, setStatusFilter,
     viewingTrip, setViewingTrip,
@@ -366,7 +367,18 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                           <Truncated text={trip.pickupLabel} theme={theme} style={{ color: theme.text }} className="text-[12.5px] font-semibold" />
                         </td>
                         <td className="px-4 py-2.5 max-w-[180px]">
-                          <Truncated text={trip.dropoffLabel} theme={theme} style={{ color: theme.text }} className="text-[12.5px] font-semibold" />
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Truncated text={trip.dropoffLabel} theme={theme} style={{ color: theme.text }} className="text-[12.5px] font-semibold min-w-0" />
+                            {trip.additionalDropoffs && trip.additionalDropoffs.length > 0 && (
+                              <span
+                                style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                                className="flex-shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap"
+                                title={trip.additionalDropoffs.map((s) => s.locationText).join(", ")}
+                              >
+                                +{trip.additionalDropoffs.length}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 max-w-[160px]">
                           <Truncated text={trip.purpose || "—"} theme={theme} style={{ color: theme.subtext }} className="text-[12px]" />
@@ -374,18 +386,12 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                         <td style={{ color: theme.text }} className="px-4 py-2.5 text-[12.5px] whitespace-nowrap">
                           {trip.requestorName}
                         </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          {trip.vehiclePlate ? (
-                            <span
-                              style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
-                              className="px-1.5 py-px rounded border font-mono text-[10px]"
-                            >
-                              {trip.vehiclePlate}
-                            </span>
-                          ) : (
-                            <span style={{ color: theme.subtext }} className="text-[12.5px]">
-                              —
-                            </span>
+                        <td style={{ color: theme.text }} className="px-4 py-2.5 text-[12.5px] whitespace-nowrap">
+                          {trip.vehiclePlate ? (() => {
+                            const v = vehicles.find((veh) => veh.id === trip.vehicleId);
+                            return v?.model ? `${v.model} - ${trip.vehiclePlate}` : trip.vehiclePlate;
+                          })() : (
+                            <span style={{ color: theme.subtext }}>—</span>
                           )}
                         </td>
                         <td style={{ color: theme.text }} className="px-4 py-2.5 text-[12.5px] whitespace-nowrap">
@@ -552,6 +558,26 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                   </svg>
                   <Truncated text={viewingTrip.dropoffLabel} theme={theme} style={{ color: theme.text }} className="text-[13.5px] font-bold leading-snug" />
                 </div>
+                {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-1 ml-[22px]">
+                    {viewingTrip.additionalDropoffs.map((stop, idx) => (
+                      <div key={stop.locationId ?? idx} className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                          className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center text-[9px] font-bold"
+                        >
+                          {idx + 2}
+                        </span>
+                        <Truncated
+                          text={stop.locationText}
+                          theme={theme}
+                          style={{ color: theme.subtext }}
+                          className="text-[12px] font-medium leading-snug"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p style={{ color: theme.subtext }} className="text-[11px] mt-1.5">
                   {viewingTrip.tripRef}
                 </p>

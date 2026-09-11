@@ -165,7 +165,16 @@ export function useFleetAllTripsData({ user }: FleetAllTripsProps) {
     const q = search.trim().toLowerCase();
     if (!q) return scoped;
     return scoped.filter((t) =>
-      [t.pickupLabel, t.dropoffLabel, t.requestorName, t.vehiclePlate, t.driverName, t.tripRef, t.purpose]
+      [
+        t.pickupLabel,
+        t.dropoffLabel,
+        t.requestorName,
+        t.vehiclePlate,
+        t.driverName,
+        t.tripRef,
+        t.purpose,
+        ...(t.additionalDropoffs?.map((s) => s.locationText) ?? []),
+      ]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(q)),
     );
