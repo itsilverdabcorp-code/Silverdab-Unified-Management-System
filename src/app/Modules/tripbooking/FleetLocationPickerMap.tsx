@@ -60,7 +60,7 @@ function loadMapLibre(): Promise<any> {
   });
 }
 
-type PlaceResult = {
+export type PlaceResult = {
   displayName: string;
   lat: number;
   lon: number;
@@ -73,7 +73,7 @@ type PlaceResult = {
 // `lat`/`lon` bias ranking toward whatever the map is currently centered on
 // (same effect as Google Maps preferring nearby results), without
 // restricting results to that area the way a hard country/bbox filter would.
-async function searchAddress(
+export async function searchAddress(
   query: string,
   bias?: { lat: number; lon: number },
 ): Promise<PlaceResult[]> {
@@ -125,7 +125,7 @@ async function searchAddress(
 // what address sits there. Used so a click-to-pin drop still ends up with
 // a real address string, not just coordinates — same service as the
 // forward search above, just Photon's /reverse endpoint instead of /api.
-async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
   const params = new URLSearchParams({ lon: String(lon), lat: String(lat), lang: "en" });
   try {
     const res = await fetch(`https://photon.komoot.io/reverse?${params.toString()}`, {

@@ -8,7 +8,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTheme } from "../../../../theme/ThemeContext";
 import FleetLiveMap from "../FleetLiveMap";
 import Calendar from "../../../../components/common/Calendar";
-import { VehicleType, VehicleStatus, DriverDutyStatus } from "../../../../../types";
+import TripBookingModal from "../../employee/Modal/TripBookingModal";
+import { VehicleType, VehicleStatus, DriverDutyStatus, FleetTrip } from "../../../../../types";
 import {
   useFleetControlTowerData,
   FleetControlTowerProps,
@@ -256,11 +257,12 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
   const {
     trips, vehicles, drivers, loading,
     statusFilter, setStatusFilter,
-    assignDrafts, setDraft, rowError, busyTripId, reassignOpen, setReassignOpen,
+    assignDrafts, setDraft, rowError, setRowError, busyTripId, reassignOpen, setReassignOpen,
     rejectingTrip, setRejectingTrip, rejectReason, setRejectReason, handleReject,
     reschedulingTrip, setReschedulingTrip, rescheduleDate, setRescheduleDate,
     rescheduleTime, setRescheduleTime, rescheduleError, rescheduleSubmitting,
-    openReschedule, handleReschedule,
+    openReschedule, handleReschedule, modifyDropoffs, removeModifyDropoff,
+    cancellingTrip, setCancellingTrip, handleCancelTrip,
     focusVehicle, setFocusVehicle,
     viewingTrip, setViewingTrip, dayTripsView, setDayTripsView, calendarEvents,
     addVehicleOpen, setAddVehicleOpen, addVehicleForm, setAddVehicleForm,
@@ -277,7 +279,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
     openEditDriver, handleUpdateDriver, handleDeleteDriver,
     kpi, filteredTrips, availableVehicles, availableDrivers,
     getAvailableVehicles, getAvailableDrivers,
-    onTripDriverUserIds, onTripVehicleIds, ongoingTripByVehicleId,
+    onTripDriverUserIds, onTripVehicleIds, ongoingTripByVehicleId, currentTripByDriverId,
     sortedVehicles, sortedDrivers,
     handleApprove, handleReassign, handleMarkArrived, handleStartReturn, handleComplete,
   } = data;
@@ -286,6 +288,14 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
   // (same pattern as TicketHubPage's reschedule fields).
   const rescheduleDateRef = useRef<HTMLInputElement>(null);
   const rescheduleTimeRef = useRef<HTMLInputElement>(null);
+
+  // "Modify Trip" now opens the same TripBookingModal used by employees
+  // (in edit mode), instead of the old inline reschedule/dropoffs form.
+  const [editTripTarget, setEditTripTarget] = useState<FleetTrip | null>(null);
+
+  // Confirm-before-marking-arrived — same pattern as Cancel Trip, so a
+  // stray tap doesn't immediately flip a live trip's status.
+  const [confirmingArrivalTrip, setConfirmingArrivalTrip] = useState<FleetTrip | null>(null);
 
   if (loading) {
     return (
@@ -728,7 +738,12 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                                   {(trip.vehiclePlate || trip.driverName) && (
                                     <>
                                       {" · "}
-                                      {trip.vehiclePlate ?? ""}
+                                      {trip.vehiclePlate
+                                        ? (() => {
+                                            const v = vehicles.find((veh) => veh.id === trip.vehicleId);
+                                            return v?.model ? `${v.model} - ${trip.vehiclePlate}` : trip.vehiclePlate;
+                                          })()
+                                        : ""}
                                       {trip.vehiclePlate && trip.driverName ? " – " : ""}
                                       {trip.driverName ?? ""}
                                     </>
@@ -824,98 +839,101 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
         </div>
       )}
 
-      {/* Reschedule Trip modal */}
-      {reschedulingTrip && (
-        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1000 }}>
-          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-6 w-full max-w-[400px] border">
-            <p style={{ color: theme.text }} className="text-base font-bold mb-1">
-              Reschedule Trip
+      {/* Modify Trip — reuses the employee-facing TripBookingModal in edit
+          mode, prefilled with the trip being modified. Replaces the old
+          inline reschedule + dropoffs form. */}
+      <TripBookingModal
+        visible={!!editTripTarget}
+        onClose={() => setEditTripTarget(null)}
+        user={editTripTarget ? { username: editTripTarget.requestorName, displayName: editTripTarget.requestorName } as any : ({} as any)}
+        editTrip={editTripTarget ?? undefined}
+        onSuccess={() => {
+          setEditTripTarget(null);
+          // The hook's own trip list should refresh via its polling/reload;
+          // if it doesn't, wire an explicit refetch call here.
+        }}
+      />
+
+      {/* Cancel Trip confirmation modal */}
+      {cancellingTrip && (
+        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1100 }}>
+          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-7 w-full max-w-[380px] border flex flex-col items-center text-center">
+            <div style={{ backgroundColor: "#fee2e2" }} className="w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            </div>
+
+            <p style={{ color: theme.text }} className="text-base font-bold mb-1.5">
+              Cancel this trip?
             </p>
-            <div className="mb-4">
-              <div className="flex items-center gap-2 min-w-0">
-                <span style={{ backgroundColor: "#22c55e", width: 6, height: 6, borderRadius: 3, flexShrink: 0 }} />
-                <p style={{ color: theme.subtext }} className="text-xs truncate" title={reschedulingTrip.pickupLabel}>
-                  {reschedulingTrip.pickupLabel}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 min-w-0 mt-1">
-                <span style={{ backgroundColor: "#ef4444", width: 6, height: 6, borderRadius: 3, flexShrink: 0 }} />
-                <p style={{ color: theme.subtext }} className="text-xs truncate" title={reschedulingTrip.dropoffLabel}>
-                  {reschedulingTrip.dropoffLabel}
-                </p>
-              </div>
-              <p style={{ color: theme.subtext }} className="text-xs mt-1.5">
-                {reschedulingTrip.requestorName}
-              </p>
-            </div>
-            <div className="flex gap-2.5 mb-4">
-              <div className="relative flex-1">
-                <input
-                  ref={rescheduleDateRef}
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
-                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, colorScheme: theme.mode }}
-                  className="fct-date-input w-full text-sm pl-3 pr-9 py-2 border rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => rescheduleDateRef.current?.showPicker?.()}
-                  style={{ color: theme.subtext }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 flex items-center justify-center"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </button>
-              </div>
-              <div className="relative flex-1">
-                <input
-                  ref={rescheduleTimeRef}
-                  type="time"
-                  step={1800}
-                  value={rescheduleTime}
-                  onChange={(e) => setRescheduleTime(e.target.value)}
-                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, colorScheme: theme.mode }}
-                  className="fct-date-input w-full text-sm pl-3 pr-9 py-2 border rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => rescheduleTimeRef.current?.showPicker?.()}
-                  style={{ color: theme.subtext }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 flex items-center justify-center"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            {rescheduleError && (
-              <p style={{ color: "#dc2626" }} className="text-[11px] mb-3">
-                {rescheduleError}
-              </p>
-            )}
-            <div className="flex gap-2.5">
+            <p style={{ color: theme.subtext }} className="text-xs mb-1">
+              {cancellingTrip.pickupLabel} → {cancellingTrip.dropoffLabel}
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-6 max-w-[280px]">
+              {cancellingTrip.vehiclePlate || cancellingTrip.driverName
+                ? "The assigned vehicle and driver will be released, and the requestor will be notified."
+                : "The requestor will be notified that this trip has been cancelled."}
+            </p>
+
+            <div className="flex gap-2.5 w-full">
               <button
-                onClick={() => setReschedulingTrip(null)}
+                onClick={() => setCancellingTrip(null)}
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
+              >
+                Keep Trip
+              </button>
+              <button
+                onClick={handleCancelTrip}
+                disabled={busyTripId === cancellingTrip.id}
+                style={{ backgroundColor: "#ef4444", color: "#fff", opacity: busyTripId === cancellingTrip.id ? 0.6 : 1 }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
+              >
+                {busyTripId === cancellingTrip.id ? "Cancelling…" : "Cancel Trip"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Arrived confirmation modal */}
+      {confirmingArrivalTrip && (
+        <div className="absolute inset-0 items-center justify-center p-6 flex" style={{ backgroundColor: "rgba(0,0,0,0.6)", zIndex: 1100 }}>
+          <div style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-2xl p-7 w-full max-w-[380px] border flex flex-col items-center text-center">
+            <div style={{ backgroundColor: "#dbeafe" }} className="w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+
+            <p style={{ color: theme.text }} className="text-base font-bold mb-1.5">
+              Mark this trip as arrived?
+            </p>
+            <p style={{ color: theme.subtext }} className="text-xs mb-6 max-w-[280px]">
+              {confirmingArrivalTrip.pickupLabel} → {confirmingArrivalTrip.dropoffLabel} · {confirmingArrivalTrip.driverName ?? "Unassigned"}
+            </p>
+
+            <div className="flex gap-2.5 w-full">
+              <button
+                onClick={() => setConfirmingArrivalTrip(null)}
                 style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                 className="flex-1 rounded-xl py-2.5 border text-sm font-semibold"
               >
                 Cancel
               </button>
               <button
-                onClick={handleReschedule}
-                disabled={rescheduleSubmitting}
-                style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: rescheduleSubmitting ? 0.6 : 1 }}
+                onClick={async () => {
+                  await handleMarkArrived(confirmingArrivalTrip);
+                  setConfirmingArrivalTrip(null);
+                }}
+                disabled={busyTripId === confirmingArrivalTrip.id}
+                style={{ backgroundColor: "#1d4ed8", color: "#fff", opacity: busyTripId === confirmingArrivalTrip.id ? 0.6 : 1 }}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
               >
-                {rescheduleSubmitting ? "Saving…" : "Save new time"}
+                {busyTripId === confirmingArrivalTrip.id ? "Updating…" : "Mark as Arrived"}
               </button>
             </div>
           </div>
@@ -997,9 +1015,9 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                   </p>
                 </div>
                 {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
-                  <div className="flex flex-col gap-1 mt-1 ml-[22px]">
+                  <div className="flex flex-col gap-1 mt-1 ml-[18px] min-w-0">
                     {viewingTrip.additionalDropoffs.map((stop, idx) => (
-                      <div key={stop.locationId ?? idx} className="flex items-center gap-1.5 min-w-0">
+                      <div key={stop.locationId ?? idx} className="flex items-center gap-2 min-w-0">
                         <span
                           style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
                           className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center text-[9px] font-bold"
@@ -1008,7 +1026,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                         </span>
                         <span
                           style={{ color: theme.subtext }}
-                          className="text-[12px] font-medium leading-snug truncate"
+                          className="text-[12px] font-medium leading-snug truncate min-w-0"
                           title={stop.locationText}
                         >
                           {stop.locationText}
@@ -1078,19 +1096,26 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                       .map((entry, idx) => {
                         const cfg = TRIP_STATUS_CONFIG[entry.status];
                         return (
-                          <div key={`${entry.status}-${entry.timestamp}-${idx}`} className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span
-                                style={{ backgroundColor: cfg?.dot ?? theme.subtext, width: 6, height: 6, borderRadius: "50%" }}
-                                className="inline-block flex-shrink-0"
-                              />
-                              <span style={{ color: theme.text }} className="text-[12px] font-medium truncate">
-                                {cfg?.label ?? entry.status}
+                          <div key={`${entry.status}-${entry.timestamp}-${idx}`} className="flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  style={{ backgroundColor: cfg?.dot ?? theme.subtext, width: 6, height: 6, borderRadius: "50%" }}
+                                  className="inline-block flex-shrink-0"
+                                />
+                                <span style={{ color: theme.text }} className="text-[12px] font-medium truncate">
+                                  {entry.note ? entry.note : (cfg?.label ?? entry.status)}
+                                </span>
+                              </div>
+                              <span style={{ color: theme.subtext }} className="text-[11px] whitespace-nowrap flex-shrink-0">
+                                {formatDateTime(entry.timestamp)}
                               </span>
                             </div>
-                            <span style={{ color: theme.subtext }} className="text-[11px] whitespace-nowrap flex-shrink-0">
-                              {formatDateTime(entry.timestamp)}
-                            </span>
+                            {entry.note && (
+                              <p style={{ color: theme.subtext }} className="text-[10.5px] ml-[13.5px]">
+                                Status: {cfg?.label ?? entry.status}
+                              </p>
+                            )}
                           </div>
                         );
                       })}
@@ -1112,7 +1137,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     className="w-full text-sm px-3 py-2 border rounded-lg"
                   >
                     <option value="">Assign vehicle…</option>
-                    {availableVehicles.map((v) => (
+                    {getAvailableVehicles(viewingTrip).map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.plateNumber} — {v.model}
                       </option>
@@ -1125,7 +1150,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     className="w-full text-sm px-3 py-2 border rounded-lg"
                   >
                     <option value="">Assign driver…</option>
-                    {availableDrivers.map((d) => (
+                    {getAvailableDrivers(viewingTrip).map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -1142,88 +1167,28 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
 
             {(viewingTrip.status === "approved" || viewingTrip.status === "arrived") && (
               <div style={{ borderColor: theme.border }} className="border-t pt-4 mb-4">
-                {!reassignOpen[viewingTrip.id] ? (
-                  <div className="flex gap-2.5">
-                    <button
-                      onClick={() => {
-                        setDraft(viewingTrip.id, {
-                          vehicleId: (viewingTrip as any).vehicleId ?? "",
-                          driverId: (viewingTrip as any).driverId ?? "",
-                        });
-                        setReassignOpen((prev) => ({ ...prev, [viewingTrip.id]: true }));
-                      }}
-                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                      className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg border"
-                    >
-                      Change vehicle / driver
-                    </button>
-                    {viewingTrip.status === "approved" && (
-                      <button
-                        onClick={() => openReschedule(viewingTrip)}
-                        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                        className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg border"
-                      >
-                        Reschedule
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <p style={{ color: theme.text }} className="text-[12.5px] font-semibold mb-2">
-                      Reassign vehicle &amp; driver
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <select
-                        value={assignDrafts[viewingTrip.id]?.vehicleId ?? ""}
-                        onChange={(e) => setDraft(viewingTrip.id, { vehicleId: e.target.value })}
-                        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                        className="w-full text-sm px-3 py-2 border rounded-lg"
-                      >
-                        <option value="">Assign vehicle…</option>
-                        {getAvailableVehicles(viewingTrip.id).map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.plateNumber} — {v.model}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={assignDrafts[viewingTrip.id]?.driverId ?? ""}
-                        onChange={(e) => setDraft(viewingTrip.id, { driverId: e.target.value })}
-                        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                        className="w-full text-sm px-3 py-2 border rounded-lg"
-                      >
-                        <option value="">Assign driver…</option>
-                        {getAvailableDrivers(viewingTrip.id).map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex gap-2.5">
-                        <button
-                          onClick={() => setReassignOpen((prev) => ({ ...prev, [viewingTrip.id]: false }))}
-                          style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
-                          className="flex-1 rounded-lg py-2 border text-sm font-semibold"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleReassign(viewingTrip)}
-                          disabled={busyTripId === viewingTrip.id}
-                          style={{ backgroundColor: theme.primary, color: theme.primaryText, opacity: busyTripId === viewingTrip.id ? 0.6 : 1 }}
-                          className="flex-1 rounded-lg py-2 text-sm font-semibold"
-                        >
-                          {busyTripId === viewingTrip.id ? "Saving…" : "Save"}
-                        </button>
-                      </div>
-                    </div>
-                    {rowError[viewingTrip.id] && (
-                      <p style={{ color: "#dc2626" }} className="text-[11px] mt-2">
-                        {rowError[viewingTrip.id]}
-                      </p>
-                    )}
-                  </>
-                )}
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => {
+                      setEditTripTarget(viewingTrip);
+                      setViewingTrip(null);
+                    }}
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                    className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg border"
+                  >
+                    Modify Trip
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    setCancellingTrip(viewingTrip);
+                    setViewingTrip(null);
+                  }}
+                  style={{ backgroundColor: "#fee2e2", color: "#991b1b" }}
+                  className="w-full mt-2.5 text-sm font-semibold px-3 py-2 rounded-lg"
+                >
+                  Cancel Trip
+                </button>
               </div>
             )}
 
@@ -1272,17 +1237,6 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                 return (
                   <div className="flex flex-col gap-2.5">
                     <button
-                      onClick={async () => {
-                        await handleMarkArrived(viewingTrip);
-                        setViewingTrip(null);
-                      }}
-                      disabled={isBusy}
-                      style={{ backgroundColor: "#dbeafe", color: "#1d4ed8", opacity: isBusy ? 0.6 : 1 }}
-                      className="w-full rounded-xl py-2.5 text-sm font-semibold"
-                    >
-                      {isBusy ? "Updating…" : "Mark as Arrived"}
-                    </button>
-                    <button
                       onClick={() => setViewingTrip(null)}
                       style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                       className="w-full rounded-xl py-2.5 border text-sm font-semibold"
@@ -1297,15 +1251,15 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                 return (
                   <div className="flex flex-col gap-2.5">
                     <button
-                      onClick={async () => {
-                        await handleMarkArrived(viewingTrip);
+                      onClick={() => {
+                        setConfirmingArrivalTrip(viewingTrip);
                         setViewingTrip(null);
                       }}
                       disabled={isBusy}
                       style={{ backgroundColor: "#dbeafe", color: "#1d4ed8", opacity: isBusy ? 0.6 : 1 }}
                       className="w-full rounded-xl py-2.5 text-sm font-semibold"
                     >
-                      {isBusy ? "Updating…" : "Mark as Arrived"}
+                      Mark as Arrived
                     </button>
                     <button
                       onClick={() => setViewingTrip(null)}

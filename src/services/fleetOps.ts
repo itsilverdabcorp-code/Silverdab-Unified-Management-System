@@ -744,7 +744,7 @@ export async function cancelFleetTrip(tripId: string): Promise<void> {
   const res = await fetch(
     `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/cancel`,
     {
-      method: "PATCH",
+      method: "POST",
       headers: await authHeaders(),
       body: JSON.stringify({ cancelledByName: user.name }),
     },
@@ -779,6 +779,42 @@ export async function rescheduleFleetTrip(
   );
   if (!res.ok || !data?.success) {
     throw new Error(data?.message || "Failed to reschedule trip.");
+  }
+}
+
+// ─── DROPOFFS (admin: remove one or more additional stops from a trip) ────
+
+export async function updateFleetTripDropoffs(
+  tripId: string,
+  payload: {
+    // The primary drop-off shown as the trip's main destination. If the
+    // admin removes stop #1 in the modal, whatever stop moves into that
+    // slot becomes the new primary and is sent here.
+    dropoffLocationId?: string | null;
+    dropoffLabel: string;
+    dropoffLatitude?: number | null;
+    dropoffLongitude?: number | null;
+    additionalDropoffs: Array<{
+      locationId?: string | null;
+      locationText: string;
+      latitude?: number | null;
+      longitude?: number | null;
+    }>;
+  },
+): Promise<void> {
+  const res = await fetch(
+    `${BACKEND_URL}/fleet/trips/${encodeURIComponent(tripId)}/dropoffs`,
+    {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await readJsonResponse<{ success?: boolean; message?: string }>(
+    res,
+  );
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.message || "Failed to update trip drop-offs.");
   }
 }
 

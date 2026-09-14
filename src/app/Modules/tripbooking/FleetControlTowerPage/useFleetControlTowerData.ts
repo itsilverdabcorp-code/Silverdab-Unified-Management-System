@@ -24,7 +24,9 @@ import {
   markTripArrived,
   startTripReturn,
   completeFleetTrip,
+  cancelFleetTrip,
   rescheduleFleetTrip,
+  updateFleetTripDropoffs,
   createFleetVehicle,
   createFleetDriver,
   updateFleetVehicle,
@@ -232,6 +234,10 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
   const [rejectingTrip, setRejectingTrip] = useState<FleetTrip | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  // Admin cancel (approved trips) — confirm-before-cancel, same pattern as
+  // the archive/restore confirmations on the All Trips page.
+  const [cancellingTrip, setCancellingTrip] = useState<FleetTrip | null>(null);
+
   // Reschedule (approved trips only — same pattern as the requestor-facing
   // reschedule in TicketHubPage's TripDetailContent, just admin-triggered).
   const [reschedulingTrip, setReschedulingTrip] = useState<FleetTrip | null>(null);
@@ -239,6 +245,18 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [rescheduleError, setRescheduleError] = useState("");
   const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
+  // Modify-trip modal (approved trips) also lets the admin drop stops. The
+  // primary drop-off (trip.dropoffLabel) is folded into this list as index
+  // 0, so it can be removed just like any additional stop — as long as at
+  // least one stop always remains. This is a local working copy, only
+  // persisted when Save is pressed.
+  type ModifyDropoffStop = {
+    locationId?: string | null;
+    locationText: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  const [modifyDropoffs, setModifyDropoffs] = useState<ModifyDropoffStop[]>([]);
 
   // Map focus (web-only concept, harmless to keep on native — just unused)
   const [focusVehicle, setFocusVehicle] = useState<{ id: string; token: number } | null>(null);
@@ -401,30 +419,94 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     });
   }, [trips, statusFilter]);
 
+  // Same "YYYY-MM-DD HH:MM:SS" → "T"-swap fix formatDateTime uses for
+  // mysql2's dateStrings output — without this, new Date(raw) can fail to
+  // parse (Invalid Date) and every overlap check below falls back to
+  // "assume conflicting", which was silently hiding every busy vehicle
+  // and driver regardless of actual schedule.
+  function parseApiDate(iso: string): number {
+    const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T"));
+    return d.getTime();
+  }
+
+  // Two trips conflict for vehicle/driver-sharing purposes only if their
+  // scheduled windows actually overlap. A trip's window runs from
+  // departure to return; a one-way trip with no return leg gets a 1-hour
+  // placeholder window so back-to-back one-way bookings still get flagged
+  // as genuine conflicts instead of silently double-booking a resource.
+  function schedulesOverlap(
+    aStart: string,
+    aEnd: string | null | undefined,
+    bStart: string,
+    bEnd: string | null | undefined,
+  ): boolean {
+    const aStartMs = parseApiDate(aStart);
+    const bStartMs = parseApiDate(bStart);
+    if (isNaN(aStartMs) || isNaN(bStartMs)) return true; // can't verify — treat as conflicting
+    const aEndMs = aEnd ? parseApiDate(aEnd) : aStartMs + 60 * 60 * 1000;
+    const bEndMs = bEnd ? parseApiDate(bEnd) : bStartMs + 60 * 60 * 1000;
+    return aStartMs < bEndMs && bStartMs < aEndMs;
+  }
+
   const getAvailableVehicles = useCallback(
-    (excludeTripId?: string) => {
+    // Pass the trip being assigned (not just its id) so a vehicle that's
+    // currently out on an ongoing/arrived/returning trip can still show up
+    // here — as long as that trip's own schedule doesn't overlap with the
+    // trip the vehicle is out on right now. A plain string id still works
+    // as a same-trip exclusion with no schedule check (backward compatible
+    // with any existing callers that only pass an id).
+    (forTrip?: FleetTrip | string) => {
+      const excludeTripId = typeof forTrip === "string" ? forTrip : forTrip?.id;
       const inProgress = trips.filter(
         (t) =>
           (t.status === "ongoing" || t.status === "arrived" || t.status === "returning") &&
           t.id !== excludeTripId,
       );
-      const busy = new Set(inProgress.map((t) => (t as any).vehicleId).filter(Boolean));
-      return vehicles.filter(
-        (v) => v.status !== "maintenance" && v.status !== "personal" && !busy.has(v.id),
-      );
+      const busyVehicleIds = new Set(inProgress.map((t) => t.vehicleId).filter(Boolean));
+      return vehicles.filter((v) => {
+        if (v.status === "maintenance" || v.status === "personal") return false;
+        if (!busyVehicleIds.has(v.id)) return true;
+        // Vehicle is out right now — only include it if we know the target
+        // trip's schedule and it doesn't overlap with the trip it's on.
+        if (typeof forTrip !== "object" || !forTrip) return false;
+        const currentTrip = inProgress.find((t) => t.vehicleId === v.id);
+        if (!currentTrip) return false;
+        return !schedulesOverlap(
+          currentTrip.departureDatetime,
+          currentTrip.returnDatetime,
+          forTrip.departureDatetime,
+          forTrip.returnDatetime,
+        );
+      });
     },
     [vehicles, trips],
   );
 
   const getAvailableDrivers = useCallback(
-    (excludeTripId?: string) => {
+    // Same shape as getAvailableVehicles: pass the trip being assigned so
+    // a driver currently out on an ongoing/arrived/returning trip can
+    // still show up here, as long as that trip's schedule doesn't overlap
+    // with the trip the driver is out on right now.
+    (forTrip?: FleetTrip | string) => {
+      const excludeTripId = typeof forTrip === "string" ? forTrip : forTrip?.id;
       const inProgress = trips.filter(
         (t) =>
           (t.status === "ongoing" || t.status === "arrived" || t.status === "returning") &&
           t.id !== excludeTripId,
       );
-      const busy = new Set(inProgress.map((t) => t.driverId).filter(Boolean));
-      return drivers.filter((d) => !busy.has(d.userId));
+      const busyDriverIds = new Set(inProgress.map((t) => t.driverId).filter(Boolean));
+      return drivers.filter((d) => {
+        if (!busyDriverIds.has(d.userId)) return true;
+        if (typeof forTrip !== "object" || !forTrip) return false;
+        const currentTrip = inProgress.find((t) => t.driverId === d.userId);
+        if (!currentTrip) return false;
+        return !schedulesOverlap(
+          currentTrip.departureDatetime,
+          currentTrip.returnDatetime,
+          forTrip.departureDatetime,
+          forTrip.returnDatetime,
+        );
+      });
     },
     [drivers, trips],
   );
@@ -477,6 +559,22 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     const map: Record<string, FleetTrip> = {};
     trips.forEach((t) => {
       if (t.status === "ongoing" && t.vehicleId) map[t.vehicleId] = t;
+    });
+    return map;
+  }, [trips]);
+
+  // Same idea as ongoingTripByVehicleId, but keyed by driver, and covering
+  // arrived/returning too (not just ongoing) — used to label a shared
+  // driver in the assignment dropdown with when they'll actually free up.
+  const currentTripByDriverId = useMemo(() => {
+    const map: Record<string, FleetTrip> = {};
+    trips.forEach((t) => {
+      if (
+        (t.status === "ongoing" || t.status === "arrived" || t.status === "returning") &&
+        t.driverId
+      ) {
+        map[t.driverId] = t;
+      }
     });
     return map;
   }, [trips]);
@@ -573,7 +671,23 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
       setRescheduleDate("");
       setRescheduleTime("");
     }
+    setModifyDropoffs([
+      {
+        locationId: trip.dropoffLocationId ?? undefined,
+        locationText: trip.dropoffLabel,
+        latitude: trip.dropoffLatitude,
+        longitude: trip.dropoffLongitude,
+      },
+      ...(trip.additionalDropoffs ?? []),
+    ]);
     setRescheduleError("");
+  }
+
+  // Drops one stop from the local working copy — not saved until the
+  // modal's Save button runs handleReschedule below. At least one stop
+  // must always remain, so the removal is a no-op once only one is left.
+  function removeModifyDropoff(index: number) {
+    setModifyDropoffs((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   }
 
   async function handleReschedule() {
@@ -587,11 +701,30 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     try {
       const departureDatetime = `${rescheduleDate}T${rescheduleTime}:00+08:00`;
       await rescheduleFleetTrip(reschedulingTrip.id, departureDatetime);
+
+      // Whatever sits at index 0 becomes (or remains) the trip's primary
+      // drop-off; everything after it is the additional-stops list.
+      const [newPrimary, ...newAdditional] = modifyDropoffs;
+      const originalAdditional = reschedulingTrip.additionalDropoffs ?? [];
+      const dropoffsChanged =
+        newPrimary.locationText !== reschedulingTrip.dropoffLabel ||
+        newAdditional.length !== originalAdditional.length;
+
+      if (dropoffsChanged) {
+        await updateFleetTripDropoffs(reschedulingTrip.id, {
+          dropoffLocationId: newPrimary.locationId ?? undefined,
+          dropoffLabel: newPrimary.locationText,
+          dropoffLatitude: newPrimary.latitude ?? undefined,
+          dropoffLongitude: newPrimary.longitude ?? undefined,
+          additionalDropoffs: newAdditional,
+        });
+      }
+
       setReschedulingTrip(null);
       await loadAll();
     } catch (err) {
-      console.error("Reschedule trip failed:", err);
-      setRescheduleError(err instanceof Error ? err.message : "Failed to reschedule trip.");
+      console.error("Modify trip failed:", err);
+      setRescheduleError(err instanceof Error ? err.message : "Failed to save trip changes.");
     } finally {
       setRescheduleSubmitting(false);
     }
@@ -643,6 +776,23 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
       await loadAll();
     } catch (err) {
       console.error("Complete trip failed:", err);
+    } finally {
+      setBusyTripId(null);
+    }
+  }
+
+  // Admin-initiated cancel — reuses the same cancelFleetTrip endpoint the
+  // employee-facing TicketHubPage cancel button calls, now also allowed
+  // server-side while a trip is 'approved' (not just 'pending').
+  async function handleCancelTrip() {
+    if (!cancellingTrip) return;
+    setBusyTripId(cancellingTrip.id);
+    try {
+      await cancelFleetTrip(cancellingTrip.id);
+      setCancellingTrip(null);
+      await loadAll();
+    } catch (err) {
+      console.error("Cancel trip failed:", err);
     } finally {
       setBusyTripId(null);
     }
@@ -823,13 +973,14 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     // filters
     statusFilter, setStatusFilter,
     // assignment drafts
-    assignDrafts, setDraft, rowError, busyTripId, reassignOpen, setReassignOpen,
+    assignDrafts, setDraft, rowError, setRowError, busyTripId, reassignOpen, setReassignOpen,
     // reject
     rejectingTrip, setRejectingTrip, rejectReason, setRejectReason, handleReject,
     // reschedule
     reschedulingTrip, setReschedulingTrip, rescheduleDate, setRescheduleDate,
     rescheduleTime, setRescheduleTime, rescheduleError, rescheduleSubmitting,
-    openReschedule, handleReschedule,
+    openReschedule, handleReschedule, modifyDropoffs, removeModifyDropoff,
+    cancellingTrip, setCancellingTrip, handleCancelTrip,
     // map focus
     focusVehicle, setFocusVehicle,
     // view / calendar
@@ -858,7 +1009,7 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     // derived
     kpi, filteredTrips, availableVehicles, availableDrivers,
     getAvailableVehicles, getAvailableDrivers,
-    onTripDriverUserIds, onTripVehicleIds, ongoingTripByVehicleId,
+    onTripDriverUserIds, onTripVehicleIds, ongoingTripByVehicleId, currentTripByDriverId,
     sortedVehicles, sortedDrivers,
     // trip actions
     handleApprove, handleReassign, handleMarkArrived, handleStartReturn, handleComplete,

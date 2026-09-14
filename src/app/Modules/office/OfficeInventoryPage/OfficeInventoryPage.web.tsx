@@ -314,10 +314,7 @@ const OfficeInventoryPage: React.FC<Props> = ({
     return result;
   }, [sortedFilteredRaw, inventoryFilter.appliedFilters]);
 
-  console.log(
-    "DEBUG isRestricted values:",
-    sortedFilteredRaw.map((i) => ({ name: i.name, isRestricted: i.isRestricted, type: typeof i.isRestricted })),
-  );
+
 
   const renderTableHead = useCallback(
     () => (

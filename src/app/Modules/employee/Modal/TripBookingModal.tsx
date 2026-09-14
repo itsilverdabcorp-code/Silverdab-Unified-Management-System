@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   View,
   Text,
@@ -9,12 +10,12 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
-import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle } from "lucide-react-native";
+import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, displayDepartment } from "../../../../../types";
-import { submitTripRequest, getAllFleetLocations } from "../../../../services/fleetOps";
-import { FleetLocation } from "../../../../../types";
-import FleetLocationPickerMap from "../../tripbooking/FleetLocationPickerMap";
+import { submitTripRequest, getAllFleetLocations, rescheduleFleetTrip, updateFleetTripDropoffs } from "../../../../services/fleetOps";
+import { FleetLocation, FleetTrip } from "../../../../../types";
+import FleetLocationPickerMap, { searchAddress, reverseGeocode, PlaceResult } from "../../tripbooking/FleetLocationPickerMap";
 
 type TripType = "oneway" | "roundtrip";
 
@@ -23,6 +24,9 @@ type Props = {
   onClose: () => void;
   user: ADUser;
   onSuccess: (tripRef: string) => void;
+  // When set, opens in "modify" mode: fields prefill from this trip and
+  // submitting updates it instead of creating a new one.
+  editTrip?: FleetTrip;
 };
 
 function Field({
@@ -162,7 +166,9 @@ function LocationSelect({
   );
 }
 
-export default function TripBookingModal({ visible, onClose, user, onSuccess }: Props) {
+export default function TripBookingModal({ visible, onClose, user, onSuccess, editTrip }: Props) {
+  const isEditMode = !!editTrip;
+  const safeUser = user ?? ({ username: "", displayName: "" } as ADUser);
   const { theme } = useTheme();
   const primary = theme.primary ?? "#4169E1";
   const { width: winW, height: winH } = useWindowDimensions();
@@ -294,10 +300,162 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
     );
   }
 
+  // Inline row search — lets the person type directly into a stop's row
+  // (pickup or any drop-off) and get the same Photon address suggestions
+  // the map's bottom search bar shows, without needing to switch tabs
+  // first. `inlineSearchOpenFor` holds "pickup" or a drop-off stop's id.
+  const [inlineSearchResults, setInlineSearchResults] = useState<PlaceResult[]>([]);
+  const [inlineSearchLoading, setInlineSearchLoading] = useState(false);
+  const [inlineSearchOpenFor, setInlineSearchOpenFor] = useState<string | null>(null);
+  const [inlineSearchRect, setInlineSearchRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const inlineSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inlineFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Positions the dropdown as a fixed-position overlay anchored to the
+  // row's actual on-screen location, rendered outside the scrollable stop
+  // list — otherwise the list's overflow:hidden/auto clips or squashes it.
+  function openInlineDropdown(fieldKey: string) {
+    const el = inlineFieldRefs.current[fieldKey];
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setInlineSearchRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+    setInlineSearchOpenFor(fieldKey);
+  }
+
+  // Ref to the portaled dropdown's own DOM node, so the outside-click
+  // handler below can tell a click inside the dropdown apart from a
+  // genuine "outside" click (the dropdown lives in document.body, not
+  // inside any of the row refs, so it needs its own check).
+  const inlineDropdownElRef = useRef<HTMLDivElement | null>(null);
+
+  // Closes the inline search dropdown when clicking anywhere outside it
+  // and outside the row that opened it (clicking back into that same row
+  // is handled by its own onFocus, not this listener).
+  useEffect(() => {
+    if (!inlineSearchOpenFor) return;
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      const activeFieldEl = inlineFieldRefs.current[inlineSearchOpenFor!];
+      if (
+        inlineDropdownElRef.current?.contains(target) ||
+        activeFieldEl?.contains(target)
+      ) {
+        return;
+      }
+      setInlineSearchOpenFor(null);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [inlineSearchOpenFor]);
+
+  function triggerInlineSearch(fieldKey: string, query: string) {
+    if (inlineSearchDebounceRef.current) clearTimeout(inlineSearchDebounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setInlineSearchResults([]);
+      setInlineSearchOpenFor(null);
+      return;
+    }
+    openInlineDropdown(fieldKey);
+    setInlineSearchLoading(true);
+    inlineSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchAddress(trimmed);
+        setInlineSearchResults(results);
+      } catch (err) {
+        console.error("Inline address search failed:", err);
+        setInlineSearchResults([]);
+      } finally {
+        setInlineSearchLoading(false);
+      }
+    }, 300);
+  }
+
+  const [locatingPickup, setLocatingPickup] = useState(false);
+  const [locatePickupError, setLocatePickupError] = useState("");
+
+  function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocatePickupError("Geolocation isn't supported on this device.");
+      return;
+    }
+    setLocatingPickup(true);
+    setLocatePickupError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Drop the pin immediately, then backfill the address once
+        // reverse geocoding resolves — same snappy-then-refine pattern
+        // the map's own click-to-pin handler uses.
+        setPickupPoint({ latitude, longitude });
+        setPickupLocationId(null);
+        setActiveMapField("pickup");
+        try {
+          const address = await reverseGeocode(latitude, longitude);
+          if (address) {
+            setPickupPoint({ latitude, longitude, address });
+            setPickupText(address);
+            setPickupLabelEdited(true);
+          }
+        } catch (err) {
+          console.error("Reverse geocode failed:", err);
+        } finally {
+          setLocatingPickup(false);
+        }
+      },
+      (err) => {
+        console.error("Geolocation failed:", err);
+        setLocatePickupError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location access was denied."
+            : "Couldn't get your location.",
+        );
+        setLocatingPickup(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  function handleInlineSelect(fieldKey: string, result: PlaceResult) {
+    const point = { latitude: result.lat, longitude: result.lon, address: result.displayName };
+    if (fieldKey === "pickup") {
+      setPickupPoint(point);
+      setPickupLocationId(null);
+      setPickupText(result.displayName);
+      setPickupLabelEdited(true);
+    } else {
+      updateStop(fieldKey, {
+        point,
+        locationId: null,
+        text: result.displayName,
+        labelEdited: true,
+      });
+    }
+    setActiveMapField(fieldKey);
+    setInlineSearchResults([]);
+    setInlineSearchOpenFor(null);
+  }
+
   function handleAddStop() {
     const newStop = makeEmptyStop();
     setDropoffStops((prev) => [...prev, newStop]);
     setActiveMapField(newStop.id);
+  }
+
+  // Drag-to-reorder for the drop-off stop list — native HTML5 drag/drop,
+  // consistent with the other raw-DOM pieces of this modal (web-only).
+  const [draggedStopIndex, setDraggedStopIndex] = useState<number | null>(null);
+  const [dragOverStopIndex, setDragOverStopIndex] = useState<number | null>(null);
+
+  function reorderDropoffStops(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    setDropoffStops((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
   }
 
   function handleRemoveStop(stopId: string) {
@@ -323,6 +481,54 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
       cancelled = true;
     };
   }, [visible]);
+
+  // Prefill from the trip being modified, every time the modal opens for it.
+  useEffect(() => {
+    if (!visible || !editTrip) return;
+
+    setPassengers(editTrip.passengerNames ?? []);
+
+    setPickupText(editTrip.pickupLabel ?? "");
+    setPickupLocationId(editTrip.pickupLocationId ?? null);
+    setPickupPoint(
+      editTrip.pickupLatitude != null && editTrip.pickupLongitude != null
+        ? { latitude: editTrip.pickupLatitude, longitude: editTrip.pickupLongitude, address: editTrip.pickupLabel }
+        : null,
+    );
+    setPickupLabelEdited(true);
+
+    const primaryStop: DropoffStop = {
+      ...makeEmptyStop(),
+      point:
+        editTrip.dropoffLatitude != null && editTrip.dropoffLongitude != null
+          ? { latitude: editTrip.dropoffLatitude, longitude: editTrip.dropoffLongitude, address: editTrip.dropoffLabel }
+          : null,
+      text: editTrip.dropoffLabel ?? "",
+      locationId: editTrip.dropoffLocationId ?? null,
+      labelEdited: true,
+    };
+    const extraStops: DropoffStop[] = (editTrip.additionalDropoffs ?? []).map((s) => ({
+      ...makeEmptyStop(),
+      point: s.latitude != null && s.longitude != null ? { latitude: s.latitude, longitude: s.longitude, address: s.locationText } : null,
+      text: s.locationText ?? "",
+      locationId: s.locationId ?? null,
+      labelEdited: true,
+    }));
+    setDropoffStops([primaryStop, ...extraStops]);
+    setActiveMapField("pickup");
+
+    try {
+      const d = new Date(editTrip.departureDatetime);
+      if (!isNaN(d.getTime())) {
+        setDepartureDate(d.toISOString().slice(0, 10));
+        setDepartureTime(d.toTimeString().slice(0, 5));
+      }
+    } catch {}
+
+    setPurpose(editTrip.purpose ?? "");
+    setError("");
+    setStep("form");
+  }, [visible, editTrip]);
 
     const [departureDate, setDepartureDate] = useState("");
   const [departureTime, setDepartureTime] = useState("");
@@ -428,6 +634,12 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
   function handleReview() {
     setError("");
 
+    const modifiableStatuses = ["pending", "approved", "arrived"];
+    if (isEditMode && editTrip && !modifiableStatuses.includes(editTrip.status)) {
+      setError("This trip can no longer be modified.");
+      return;
+    }
+
     if (!pickupPoint) {
       setError("Set a pickup point on the map.");
       return;
@@ -477,6 +689,63 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
       const primaryStop = dropoffStops[0];
       const extraStops = dropoffStops.slice(1);
 
+      if (isEditMode && editTrip) {
+        // Compare against the same date/time strings the form was
+        // prefilled with (see the prefill effect above), not re-parsed
+        // Date objects — avoids a false "changed" positive caused by the
+        // browser's local timezone differing from the +08:00 offset used
+        // when building departureDatetime below.
+        const originalDate = new Date(editTrip.departureDatetime);
+        const originalDateStr = !isNaN(originalDate.getTime()) ? originalDate.toISOString().slice(0, 10) : "";
+        const originalTimeStr = !isNaN(originalDate.getTime()) ? originalDate.toTimeString().slice(0, 5) : "";
+        const scheduleChanged = departureDate !== originalDateStr || departureTime !== originalTimeStr;
+
+        if (scheduleChanged) {
+          await rescheduleFleetTrip(editTrip.id, departureDatetime);
+        }
+
+        // Only call updateFleetTripDropoffs (and thus log "Drop-offs
+        // updated") if the drop-offs actually differ from the trip's
+        // original stops — otherwise a schedule-only edit falsely shows
+        // up as a drop-off change in status history.
+        const newDropoffPayload = {
+          dropoffLocationId: primaryStop.locationId,
+          dropoffLabel: formatStopText(primaryStop),
+          dropoffLatitude: primaryStop.point!.latitude,
+          dropoffLongitude: primaryStop.point!.longitude,
+          additionalDropoffs: extraStops.map((s) => ({
+            locationId: s.locationId,
+            locationText: formatStopText(s),
+            latitude: s.point!.latitude,
+            longitude: s.point!.longitude,
+          })),
+        };
+
+        const originalAdditional = editTrip.additionalDropoffs ?? [];
+        const dropoffsChanged =
+          newDropoffPayload.dropoffLabel !== editTrip.dropoffLabel ||
+          newDropoffPayload.dropoffLatitude !== editTrip.dropoffLatitude ||
+          newDropoffPayload.dropoffLongitude !== editTrip.dropoffLongitude ||
+          newDropoffPayload.additionalDropoffs.length !== originalAdditional.length ||
+          newDropoffPayload.additionalDropoffs.some((s, i) => {
+            const orig = originalAdditional[i];
+            return (
+              !orig ||
+              s.locationText !== orig.locationText ||
+              s.latitude !== orig.latitude ||
+              s.longitude !== orig.longitude
+            );
+          });
+
+        if (dropoffsChanged) {
+          await updateFleetTripDropoffs(editTrip.id, newDropoffPayload);
+        }
+
+        resetForm();
+        onSuccess(editTrip.tripRef);
+        return;
+      }
+
       const tripRef = await submitTripRequest({
         pickupLocationId: pickupLocationId ?? undefined,
         pickupLocationText:
@@ -522,7 +791,62 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
         ? Math.min(winW * 0.98, 1280)
         : Math.min(winW * 0.9, 560);
 
+  const inlineDropdown =
+    inlineSearchOpenFor && inlineSearchRect && (inlineSearchLoading || inlineSearchResults.length > 0) && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={inlineDropdownElRef}
+            // @ts-ignore — plain DOM element, className applies the same
+            // themed scrollbar CSS injected for the modal's ScrollViews.
+            className={SCROLL_THEME_CLASS}
+            style={{
+              position: "fixed",
+              top: inlineSearchRect.top,
+              left: inlineSearchRect.left,
+              width: inlineSearchRect.width,
+              zIndex: 999999,
+              backgroundColor: theme.surface,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 8,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
+              maxHeight: 220,
+              overflowY: "auto",
+            }}
+          >
+            {inlineSearchLoading ? (
+              <div style={{ padding: 10, fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>
+                Searching…
+              </div>
+            ) : (
+              inlineSearchResults.map((r, idx) => (
+                <div
+                  key={`${r.lat}-${r.lon}-${idx}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleInlineSelect(inlineSearchOpenFor, r);
+                  }}
+                  style={{
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    color: theme.textActive ?? theme.text,
+                    borderBottom: idx !== inlineSearchResults.length - 1 ? `1px solid ${theme.border}` : "none",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  {r.displayName}
+                </div>
+              ))
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
+    <>
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View
         style={{
@@ -583,7 +907,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                     color: theme.textActive ?? theme.text,
                   }}
                 >
-                  Book a Company Vehicle
+                  {isEditMode ? "Modify Trip" : "Book a Company Vehicle"}
                 </Text>
               </View>
               <Text
@@ -864,7 +1188,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
             >
               <Car size={14} color="#fff" />
               <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                Review Booking Request
+                {isEditMode ? "Review Changes" : "Review Booking Request"}
               </Text>
             </TouchableOpacity>
             </View>
@@ -894,32 +1218,74 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                 numbered circles for each drop-off, in visit order. Tapping
                 a row still sets which stop the map below is editing. */}
             <View style={{ marginBottom: 10 }}>
-              <TouchableOpacity
-                onPress={() => setActiveMapField("pickup")}
-                activeOpacity={0.8}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  borderRadius: 8,
-                  backgroundColor: theme.background,
-                  borderWidth: 1.5,
-                  borderColor: activeMapField === "pickup" ? primary : theme.border,
-                  marginBottom: 6,
-                }}
+              <div
+                ref={(el) => { inlineFieldRefs.current["pickup"] = el; }}
+                style={{ position: "relative", marginBottom: 6 }}
               >
-                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>P</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    backgroundColor: theme.background,
+                    borderWidth: 1.5,
+                    borderColor: activeMapField === "pickup" ? primary : theme.border,
+                  }}
+                >
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>P</Text>
+                  </View>
+                  <TextInput
+                    value={pickupText}
+                    onFocus={() => {
+                      setActiveMapField("pickup");
+                      if (inlineSearchResults.length > 0) openInlineDropdown("pickup");
+                    }}
+                    onChangeText={(text) => {
+                      setPickupText(text);
+                      setPickupLabelEdited(true);
+                      if (pickupLocationId) setPickupLocationId(null);
+                      triggerInlineSearch("pickup", text);
+                    }}
+                    placeholder="Pickup"
+                    placeholderTextColor={theme.subtext}
+                    style={{
+                      flex: 1,
+                      fontFamily: "Outfit-medium",
+                      fontSize: 13,
+                      color: theme.textActive ?? theme.text,
+                      padding: 0,
+                    }}
+                  />
+                  {activeMapField === "pickup" && (
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
+                  )}
+                  <TouchableOpacity
+                    onPress={handleUseCurrentLocation}
+                    disabled={locatingPickup}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    accessibilityLabel="Use my current location"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: locatingPickup ? 0.5 : 1,
+                    }}
+                  >
+                    <LocateFixed size={14} color={locatingPickup ? theme.subtext : primary} />
+                  </TouchableOpacity>
                 </View>
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }} numberOfLines={1}>
-                  {pickupText || pickupPoint?.address || "Pickup"}
-                </Text>
-                {activeMapField === "pickup" && (
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
-                )}
-              </TouchableOpacity>
+                {locatePickupError ? (
+                  <Text style={{ fontFamily: "Outfit", fontSize: 10.5, color: "#EF4444", marginTop: 3 }}>
+                    {locatePickupError}
+                  </Text>
+                ) : null}
+              </div>
 
               {/* Drop-off list — capped height with its own scroll so a
                   trip with many stops doesn't keep growing the whole
@@ -934,41 +1300,112 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
               >
                 <View style={{ gap: 6 }}>
                   {dropoffStops.map((stop, i) => (
-                    <TouchableOpacity
+                    <div
                       key={stop.id}
-                      onPress={() => setActiveMapField(stop.id)}
-                      activeOpacity={0.8}
+                      draggable
+                      onDragStart={(e: React.DragEvent) => {
+                        setDraggedStopIndex(i);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e: React.DragEvent) => {
+                        e.preventDefault();
+                        if (draggedStopIndex !== null && draggedStopIndex !== i) {
+                          setDragOverStopIndex(i);
+                        }
+                      }}
+                      onDrop={(e: React.DragEvent) => {
+                        e.preventDefault();
+                        if (draggedStopIndex !== null) {
+                          reorderDropoffStops(draggedStopIndex, i);
+                        }
+                        setDraggedStopIndex(null);
+                        setDragOverStopIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedStopIndex(null);
+                        setDragOverStopIndex(null);
+                      }}
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                        paddingVertical: 8,
-                        paddingHorizontal: 10,
-                        borderRadius: 8,
-                        backgroundColor: theme.background,
-                        borderWidth: 1.5,
-                        borderColor: activeMapField === stop.id ? primary : theme.border,
+                        opacity: draggedStopIndex === i ? 0.4 : 1,
+                        cursor: "grab",
                       }}
                     >
-                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>{i + 1}</Text>
-                      </View>
-                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }} numberOfLines={1}>
-                        {stop.text || stop.point?.address || `Drop-off ${i + 1}`}
-                      </Text>
-                      {activeMapField === stop.id && (
-                        <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
-                      )}
-                      {dropoffStops.length > 1 && (
-                        <TouchableOpacity
-                          onPress={() => handleRemoveStop(stop.id)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          style={{ width: 22, height: 22, borderRadius: 6, alignItems: "center", justifyContent: "center" }}
+                      <div
+                        ref={(el) => { inlineFieldRefs.current[stop.id] = el; }}
+                        style={{ position: "relative" }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            paddingVertical: 8,
+                            paddingHorizontal: 10,
+                            borderRadius: 8,
+                            backgroundColor: theme.background,
+                            borderWidth: 1.5,
+                            borderColor:
+                              dragOverStopIndex === i
+                                ? primary
+                                : activeMapField === stop.id
+                                  ? primary
+                                  : theme.border,
+                            borderStyle: dragOverStopIndex === i ? "dashed" : "solid",
+                          }}
                         >
-                          <X size={12} color={theme.subtext} />
-                        </TouchableOpacity>
-                      )}
-                    </TouchableOpacity>
+                          <View style={{ opacity: 0.5 }}>
+                            <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                              <circle cx="2" cy="2" r="1.3" fill={theme.subtext} />
+                              <circle cx="8" cy="2" r="1.3" fill={theme.subtext} />
+                              <circle cx="2" cy="7" r="1.3" fill={theme.subtext} />
+                              <circle cx="8" cy="7" r="1.3" fill={theme.subtext} />
+                              <circle cx="2" cy="12" r="1.3" fill={theme.subtext} />
+                              <circle cx="8" cy="12" r="1.3" fill={theme.subtext} />
+                            </svg>
+                          </View>
+                          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>{i + 1}</Text>
+                          </View>
+                          <TextInput
+                            value={stop.text}
+                            onFocus={() => {
+                              setActiveMapField(stop.id);
+                              if (inlineSearchResults.length > 0) openInlineDropdown(stop.id);
+                            }}
+                            onChangeText={(text) => {
+                              updateStop(stop.id, {
+                                text,
+                                labelEdited: true,
+                                locationId: stop.locationId ? null : stop.locationId,
+                              });
+                              triggerInlineSearch(stop.id, text);
+                            }}
+                            placeholder={`Drop-off ${i + 1}`}
+                            placeholderTextColor={theme.subtext}
+                            style={{
+                              flex: 1,
+                              fontFamily: "Outfit-medium",
+                              fontSize: 13,
+                              color: theme.textActive ?? theme.text,
+                              padding: 0,
+                            }}
+                          />
+                          {activeMapField === stop.id && (
+                            <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
+                          )}
+                          {dropoffStops.length > 1 && (
+                            <TouchableOpacity
+                              onPress={() => handleRemoveStop(stop.id)}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                              style={{ width: 22, height: 22, borderRadius: 6, alignItems: "center", justifyContent: "center" }}
+                            >
+                              <X size={12} color={theme.subtext} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                      </div>
+                    </div>
                   ))}
                 </View>
               </ScrollView>
@@ -1000,6 +1437,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
 
               <FleetLocationPickerMap
                 presets={locations}
+                hideSearch
                 allStops={[
                   {
                     key: "pickup",
@@ -1239,7 +1677,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
                   >
                     {submitting ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={14} color="#fff" />}
                     <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                      {submitting ? "Submitting…" : "Confirm & Submit"}
+                      {submitting ? "Saving…" : isEditMode ? "Confirm Changes" : "Confirm & Submit"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1249,5 +1687,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess }: 
         </TouchableOpacity>
       </View>
     </Modal>
+    {inlineDropdown}
+    </>
   );
 }

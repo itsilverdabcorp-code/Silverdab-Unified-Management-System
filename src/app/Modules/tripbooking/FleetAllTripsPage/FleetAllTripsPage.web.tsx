@@ -646,16 +646,26 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                       .map((entry, idx) => {
                         const cfg = TRIP_STATUS_CONFIG[entry.status];
                         return (
-                          <div key={`${entry.status}-${entry.timestamp}-${idx}`} className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span style={{ backgroundColor: cfg?.dot ?? theme.subtext, width: 6, height: 6, borderRadius: "50%" }} className="inline-block flex-shrink-0" />
-                              <span style={{ color: theme.text }} className="text-[12px] font-medium truncate">
-                                {cfg?.label ?? entry.status}
+                          <div key={`${entry.status}-${entry.timestamp}-${idx}`} className="flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  style={{ backgroundColor: cfg?.dot ?? theme.subtext, width: 6, height: 6, borderRadius: "50%" }}
+                                  className="inline-block flex-shrink-0"
+                                />
+                                <span style={{ color: theme.text }} className="text-[12px] font-medium truncate">
+                                  {entry.note ? entry.note : (cfg?.label ?? entry.status)}
+                                </span>
+                              </div>
+                              <span style={{ color: theme.subtext }} className="text-[11px] whitespace-nowrap flex-shrink-0">
+                                {formatDateTime(entry.timestamp)}
                               </span>
                             </div>
-                            <span style={{ color: theme.subtext }} className="text-[11px] whitespace-nowrap flex-shrink-0">
-                              {formatDateTime(entry.timestamp)}
-                            </span>
+                            {entry.note && (
+                              <p style={{ color: theme.subtext }} className="text-[10.5px] ml-[13.5px]">
+                                Status: {cfg?.label ?? entry.status}
+                              </p>
+                            )}
                           </div>
                         );
                       })}

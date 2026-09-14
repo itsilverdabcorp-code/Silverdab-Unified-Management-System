@@ -76,6 +76,7 @@ import {
   ActivityIndicator,
   Modal,
   Linking,
+  Dimensions,
 } from "react-native";
 import { useTheme } from "../../../theme/ThemeContext";
 import Svg, { Path, Circle } from "react-native-svg";
@@ -189,7 +190,7 @@ function getDaysUntilLabel(trip: FleetTrip): string {
 
 const STATUS_DISPLAY: Record<TripStatus, string> = {
   pending: "Pending",
-  approved: "Approved — Ready",
+  approved: "Approved",
   ongoing: "Ongoing",
   arrived: "Arrived",
   returning: "Returning",
@@ -198,15 +199,15 @@ const STATUS_DISPLAY: Record<TripStatus, string> = {
   rejected: "Rejected",
 };
 
-const STATUS_COLORS: Record<TripStatus, { bg: string; text: string }> = {
-  pending: { bg: "#fef3c7", text: "#92400e" },
-  approved: { bg: "#dbeafe", text: "#1d4ed8" },
-  ongoing: { bg: "#dcfce7", text: "#166534" },
-  arrived: { bg: "#dbeafe", text: "#1d4ed8" },
-  returning: { bg: "#fef3c7", text: "#92400e" },
-  completed: { bg: "#dcfce7", text: "#166534" },
-  cancelled: { bg: "#fee2e2", text: "#991b1b" },
-  rejected: { bg: "#fee2e2", text: "#991b1b" },
+const STATUS_COLORS: Record<TripStatus, { bg: string; text: string; dot: string }> = {
+  pending: { bg: "#fef3c7", text: "#92400e", dot: "#f59e0b" },
+  approved: { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
+  ongoing: { bg: "#cffafe", text: "#155e75", dot: "#06b6d4" },
+  arrived: { bg: "#dbeafe", text: "#1d4ed8", dot: "#3b82f6" },
+  returning: { bg: "#fef3c7", text: "#92400e", dot: "#f59e0b" },
+  completed: { bg: "#dcfce7", text: "#166534", dot: "#15803d" },
+  cancelled: { bg: "#fef2f2", text: "#7f1d1d", dot: "#f87171" },
+  rejected: { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" },
 };
 
 // ─── Driver duty status ────────────────────────────────────────────────────
@@ -1780,7 +1781,7 @@ export default function DriverPortalPage({ user }: Props) {
             style={{
               width: "100%",
               maxWidth: 380,
-              maxHeight: "85%",
+              height: Math.min(620, Dimensions.get("window").height * 0.85),
               backgroundColor: theme.surface,
               borderRadius: 16,
               padding: 20,
@@ -1827,7 +1828,8 @@ export default function DriverPortalPage({ user }: Props) {
                   <>
                   <ScrollView
                     showsVerticalScrollIndicator={false}
-                    style={{ flexGrow: 0, flexShrink: 1 }}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ flexGrow: 1 }}
                   >
                     {/* Title + status badge */}
                     <View
@@ -2065,7 +2067,7 @@ export default function DriverPortalPage({ user }: Props) {
                               fontFamily: "Outfit-medium",
                               fontSize: 12.5,
                               color: theme.textActive ?? theme.text,
-                              marginBottom: 8,
+                              marginBottom: 10,
                             }}
                           >
                             Status history
@@ -2079,30 +2081,70 @@ export default function DriverPortalPage({ user }: Props) {
                             .map((entry, idx) => (
                               <View
                                 key={`${entry.status}-${entry.timestamp}-${idx}`}
-                                style={{
-                                  flexDirection: "row",
-                                  justifyContent: "space-between",
-                                  marginBottom: 6,
-                                }}
+                                style={{ marginBottom: 12 }}
                               >
-                                <Text
+                                <View
                                   style={{
-                                    fontFamily: "Outfit-medium",
-                                    fontSize: 12,
-                                    color: theme.textActive ?? theme.text,
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 8,
                                   }}
                                 >
-                                  {STATUS_DISPLAY[entry.status]}
-                                </Text>
-                                <Text
-                                  style={{
-                                    fontFamily: "Outfit",
-                                    fontSize: 11,
-                                    color: theme.subtext,
-                                  }}
-                                >
-                                  {formatSchedule(entry.timestamp)}
-                                </Text>
+                                  <View
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      gap: 7,
+                                      flex: 1,
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: 3,
+                                        backgroundColor:
+                                          STATUS_COLORS[entry.status]?.dot ?? theme.subtext,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <Text
+                                      style={{
+                                        fontFamily: "Outfit-medium",
+                                        fontSize: 12.5,
+                                        color: theme.textActive ?? theme.text,
+                                        flexShrink: 1,
+                                      }}
+                                    >
+                                      {entry.note || STATUS_DISPLAY[entry.status]}
+                                    </Text>
+                                  </View>
+                                  <Text
+                                    style={{
+                                      fontFamily: "Outfit",
+                                      fontSize: 11,
+                                      color: "#3D6FE0",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {formatSchedule(entry.timestamp)}
+                                  </Text>
+                                </View>
+                                {entry.note && (
+                                  <Text
+                                    style={{
+                                      fontFamily: "Outfit",
+                                      fontSize: 11.5,
+                                      color: theme.subtext,
+                                      marginLeft: 13,
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    Status: {STATUS_DISPLAY[entry.status]}
+                                  </Text>
+                                )}
                               </View>
                             ))}
                         </View>

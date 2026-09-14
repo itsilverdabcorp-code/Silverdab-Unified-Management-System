@@ -54,7 +54,7 @@ import {
   cancelSupplyRequest,
 } from "@/services/supplyRequest";
 import { getAllRoomReservations, cancelRoomReservation } from "@/services/roomReservation";
-import { cancelFleetTrip, rescheduleFleetTrip } from "../../../../services/fleetOps";
+import { cancelFleetTrip } from "../../../../services/fleetOps";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1721,142 +1721,14 @@ function SupplyDetailContent({
 function TripDetailContent({
   trip,
   theme,
-  onCancel,
-  onReschedule,
 }: {
   trip: FleetTrip;
   theme: any;
   primary: string;
-  onCancel?: (trip: FleetTrip) => Promise<void>;
-  onReschedule?: (trip: FleetTrip, departureDatetime: string, returnDatetime?: string) => Promise<void>;
 }) {
   const displayStatus = normaliseTripStatus(trip.status);
   const isRejected = trip.status === "rejected";
   const isCancelled = trip.status === "cancelled";
-
-  // cancelFleetTrip/rescheduleFleetTrip are only allowed while the trip is
-  // still pending dispatch review — the backend rejects both once a trip
-  // has been approved (PATCH /fleet/trips/:id/{cancel,reschedule}).
-  const editable = trip.status === "pending";
-
-  const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [cancelError, setCancelError] = useState("");
-
-  const [reschedOpen, setReschedOpen] = useState(false);
-  const [reschedDate, setReschedDate] = useState("");
-  const [reschedTime, setReschedTime] = useState("");
-  const [rescheduling, setRescheduling] = useState(false);
-  const [reschedError, setReschedError] = useState("");
-
-  // Same native date/time picker pattern as TripBookingModal — hidden
-  // default browser icon (via the shared DATE_INPUT_CLASS injected below),
-  // a themed CalendarIcon/ClockIcon button that calls showPicker(), and
-  // half-hour snapping on the time field.
-  const reschedDateRef = React.useRef<HTMLInputElement>(null);
-  const reschedTimeRef = React.useRef<HTMLInputElement>(null);
-  const RESCHED_DATE_INPUT_CLASS = "trip-reschedule-date-input";
-
-  React.useEffect(() => {
-    if (typeof document === "undefined") return;
-    const styleId = "trip-reschedule-date-input-style";
-    if (document.getElementById(styleId)) return;
-    const el = document.createElement("style");
-    el.id = styleId;
-    el.textContent = `
-      .${RESCHED_DATE_INPUT_CLASS}::-webkit-calendar-picker-indicator {
-        opacity: 0;
-        pointer-events: none;
-      }
-      .${RESCHED_DATE_INPUT_CLASS}::-webkit-inner-spin-button {
-        display: none;
-      }
-    `;
-    document.head.appendChild(el);
-  }, []);
-
-  function snapToHalfHour(value: string): string {
-    if (!value) return value;
-    const [hStr, mStr] = value.split(":");
-    let h = Number(hStr);
-    const m = Number(mStr);
-    const snappedMinute = m < 15 ? 0 : m < 45 ? 30 : 0;
-    if (m >= 45) h = (h + 1) % 24;
-    return `${String(h).padStart(2, "0")}:${String(snappedMinute).padStart(2, "0")}`;
-  }
-
-  const reschedWebInputStyle: React.CSSProperties = {
-    width: "100%",
-    boxSizing: "border-box",
-    backgroundColor: theme.surface,
-    borderRadius: 8,
-    border: `1.5px solid ${theme.border}`,
-    padding: "9px 12px",
-    paddingRight: 34,
-    fontFamily: "Outfit",
-    fontSize: 13,
-    color: theme.textActive ?? theme.text,
-    colorScheme: theme.mode,
-  };
-
-  const reschedPickerIconBtnStyle: React.CSSProperties = {
-    position: "absolute",
-    right: 8,
-    top: "50%",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    padding: 4,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!onCancel) return;
-    setCancelling(true);
-    setCancelError("");
-    try {
-      await onCancel(trip);
-    } catch (err: any) {
-      setCancelError(err?.message ?? "Failed to cancel trip.");
-      setCancelling(false);
-    }
-  };
-
-  const handleOpenReschedule = () => {
-    // Prefill from the current departureDatetime so editing feels like
-    // adjusting rather than starting blank.
-    try {
-      const d = new Date(trip.departureDatetime);
-      if (!isNaN(d.getTime())) {
-        setReschedDate(d.toISOString().slice(0, 10));
-        setReschedTime(d.toTimeString().slice(0, 5));
-      }
-    } catch {}
-    setReschedError("");
-    setReschedOpen(true);
-  };
-
-  const handleConfirmReschedule = async () => {
-    if (!onReschedule) return;
-    if (!reschedDate.trim() || !reschedTime.trim()) {
-      setReschedError("Pick a date and time.");
-      return;
-    }
-    setRescheduling(true);
-    setReschedError("");
-    try {
-      const departureDatetime = `${reschedDate}T${reschedTime}:00+08:00`;
-      await onReschedule(trip, departureDatetime);
-      setReschedOpen(false);
-    } catch (err: any) {
-      setReschedError(err?.message ?? "Failed to reschedule trip.");
-    } finally {
-      setRescheduling(false);
-    }
-  };
 
   return (
     <>
@@ -1966,338 +1838,214 @@ function TripDetailContent({
             label: "Approved by",
             value: trip.approvedByName || "Pending review",
           },
+          { label: "Purpose", value: trip.purpose || "—" },
         ]}
         theme={theme}
       />
 
-      {/* Reschedule / cancel — only while the trip hasn't started yet
-          (pending or approved), mirroring the cancel pattern already used
-          for supply requests and room reservations. */}
-      {editable && (onCancel || onReschedule) ? (
-        <View
-          style={{
-            backgroundColor: theme.background,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.border,
-            padding: 15,
-            marginBottom: 16,
-          }}
-        >
-          {reschedOpen ? (
-            <View>
-              <Text
-                style={{
-                  fontFamily: "Outfit-medium",
-                  fontSize: 13,
-                  color: theme.textActive ?? theme.text,
-                  marginBottom: 10,
-                }}
-              >
-                Reschedule departure
-              </Text>
+    </>
+  );
+}
 
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      ref={reschedDateRef as any}
-                      type="date"
-                      className={RESCHED_DATE_INPUT_CLASS}
-                      value={reschedDate}
-                      onChange={(e: any) => setReschedDate(e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                      style={reschedWebInputStyle}
-                    />
-                    <button
-                      type="button"
-                      style={reschedPickerIconBtnStyle}
-                      onClick={() => reschedDateRef.current?.showPicker?.()}
-                    >
-                      <CalendarIcon size={14} color={theme.subtext} />
-                    </button>
-                  </div>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      ref={reschedTimeRef as any}
-                      type="time"
-                      step={1800}
-                      className={RESCHED_DATE_INPUT_CLASS}
-                      value={reschedTime}
-                      onChange={(e: any) => setReschedTime(snapToHalfHour(e.target.value))}
-                      style={reschedWebInputStyle}
-                    />
-                    <button
-                      type="button"
-                      style={reschedPickerIconBtnStyle}
-                      onClick={() => reschedTimeRef.current?.showPicker?.()}
-                    >
-                      <ClockIcon size={14} color={theme.subtext} />
-                    </button>
-                  </div>
-                </View>
-              </View>
+// ─── Trip Actions Footer — rendered as a sibling OUTSIDE the drawer's
+// ScrollView (like the header above it), so it stays fixed in place
+// instead of scrolling away with the trip's details. ─────────────────────
+function TripActionsFooter({
+  trip,
+  theme,
+  onCancel,
+  onModify,
+}: {
+  trip: FleetTrip;
+  theme: any;
+  onCancel?: (trip: FleetTrip) => Promise<void>;
+  onModify?: (trip: FleetTrip) => void;
+}) {
+  // cancelFleetTrip/rescheduleFleetTrip are only allowed while the trip is
+  // still pending dispatch review — the backend rejects both once a trip
+  // has been approved (PATCH /fleet/trips/:id/{cancel,reschedule}).
+  const editable = trip.status === "pending";
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
-              {reschedError ? (
-                <Text
-                  style={{
-                    fontFamily: "Outfit",
-                    fontSize: 12,
-                    color: "#EF4444",
-                    marginBottom: 10,
-                  }}
-                >
-                  {reschedError}
-                </Text>
-              ) : null}
+  if (!editable || (!onCancel && !onModify)) return null;
 
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => setReschedOpen(false)}
-                  disabled={rescheduling}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    borderWidth: 1.5,
-                    borderColor: theme.border,
-                    alignItems: "center",
-                    opacity: rescheduling ? 0.6 : 1,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: theme.subtext,
-                    }}
-                  >
-                    Back
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleConfirmReschedule}
-                  disabled={rescheduling}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    backgroundColor: theme.primary ?? "#4169E1",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "row",
-                    gap: 6,
-                    opacity: rescheduling ? 0.7 : 1,
-                  }}
-                >
-                  {rescheduling ? <ActivityIndicator size="small" color="#fff" /> : null}
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: "#fff",
-                    }}
-                  >
-                    {rescheduling ? "Saving…" : "Save new time"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : confirmingCancel ? (
-            <View>
-              <Text
-                style={{
-                  fontFamily: "Outfit-medium",
-                  fontSize: 13,
-                  color: theme.textActive ?? theme.text,
-                  marginBottom: 4,
-                }}
-              >
-                Cancel this trip?
-              </Text>
-              <Text
-                style={{
-                  fontFamily: "Outfit",
-                  fontSize: 12,
-                  color: theme.subtext,
-                  marginBottom: 12,
-                  lineHeight: 17,
-                }}
-              >
-                This can't be undone. You'll need to submit a new booking if you
-                still need transport.
-              </Text>
+  const handleConfirmCancel = async () => {
+    if (!onCancel) return;
+    setCancelling(true);
+    setCancelError("");
+    try {
+      await onCancel(trip);
+    } catch (err: any) {
+      setCancelError(err?.message ?? "Failed to cancel trip.");
+      setCancelling(false);
+    }
+  };
 
-              {cancelError ? (
-                <Text
-                  style={{
-                    fontFamily: "Outfit",
-                    fontSize: 12,
-                    color: "#EF4444",
-                    marginBottom: 10,
-                  }}
-                >
-                  {cancelError}
-                </Text>
-              ) : null}
-
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => setConfirmingCancel(false)}
-                  disabled={cancelling}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    borderWidth: 1.5,
-                    borderColor: theme.border,
-                    alignItems: "center",
-                    opacity: cancelling ? 0.6 : 1,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: theme.subtext,
-                    }}
-                  >
-                    Keep trip
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleConfirmCancel}
-                  disabled={cancelling}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    backgroundColor: "#DC2626",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "row",
-                    gap: 6,
-                    opacity: cancelling ? 0.7 : 1,
-                  }}
-                >
-                  {cancelling ? <ActivityIndicator size="small" color="#fff" /> : null}
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: "#fff",
-                    }}
-                  >
-                    {cancelling ? "Cancelling…" : "Yes, cancel it"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {onReschedule ? (
-                <TouchableOpacity
-                  onPress={handleOpenReschedule}
-                  activeOpacity={0.7}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    borderWidth: 1.5,
-                    borderColor: theme.border,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: theme.textActive ?? theme.text,
-                    }}
-                  >
-                    Reschedule
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-              {onCancel ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    setConfirmingCancel(true);
-                    setCancelError("");
-                  }}
-                  activeOpacity={0.7}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    borderWidth: 1.5,
-                    borderColor: "#FCA5A5",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: "#DC2626",
-                    }}
-                  >
-                    Cancel this trip
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          )}
-        </View>
-      ) : null}
-
-      {trip.purpose ? (
-        <View
-          style={{
-            backgroundColor: theme.background,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.border,
-            padding: 15,
-          }}
-        >
+  return (
+    <View
+      style={{
+        backgroundColor: theme.surface ?? theme.background,
+        borderTopWidth: 1,
+        borderTopColor: theme.border,
+        padding: 15,
+      }}
+    >
+      {confirmingCancel ? (
+        <View>
           <Text
             style={{
               fontFamily: "Outfit-medium",
-              fontSize: 11,
-              color: theme.subtext,
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
-              marginBottom: 8,
+              fontSize: 13,
+              color: theme.textActive ?? theme.text,
+              marginBottom: 4,
             }}
           >
-            Purpose
+            Cancel this trip?
           </Text>
           <Text
             style={{
               fontFamily: "Outfit",
-              fontSize: 13,
-              color: theme.textActive ?? theme.text,
-              lineHeight: 20,
+              fontSize: 12,
+              color: theme.subtext,
+              marginBottom: 12,
+              lineHeight: 17,
             }}
           >
-            {trip.purpose}
+            This can't be undone. You'll need to submit a new booking if you
+            still need transport.
           </Text>
+
+          {cancelError ? (
+            <Text
+              style={{
+                fontFamily: "Outfit",
+                fontSize: 12,
+                color: "#EF4444",
+                marginBottom: 10,
+              }}
+            >
+              {cancelError}
+            </Text>
+          ) : null}
+
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => setConfirmingCancel(false)}
+              disabled={cancelling}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: theme.border,
+                alignItems: "center",
+                opacity: cancelling ? 0.6 : 1,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: theme.subtext,
+                }}
+              >
+                Keep trip
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleConfirmCancel}
+              disabled={cancelling}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 8,
+                backgroundColor: "#DC2626",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "row",
+                gap: 6,
+                opacity: cancelling ? 0.7 : 1,
+              }}
+            >
+              {cancelling ? <ActivityIndicator size="small" color="#fff" /> : null}
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#fff",
+                }}
+              >
+                {cancelling ? "Cancelling…" : "Yes, cancel it"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      ) : null}
-    </>
+      ) : (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {onCancel ? (
+            <TouchableOpacity
+              onPress={() => {
+                setConfirmingCancel(true);
+                setCancelError("");
+              }}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 7,
+                paddingVertical: 10,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: "#FCA5A5",
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: "#DC2626",
+                }}
+              >
+                Cancel this trip
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          {onModify ? (
+            <TouchableOpacity
+              onPress={() => onModify(trip)}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 7,
+                paddingVertical: 10,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: theme.border,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 13,
+                  color: theme.textActive ?? theme.text,
+                }}
+              >
+                Modify Trip
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -2611,7 +2359,7 @@ function DetailDrawer({
   onCancelSupplyRequest,
   onCancelRoomReservation,
   onCancelTrip,
-  onRescheduleTrip,
+  onModifyTrip,
 }: {
   ticket: UnifiedTicket | null;
   onClose: () => void;
@@ -2620,7 +2368,7 @@ function DetailDrawer({
   onCancelSupplyRequest?: (request: SupplyRequest) => Promise<void>;
   onCancelRoomReservation?: (reservation: RoomReservation) => Promise<void>;
   onCancelTrip?: (trip: FleetTrip) => Promise<void>;
-  onRescheduleTrip?: (trip: FleetTrip, departureDatetime: string, returnDatetime?: string) => Promise<void>;
+  onModifyTrip?: (trip: FleetTrip) => void;
 }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const isMobile = winW < 768;
@@ -2734,8 +2482,6 @@ function DetailDrawer({
                 trip={ticket.fleetTrip}
                 theme={theme}
                 primary={primary}
-                onCancel={onCancelTrip}
-                onReschedule={onRescheduleTrip}
               />
             ) : ticket._source === "room" && ticket.roomReservation ? (
               <RoomDetailContent
@@ -2752,6 +2498,17 @@ function DetailDrawer({
               />
             ) : null}
           </ScrollView>
+
+          {/* Fixed footer, sibling to the ScrollView (like the header
+              above it) so it never scrolls out of view. */}
+          {ticket._source === "trip" && ticket.fleetTrip ? (
+            <TripActionsFooter
+              trip={ticket.fleetTrip}
+              theme={theme}
+              onCancel={onCancelTrip}
+              onModify={onModifyTrip}
+            />
+          ) : null}
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -3108,21 +2865,12 @@ export default function TicketHubPage({ user }: Props) {
     [load],
   );
 
-  const handleRescheduleTrip = useCallback(
-    async (trip: FleetTrip, departureDatetime: string, returnDatetime?: string) => {
-      await rescheduleFleetTrip(trip.id, departureDatetime, returnDatetime);
-      setSelected((prev) =>
-        prev && prev.id === trip.id
-          ? {
-              ...prev,
-              fleetTrip: { ...prev.fleetTrip!, departureDatetime, returnDatetime: returnDatetime ?? prev.fleetTrip!.returnDatetime },
-            }
-          : prev,
-      );
-      load(true);
-    },
-    [load],
-  );
+  const [editTripTarget, setEditTripTarget] = useState<FleetTrip | null>(null);
+
+  const handleOpenModifyTrip = useCallback((trip: FleetTrip) => {
+    setSelected(null);
+    setEditTripTarget(trip);
+  }, []);
 
   const inputStyle = {
     backgroundColor: theme.background,
@@ -4230,6 +3978,17 @@ export default function TicketHubPage({ user }: Props) {
         }}
       />
 
+      <TripBookingModal
+        visible={!!editTripTarget}
+        onClose={() => setEditTripTarget(null)}
+        user={user}
+        editTrip={editTripTarget ?? undefined}
+        onSuccess={() => {
+          setEditTripTarget(null);
+          load(true);
+        }}
+      />
+
       <RoomReservationModal
         visible={roomReservationModalVisible}
         onClose={() => setRoomReservationModalVisible(false)}
@@ -4251,7 +4010,7 @@ export default function TicketHubPage({ user }: Props) {
         onCancelSupplyRequest={handleCancelSupplyRequest}
         onCancelRoomReservation={handleCancelRoomReservation}
         onCancelTrip={handleCancelTrip}
-        onRescheduleTrip={handleRescheduleTrip}
+        onModifyTrip={handleOpenModifyTrip}
       />
     </ScrollView>
   );
