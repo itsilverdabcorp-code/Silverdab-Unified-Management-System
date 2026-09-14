@@ -713,6 +713,15 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                                   >
                                     {trip.dropoffLabel}
                                   </p>
+                                  {trip.additionalDropoffs && trip.additionalDropoffs.length > 0 && (
+                                    <span
+                                      style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                                      className="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap"
+                                      title={trip.additionalDropoffs.map((s) => s.locationText).join(", ")}
+                                    >
+                                      +{trip.additionalDropoffs.length}
+                                    </span>
+                                  )}
                                 </div>
                                 <p style={{ color: isTripToday ? "#92400e" : theme.subtext }} className="text-[11px] mt-1 truncate">
                                   {trip.requestorName} · {formatDateTime(trip.departureDatetime)} · {trip.passengerCount} pax
@@ -987,6 +996,27 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     {viewingTrip.dropoffLabel}
                   </p>
                 </div>
+                {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-1 ml-[22px]">
+                    {viewingTrip.additionalDropoffs.map((stop, idx) => (
+                      <div key={stop.locationId ?? idx} className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                          className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center text-[9px] font-bold"
+                        >
+                          {idx + 2}
+                        </span>
+                        <span
+                          style={{ color: theme.subtext }}
+                          className="text-[12px] font-medium leading-snug truncate"
+                          title={stop.locationText}
+                        >
+                          {stop.locationText}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p style={{ color: theme.subtext }} className="text-[11px] mt-1.5">
                   {viewingTrip.tripRef}
                 </p>
