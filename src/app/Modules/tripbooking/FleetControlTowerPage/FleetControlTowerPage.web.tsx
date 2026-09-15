@@ -140,6 +140,8 @@ function StackedKpiCard({
   );
 }
 
+const ON_TRIP_STATUSES_FOR_CARD = ["ongoing", "arrived", "returning"];
+
 function StatusBadge({
   config,
   size = "md",
@@ -433,34 +435,45 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                             </button>
                           </div>
                         </div>
-                        <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between mt-1.5">
+                        <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between mt-1.5 mb-2.5">
                           <span>Seating capacity</span>
                           <span style={{ color: theme.text }} className="font-semibold">
-                            {v.seatingCapacity} pax
+                            {v.seatingCapacity} seater
                           </span>
                         </div>
-                        {ongoingTripByVehicleId[v.id]?.dropoffLabel && (
-                          <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between gap-2 mt-1.5">
-                            <span className="flex-shrink-0">Drop-off</span>
-                            <span
-                              style={{ color: theme.text }}
-                              className="font-semibold truncate text-right"
-                              title={ongoingTripByVehicleId[v.id].dropoffLabel}
-                            >
-                              {ongoingTripByVehicleId[v.id].dropoffLabel}
-                            </span>
-                          </div>
-                        )}
                         {onTripVehicleIds.has(v.id) && (
-                          <div style={{ color: theme.subtext, borderColor: theme.border }} className="text-[11.5px] mt-2 pt-2 border-t">
-                            Driver:{" "}
-                            <span style={{ color: theme.text }} className="font-semibold">
-                              {v.assignedDriverName ?? "Unassigned"}
-                            </span>
+                          <div
+                            style={{ backgroundColor: "rgba(61,111,224,0.16)", borderColor: "rgba(61,111,224,0.5)" }}
+                            className="rounded-lg border p-2.5"
+                          >
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D6FE0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+                              </svg>
+                              <span style={{ color: theme.text }} className="text-[12px] font-semibold">
+                                {v.assignedDriverName ?? "Unassigned"}
+                              </span>
+                            </div>
+                            {ongoingTripByVehicleId[v.id]?.dropoffLabel && (
+                              <div className="flex items-start gap-1.5 mb-1.5">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D6FE0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                <span style={{ color: theme.subtext }} className="text-[11.5px] leading-snug">
+                                  {ongoingTripByVehicleId[v.id].dropoffLabel}
+                                </span>
+                              </div>
+                            )}
                             {ongoingTripByVehicleId[v.id]?.purpose && (
-                              <div className="mt-1">
-                                Purpose:{" "}
-                                <span style={{ color: theme.text }} className="font-semibold">
+                              <div className="flex items-center gap-1.5">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D6FE0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                                  <path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3" />
+                                  <path d="M9 12h6M9 16h6" />
+                                </svg>
+                                <span style={{ color: theme.subtext }} className="text-[11.5px]">
                                   {ongoingTripByVehicleId[v.id].purpose}
                                 </span>
                               </div>
@@ -520,26 +533,12 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                         style={{ backgroundColor: theme.surface, borderColor: theme.border, opacity: isAvailable ? 1 : 0.55 }}
                         className="rounded-xl border p-3.5 transition-opacity"
                       >
-                        <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center justify-between gap-2 mb-1">
                           <p style={{ color: theme.text }} className="text-[13.5px] font-semibold">
                             {d.name}
                           </p>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {onTrip ? (
-                              <>
-                                <StatusBadge config={onTripCfg} size="sm" />
-                                {d.vehiclePlate && (
-                                  <span
-                                    style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full border font-mono whitespace-nowrap"
-                                  >
-                                    {d.vehiclePlate}
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              <StatusBadge config={dutyCfg} size="sm" />
-                            )}
+                            <StatusBadge config={onTrip ? onTripCfg : dutyCfg} size="sm" />
                             <button
                               onClick={() => openEditDriver(d)}
                               style={{ color: theme.subtext, borderColor: theme.border }}
@@ -552,12 +551,51 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                             </button>
                           </div>
                         </div>
-                        <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between">
+                        <div style={{ color: theme.subtext }} className="text-[11.5px] flex justify-between mb-2.5">
                           <span>Contact</span>
                           <span style={{ color: theme.text }} className="font-semibold">
                             {d.contactNumber ?? "—"}
                           </span>
                         </div>
+                        {onTrip && (
+                          <div
+                            style={{ backgroundColor: "rgba(61,111,224,0.16)", borderColor: "rgba(61,111,224,0.5)" }}
+                            className="rounded-lg border p-2.5"
+                          >
+                            {d.vehiclePlate && (
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D6FE0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                                  <circle cx="7" cy="17" r="2" />
+                                  <path d="M9 17h6" />
+                                  <circle cx="17" cy="17" r="2" />
+                                </svg>
+                                <span style={{ color: theme.text }} className="text-[12px] font-semibold">
+                                  {(() => {
+                                    const v = vehicles.find((veh) => veh.plateNumber === d.vehiclePlate);
+                                    return v?.model ? `${v.model} · ${d.vehiclePlate}` : d.vehiclePlate;
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+                            {(() => {
+                              const currentTrip = trips.find(
+                                (t) => t.driverId === d.userId && ON_TRIP_STATUSES_FOR_CARD.includes(t.status),
+                              );
+                              return currentTrip?.dropoffLabel ? (
+                                <div className="flex items-start gap-1.5">
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D6FE0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                  </svg>
+                                  <span style={{ color: theme.subtext }} className="text-[11.5px] leading-snug">
+                                    {currentTrip.dropoffLabel}
+                                  </span>
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -683,6 +721,14 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                       const isTripToday = isToday(trip.departureDatetime);
                       const delayInfo = getDelayInfo(trip);
 
+                      const metaTextColor = isTripToday ? "#92400e" : theme.subtext;
+                      const vehicleLabel = trip.vehiclePlate
+                        ? (() => {
+                            const v = vehicles.find((veh) => veh.id === trip.vehicleId);
+                            return v?.model ? `${v.model} · ${trip.vehiclePlate}` : trip.vehiclePlate;
+                          })()
+                        : null;
+
                       return (
                         <div
                           key={trip.id}
@@ -692,63 +738,40 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                           }}
                           className="rounded-lg border p-3"
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <div
-                                style={{ backgroundColor: colors.bg, color: colors.text, width: 28, height: 28, flexShrink: 0 }}
-                                className="rounded-full flex items-center justify-center text-[10px] font-bold"
-                              >
-                                {getInitials(trip.requestorName)}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span style={{ backgroundColor: "#22c55e", width: 6, height: 6, borderRadius: 3 }} className="flex-shrink-0" />
-                                  <p
-                                    style={{ color: isTripToday ? "#78350f" : theme.text }}
-                                    className="text-[12.5px] font-semibold leading-tight truncate"
-                                    title={trip.pickupLabel}
-                                  >
-                                    {trip.pickupLabel}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                                    <circle cx="12" cy="10" r="3" />
-                                  </svg>
-                                  <p
-                                    style={{ color: isTripToday ? "#78350f" : theme.text }}
-                                    className="text-[12.5px] font-semibold leading-tight truncate"
-                                    title={trip.dropoffLabel}
-                                  >
-                                    {trip.dropoffLabel}
-                                  </p>
-                                  {trip.additionalDropoffs && trip.additionalDropoffs.length > 0 && (
-                                    <span
-                                      style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
-                                      className="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap"
-                                      title={trip.additionalDropoffs.map((s) => s.locationText).join(", ")}
-                                    >
-                                      +{trip.additionalDropoffs.length}
-                                    </span>
-                                  )}
-                                </div>
-                                <p style={{ color: isTripToday ? "#92400e" : theme.subtext }} className="text-[11px] mt-1 truncate">
-                                  {trip.requestorName} · {formatDateTime(trip.departureDatetime)} · {trip.passengerCount} pax
-                                  {(trip.vehiclePlate || trip.driverName) && (
-                                    <>
-                                      {" · "}
-                                      {trip.vehiclePlate
-                                        ? (() => {
-                                            const v = vehicles.find((veh) => veh.id === trip.vehicleId);
-                                            return v?.model ? `${v.model} - ${trip.vehiclePlate}` : trip.vehiclePlate;
-                                          })()
-                                        : ""}
-                                      {trip.vehiclePlate && trip.driverName ? " – " : ""}
-                                      {trip.driverName ?? ""}
-                                    </>
-                                  )}
+                          {/* Top row — route + status badges + action */}
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span style={{ backgroundColor: "#22c55e", width: 6, height: 6, borderRadius: 3 }} className="flex-shrink-0" />
+                                <p
+                                  style={{ color: isTripToday ? "#78350f" : theme.text }}
+                                  className="text-[12.5px] font-semibold leading-tight truncate"
+                                  title={trip.pickupLabel}
+                                >
+                                  {trip.pickupLabel}
                                 </p>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0 mt-1">
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                <p
+                                  style={{ color: isTripToday ? "#78350f" : theme.text }}
+                                  className="text-[12.5px] font-semibold leading-tight truncate"
+                                  title={trip.dropoffLabel}
+                                >
+                                  {trip.dropoffLabel}
+                                </p>
+                                {trip.additionalDropoffs && trip.additionalDropoffs.length > 0 && (
+                                  <span
+                                    style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
+                                    className="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap"
+                                    title={trip.additionalDropoffs.map((s) => s.locationText).join(", ")}
+                                  >
+                                    +{trip.additionalDropoffs.length}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -786,6 +809,57 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                                 {ACTIVE_STATUSES.includes(trip.status) ? "Review" : "View"}
                               </button>
                             </div>
+                          </div>
+
+                          {/* Meta row — icon-labeled chips that wrap, instead of one
+                              long dot-separated line that got hard to scan. */}
+                          <div
+                            style={{ borderColor: isTripToday ? "rgba(146,64,14,0.2)" : theme.border }}
+                            className="flex flex-wrap gap-x-3.5 gap-y-1 border-t pt-2"
+                          >
+                            <span style={{ color: isTripToday ? "#78350f" : theme.text }} className="flex items-center gap-1 text-[11px] font-semibold">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+                              </svg>
+                              {trip.requestorName}
+                            </span>
+                            <span style={{ color: metaTextColor }} className="flex items-center gap-1 text-[11px]">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                              </svg>
+                              {formatDateTime(trip.departureDatetime)}
+                            </span>
+                            <span style={{ color: metaTextColor }} className="flex items-center gap-1 text-[11px]">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                              </svg>
+                              {trip.passengerCount} passenger{trip.passengerCount === 1 ? "" : "s"}
+                            </span>
+                            {vehicleLabel && (
+                              <span style={{ color: metaTextColor }} className="flex items-center gap-1 text-[11px]">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                                  <circle cx="7" cy="17" r="2" />
+                                  <path d="M9 17h6" />
+                                  <circle cx="17" cy="17" r="2" />
+                                </svg>
+                                {vehicleLabel}
+                              </span>
+                            )}
+                            {trip.driverName && (
+                              <span style={{ color: metaTextColor }} className="flex items-center gap-1 text-[11px]">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                                  <circle cx="12" cy="12" r="9" />
+                                  <path d="M12 7v3M9 17l1.5-4M15 17l-1.5-4M9 9.5 5.5 8M15 9.5 18.5 8" />
+                                </svg>
+                                {trip.driverName}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );

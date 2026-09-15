@@ -193,7 +193,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
           Full trip log — search and filter across every booking.
         </p>
         <p style={{ color: theme.subtext }} className="text-xs mt-0.5">
-          {filteredTrips.length} of {trips.length} trips
+          {filteredTrips.length} of {trips.filter((t) => !(t as any).isArchived).length} trips
         </p>
       </div>
 
