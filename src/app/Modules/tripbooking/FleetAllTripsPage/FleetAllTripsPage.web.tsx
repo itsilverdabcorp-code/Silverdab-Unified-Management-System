@@ -548,31 +548,42 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
             <div className="flex items-start justify-between gap-2 mb-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span style={{ backgroundColor: "#22c55e", width: 7, height: 7, borderRadius: 4 }} className="flex-shrink-0" />
+                  <span
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      border: "4px solid #22c55e",
+                      backgroundColor: "transparent",
+                    }}
+                    className="flex-shrink-0"
+                  />
                   <Truncated text={viewingTrip.pickupLabel} theme={theme} style={{ color: theme.text }} className="text-[13.5px] font-bold leading-snug" />
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0 mt-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
+                  <span
+                    style={{ backgroundColor: "#ef4444", color: "#fff" }}
+                    className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+                  >
+                    1
+                  </span>
                   <Truncated text={viewingTrip.dropoffLabel} theme={theme} style={{ color: theme.text }} className="text-[13.5px] font-bold leading-snug" />
                 </div>
                 {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
-                  <div className="flex flex-col gap-1 mt-1 ml-[22px]">
+                  <div className="flex flex-col gap-1 mt-1">
                     {viewingTrip.additionalDropoffs.map((stop, idx) => (
                       <div key={stop.locationId ?? idx} className="flex items-center gap-1.5 min-w-0">
                         <span
-                          style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
-                          className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center text-[9px] font-bold"
+                          style={{ backgroundColor: "#ef4444", color: "#fff" }}
+                          className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
                         >
                           {idx + 2}
                         </span>
                         <Truncated
                           text={stop.locationText}
                           theme={theme}
-                          style={{ color: theme.subtext }}
-                          className="text-[12px] font-medium leading-snug"
+                          style={{ color: theme.text }}
+                          className="text-[13.5px] font-bold leading-snug"
                         />
                       </div>
                     ))}

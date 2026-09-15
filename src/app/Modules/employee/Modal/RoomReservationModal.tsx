@@ -840,8 +840,7 @@ export default function RoomReservationModal({ visible, onClose, user, onSuccess
           alignItems: "center",
         }}
       >
-        <TouchableOpacity
-          activeOpacity={1}
+        <View
           style={{
             width: MODAL_W,
             maxHeight: winH * 0.88,
@@ -1196,7 +1195,7 @@ export default function RoomReservationModal({ visible, onClose, user, onSuccess
               </Text>
             </TouchableOpacity>
           </ScrollView>
-        </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );

@@ -5,7 +5,7 @@
 // useMonthlyReportData.ts, shared with MonthlyReportPage.native.tsx, so the
 // two platform UIs can never drift out of sync on how numbers are computed.
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser } from "../../../../../types";
 import {
@@ -240,6 +240,195 @@ function MonthSelector({
   );
 }
 
+// ─── Search bar ──────────────────────────────────────────────────────────────
+
+function SearchBar({
+  value,
+  onChange,
+  theme,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  theme: any;
+}) {
+  return (
+    <div className="relative flex-1 min-w-[160px] max-w-xs">
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{
+          color: theme.subtext,
+          position: "absolute",
+          left: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+        }}
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search items…"
+        style={{
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+        className="w-full h-9 pl-8 pr-3 text-sm border rounded-lg focus:outline-none"
+      />
+    </div>
+  );
+}
+
+// ─── Activity filter button ──────────────────────────────────────────────────
+
+const ACTIVITY_FILTER_OPTIONS: { value: ActivityDot["type"]; label: string }[] = [
+  { value: "delivered", label: "Delivery" },
+  { value: "consumed", label: "Consumed" },
+  { value: "both", label: "Delivered + Consumed" },
+  { value: "none", label: "No activity" },
+];
+
+function ActivityFilterButton({
+  selected,
+  onChange,
+  theme,
+}: {
+  selected: ActivityDot["type"][];
+  onChange: (v: ActivityDot["type"][]) => void;
+  theme: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  function toggle(value: ActivityDot["type"]) {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value],
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          backgroundColor: theme.surface,
+          color: theme.text,
+          borderColor: theme.border,
+        }}
+        className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium rounded-lg border whitespace-nowrap"
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        Filter
+        {selected.length > 0 && (
+          <span
+            style={{ backgroundColor: theme.primary, color: theme.primaryText }}
+            className="flex items-center justify-center rounded-full text-[10px] font-semibold w-4 h-4"
+          >
+            {selected.length}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            backgroundColor: theme.surfaceRaised ?? theme.surface,
+            borderColor: theme.border,
+          }}
+          className="absolute right-0 mt-1 w-72 rounded-xl border shadow-lg z-30 p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ color: theme.text }}
+              >
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              <span style={{ color: theme.text }} className="text-sm font-semibold">
+                Filter
+              </span>
+            </div>
+            {selected.length > 0 && (
+              <button
+                onClick={() => onChange([])}
+                style={{ color: theme.primary }}
+                className="text-xs font-medium"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          <p
+            style={{ color: theme.subtext }}
+            className="text-[10px] font-semibold uppercase tracking-wide mb-2"
+          >
+            Activity
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {ACTIVITY_FILTER_OPTIONS.map((opt) => {
+              const isSelected = selected.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => toggle(opt.value)}
+                  style={{
+                    backgroundColor: isSelected ? theme.primarySubtle : theme.surface,
+                    color: isSelected ? theme.primarySubtleText : theme.text,
+                    borderColor: isSelected ? theme.primary : theme.border,
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-full border whitespace-nowrap transition-colors"
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Mobile item card (used inside the web page's own small-viewport view) ──
 
 function MonthlyItemCard({ row, theme }: { row: MonthlyItemRow; theme: any }) {
@@ -310,6 +499,10 @@ export default function MonthlyReportPage({ user }: Props) {
     setSelectedMonth,
     activeTab,
     setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    activityFilter,
+    setActivityFilter,
     transactions,
     loading,
     refreshing,
@@ -465,6 +658,16 @@ export default function MonthlyReportPage({ user }: Props) {
             />
           </div>
         )}
+
+        {/* ── Search + activity filter ── */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap justify-between">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} theme={theme} />
+          <ActivityFilterButton
+            selected={activityFilter}
+            onChange={setActivityFilter}
+            theme={theme}
+          />
+        </div>
 
         {error && (
           <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs px-3 py-2 mb-3">

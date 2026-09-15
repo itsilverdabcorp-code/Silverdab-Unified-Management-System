@@ -478,8 +478,9 @@ function StatTile({ icon, label, value, sub, bg, isDark, darkBg }: StatTileProps
         flex: 1,
         minWidth: 80,
         backgroundColor: isDark ? darkBg : bg,
-        borderRadius: 14,
-        padding: 12,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 9,
       }}
     >
       <View
@@ -487,13 +488,13 @@ function StatTile({ icon, label, value, sub, bg, isDark, darkBg }: StatTileProps
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 8,
+          marginBottom: 4,
         }}
       >
         <Text
           style={{
             fontFamily: "Outfit-medium",
-            fontSize: 12,
+            fontSize: 11.5,
             color: textColor,
           }}
         >
@@ -501,25 +502,26 @@ function StatTile({ icon, label, value, sub, bg, isDark, darkBg }: StatTileProps
         </Text>
         {icon}
       </View>
-      <Text
-        style={{
-          fontFamily: "Outfit-medium",
-          fontSize: 24,
-          color: textColor,
-          marginBottom: 2,
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        style={{
-          fontFamily: "Outfit",
-          fontSize: 10,
-          color: subTextColor,
-        }}
-      >
-        {sub}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+        <Text
+          style={{
+            fontFamily: "Outfit-medium",
+            fontSize: 20,
+            color: textColor,
+          }}
+        >
+          {value}
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Outfit",
+            fontSize: 10,
+            color: subTextColor,
+          }}
+        >
+          {sub}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -533,43 +535,47 @@ type StatStripProps = {
 function StatStrip({ counts, theme, isDark }: StatStripProps) {
   const iconColor = isDark ? "#0F1C22" : "#FFFFFF";
   return (
-    <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-      <StatTile
-        icon={<Clock size={14} color={iconColor} />}
-        label="Pending"
-        value={counts["Pending"]}
-        sub="Awaiting review"
-        bg={STAT_TILE_CONFIG.pending.bg}
-        darkBg={STAT_TILE_CONFIG.pending.darkBg}
-        isDark={isDark}
-      />
-      <StatTile
-        icon={<RefreshCw size={14} color={iconColor} />}
-        label="In Progress"
-        value={counts["In Progress"]}
-        sub="All time"
-        bg={STAT_TILE_CONFIG.inProgress.bg}
-        darkBg={STAT_TILE_CONFIG.inProgress.darkBg}
-        isDark={isDark}
-      />
-      <StatTile
-        icon={<CheckCircle size={14} color={iconColor} />}
-        label="Completed"
-        value={counts["Completed"]}
-        sub="All time"
-        bg={STAT_TILE_CONFIG.completed.bg}
-        darkBg={STAT_TILE_CONFIG.completed.darkBg}
-        isDark={isDark}
-      />
-      <StatTile
-        icon={<Package size={14} color={iconColor} />}
-        label="Total"
-        value={counts["All"]}
-        sub="Tickets"
-        bg={STAT_TILE_CONFIG.total.bg}
-        darkBg={STAT_TILE_CONFIG.total.darkBg}
-        isDark={isDark}
-      />
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+        <StatTile
+          icon={<Clock size={14} color={iconColor} />}
+          label="Pending"
+          value={counts["Pending"]}
+          sub="Awaiting review"
+          bg={STAT_TILE_CONFIG.pending.bg}
+          darkBg={STAT_TILE_CONFIG.pending.darkBg}
+          isDark={isDark}
+        />
+        <StatTile
+          icon={<RefreshCw size={14} color={iconColor} />}
+          label="In Progress"
+          value={counts["In Progress"]}
+          sub="All time"
+          bg={STAT_TILE_CONFIG.inProgress.bg}
+          darkBg={STAT_TILE_CONFIG.inProgress.darkBg}
+          isDark={isDark}
+        />
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <StatTile
+          icon={<CheckCircle size={14} color={iconColor} />}
+          label="Completed"
+          value={counts["Completed"]}
+          sub="All time"
+          bg={STAT_TILE_CONFIG.completed.bg}
+          darkBg={STAT_TILE_CONFIG.completed.darkBg}
+          isDark={isDark}
+        />
+        <StatTile
+          icon={<Package size={14} color={iconColor} />}
+          label="Total"
+          value={counts["All"]}
+          sub="Tickets"
+          bg={STAT_TILE_CONFIG.total.bg}
+          darkBg={STAT_TILE_CONFIG.total.darkBg}
+          isDark={isDark}
+        />
+      </View>
     </View>
   );
 }
@@ -790,6 +796,13 @@ function TicketRow({
 
 // ─── Mobile ticket card ────────────────────────────────────────────────────────
 
+function SourceIcon({ source, color, size = 16 }: { source: TicketSource; color: string; size?: number }) {
+  if (source === "it") return <MonitorSmartphone size={size} color={color} />;
+  if (source === "trip") return <Car size={size} color={color} />;
+  if (source === "room") return <Users size={size} color={color} />;
+  return <Package size={size} color={color} />;
+}
+
 function TicketCard({
   ticket,
   onPress,
@@ -801,70 +814,89 @@ function TicketCard({
   theme: any;
   primary: string;
 }) {
+  const src = SOURCE_CONFIG[ticket._source];
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
       style={{
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        backgroundColor: theme.surface ?? theme.background,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+        marginHorizontal: 14,
+        marginVertical: 6,
         paddingHorizontal: 14,
         paddingVertical: 12,
       }}
     >
       <View
         style={{
-          flexDirection: "row",
+          width: 34,
+          height: 34,
+          borderRadius: 9,
+          backgroundColor: src.bg,
           alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 6,
+          justifyContent: "center",
+          flexShrink: 0,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <SourceIcon source={ticket._source} color={src.text} />
+      </View>
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 3,
+          }}
+        >
           <Text
             style={{
               fontFamily: "Outfit-medium",
-              fontSize: 11,
-              color: primary,
+              fontSize: 13.5,
+              color: theme.textActive ?? theme.text,
+              flexShrink: 1,
             }}
+            numberOfLines={1}
+          >
+            {ticket.title}
+          </Text>
+          <View style={{ flexShrink: 0 }}>
+            <StatusBadge status={ticket.displayStatus ?? ticket.status} />
+          </View>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text
+            style={{ fontFamily: "Outfit-medium", fontSize: 11, color: primary }}
           >
             #{ticket.ticketNumber ? ticket.ticketNumber.slice(-4) : "----"}
           </Text>
-          <SourceTag source={ticket._source} />
+          <Text style={{ fontFamily: "Outfit", fontSize: 10, color: theme.border }}>
+            •
+          </Text>
+          <Text
+            style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
+            numberOfLines={1}
+          >
+            {ticket.category}
+          </Text>
+          <Text style={{ fontFamily: "Outfit", fontSize: 10, color: theme.border }}>
+            •
+          </Text>
+          <Text
+            style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
+          >
+            {toReadableDate(ticket.dateCreated)}
+          </Text>
         </View>
-        <StatusBadge status={ticket.displayStatus ?? ticket.status} />
-      </View>
-
-      <Text
-        style={{
-          fontFamily: "Outfit-medium",
-          fontSize: 13,
-          color: theme.textActive ?? theme.text,
-          marginBottom: 3,
-        }}
-        numberOfLines={1}
-      >
-        {ticket.title}
-      </Text>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Text
-          style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
-          numberOfLines={1}
-        >
-          {ticket.category}
-        </Text>
-        <Text
-          style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}
-        >
-          {toReadableDate(ticket.dateCreated)}
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -3494,21 +3526,22 @@ export default function TicketHubPage({ user }: Props) {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            load(true);
-          }}
-          tintColor={primary}
-        />
-      }
-    >
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load(true);
+            }}
+            tintColor={primary}
+          />
+        }
+      >
       <View style={{ padding: 20 }}>
         {/* Page header */}
         <View
@@ -3552,6 +3585,25 @@ export default function TicketHubPage({ user }: Props) {
               Active and pending requests
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              setRefreshing(true);
+              load(true);
+            }}
+            activeOpacity={0.7}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 9,
+              backgroundColor: theme.surface ?? theme.background,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <RefreshCw size={14} color={theme.subtext} />
+          </TouchableOpacity>
         </View>
 
         {/* Step bar for HR multi-step */}
@@ -3567,6 +3619,7 @@ export default function TicketHubPage({ user }: Props) {
           {renderRightPanel()}
         </View>
       </View>
+      </ScrollView>
 
       {step === 1 && (
         <FabMenu
@@ -3639,6 +3692,6 @@ export default function TicketHubPage({ user }: Props) {
         onCancelSupplyRequest={handleCancelSupplyRequest}
         onCancelRoomReservation={handleCancelRoomReservation}
       />
-    </ScrollView>
+    </View>
   );
 }

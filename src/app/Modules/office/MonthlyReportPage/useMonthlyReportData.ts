@@ -288,6 +288,8 @@ type Props = { user?: ADUser };
 export function useMonthlyReportData({ user }: Props) {
   const [selectedMonth, setSelectedMonth] = useState<string>(getYYYYMM(new Date()));
   const [activeTab, setActiveTab] = useState<CategoryTab | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activityFilter, setActivityFilter] = useState<ActivityDot["type"][]>([]);
   const [items, setItems] = useState<OfficeInventoryItem[]>([]);
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -424,9 +426,24 @@ export function useMonthlyReportData({ user }: Props) {
   }, [monthlyRows]);
 
   const filteredRows = useMemo(() => {
-    if (activeTab === "all") return monthlyRows;
-    return monthlyRows.filter((r) => r.category === activeTab);
-  }, [monthlyRows, activeTab]);
+    let rows = activeTab === "all" ? monthlyRows : monthlyRows.filter((r) => r.category === activeTab);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      rows = rows.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.itemCode.toLowerCase().includes(q) ||
+          r.brand.toLowerCase().includes(q),
+      );
+    }
+
+    if (activityFilter.length > 0) {
+      rows = rows.filter((r) => r.activityDots.some((dot) => activityFilter.includes(dot.type)));
+    }
+
+    return rows;
+  }, [monthlyRows, activeTab, searchQuery, activityFilter]);
 
   const kpi = useMemo(() => {
     const totalConsumptionValue = monthlyRows.reduce((s, r) => s + r.consumptionAmount, 0);
@@ -448,6 +465,10 @@ export function useMonthlyReportData({ user }: Props) {
     setSelectedMonth,
     activeTab,
     setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    activityFilter,
+    setActivityFilter,
     transactions,
     loading,
     refreshing,

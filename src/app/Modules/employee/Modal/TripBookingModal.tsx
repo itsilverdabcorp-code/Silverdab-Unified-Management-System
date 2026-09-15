@@ -9,8 +9,9 @@ import {
   Modal,
   ActivityIndicator,
   useWindowDimensions,
+  Platform,
 } from "react-native";
-import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed } from "lucide-react-native";
+import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed, ArrowRight, ArrowLeft } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, displayDepartment } from "../../../../../types";
 import { submitTripRequest, getAllFleetLocations, rescheduleFleetTrip, updateFleetTripDropoffs } from "../../../../services/fleetOps";
@@ -167,6 +168,38 @@ function LocationSelect({
 }
 
 export default function TripBookingModal({ visible, onClose, user, onSuccess, editTrip }: Props) {
+  if (Platform.OS !== "web") {
+    return (
+      <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 24,
+          }}
+        >
+          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxWidth: 320 }}>
+            <Text style={{ fontFamily: "Outfit-medium", fontSize: 15, marginBottom: 8 }}>
+              Trip booking isn't available on mobile yet
+            </Text>
+            <Text style={{ fontFamily: "Outfit", fontSize: 13, color: "#666", marginBottom: 16 }}>
+              Please use the web app to book or modify a trip for now.
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.8}
+              style={{ alignSelf: "flex-end", paddingVertical: 8, paddingHorizontal: 14 }}
+            >
+              <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#4169E1" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   const isEditMode = !!editTrip;
   const safeUser = user ?? ({ username: "", displayName: "" } as ADUser);
   const { theme } = useTheme();
@@ -534,7 +567,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   const [departureTime, setDepartureTime] = useState("");
   const [purpose, setPurpose] = useState("");
 
-  const [step, setStep] = useState<"form" | "confirm">("form");
+  const [step, setStep] = useState<"form" | "route" | "confirm">("form");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -631,6 +664,29 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setPassengers((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Mobile splits the form into two pages — details, then route/pins.
+  // This validates only the details half so "Next" can block on an empty
+  // purpose without requiring pins that haven't been set yet.
+  function handleNextToRoute() {
+    setError("");
+
+    const modifiableStatuses = ["pending", "approved", "arrived"];
+    if (isEditMode && editTrip && !modifiableStatuses.includes(editTrip.status)) {
+      setError("This trip can no longer be modified.");
+      return;
+    }
+    if (!departureDate.trim() || !departureTime.trim()) {
+      setError("Departure date and time are required.");
+      return;
+    }
+    if (!purpose.trim()) {
+      setError("Purpose / remarks is required.");
+      return;
+    }
+
+    setStep("route");
+  }
+
   function handleReview() {
     setError("");
 
@@ -640,20 +696,27 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
       return;
     }
 
+    // On mobile each error belongs to a specific page — send the person
+    // back to the page that actually holds the offending field, otherwise
+    // the message renders on a screen they can't see.
     if (!pickupPoint) {
       setError("Set a pickup point on the map.");
+      if (isMobile) setStep("route");
       return;
     }
     if (dropoffStops.some((s) => !s.point)) {
       setError("Set a drop-off point for every stop on the map.");
+      if (isMobile) setStep("route");
       return;
     }
     if (!departureDate.trim() || !departureTime.trim()) {
       setError("Departure date and time are required.");
+      if (isMobile) setStep("form");
       return;
     }
     if (!purpose.trim()) {
       setError("Purpose / remarks is required.");
+      if (isMobile) setStep("form");
       return;
     }
 
@@ -899,7 +962,17 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                 New request
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                <Car size={16} color={primary} />
+                {isMobile && step !== "form" ? (
+                  <TouchableOpacity
+                    onPress={() => setStep(step === "confirm" ? "route" : "form")}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel="Go back"
+                  >
+                    <ArrowLeft size={17} color={theme.subtext} />
+                  </TouchableOpacity>
+                ) : (
+                  <Car size={16} color={primary} />
+                )}
                 <Text
                   style={{
                     fontFamily: "Outfit-medium",
@@ -919,8 +992,13 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                   lineHeight: 17,
                 }}
               >
-                Fill in your trip details. Dispatch will assign a vehicle and
-                driver once approved.
+                {isMobile
+                  ? step === "route"
+                    ? "Step 2 of 2 — set your pickup and drop-off pins."
+                    : step === "confirm"
+                      ? "Review your request before submitting."
+                      : "Step 1 of 2 — trip details."
+                  : "Fill in your trip details. Dispatch will assign a vehicle and driver once approved."}
               </Text>
             </View>
             <TouchableOpacity
@@ -940,16 +1018,28 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
             </TouchableOpacity>
           </View>
 
+          {isMobile && (
+            <View style={{ height: 3, backgroundColor: theme.border }}>
+              <View
+                style={{
+                  height: 3,
+                  width: step === "form" ? "50%" : "100%",
+                  backgroundColor: primary,
+                }}
+              />
+            </View>
+          )}
+
           <ScrollView
             // @ts-ignore — react-native-web forwards className to the underlying div
             className={SCROLL_THEME_CLASS}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ padding: isMobile ? 16 : 20, paddingBottom: 30 }}
           >
-            {step === "form" && (
+            {(step === "form" || step === "route") && (
             <>
             <View style={isMobile ? { flexDirection: "column" } : { flexDirection: "row", gap: 24 }}>
-            <View style={isMobile ? {} : { flex: 1, minWidth: 0 }}>
+            <View style={isMobile ? (step === "form" ? {} : { display: "none" }) : { flex: 1, minWidth: 0 }}>
 
             {/* ── Card: Trip details ── */}
             <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 14 }}>
@@ -1173,7 +1263,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
             ) : null}
 
             <TouchableOpacity
-              onPress={handleReview}
+              onPress={isMobile ? handleNextToRoute : handleReview}
               activeOpacity={0.8}
               style={{
                 backgroundColor: primary,
@@ -1186,16 +1276,20 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                 marginTop: 4,
               }}
             >
-              <Car size={14} color="#fff" />
+              {isMobile ? <ArrowRight size={14} color="#fff" /> : <Car size={14} color="#fff" />}
               <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                {isEditMode ? "Review Changes" : "Review Booking Request"}
+                {isMobile
+                  ? "Next: set route"
+                  : isEditMode
+                    ? "Review Changes"
+                    : "Review Booking Request"}
               </Text>
             </TouchableOpacity>
             </View>
 
             {/* ── Right column: Route (map) + labels — given the extra
                 width so the map itself can render bigger. ── */}
-            <View style={isMobile ? { marginTop: 4 } : { flex: 2, minWidth: 0 }}>
+            <View style={isMobile ? (step === "route" ? { marginTop: 4 } : { display: "none" }) : { flex: 2, minWidth: 0 }}>
 
             {/* Pickup / Drop-off pin map — the actual source of truth for
                 where the trip starts and ends. Tap the map, search an
@@ -1495,7 +1589,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                   }
                 }}
                 theme={theme}
-                height={isMobile ? 260 : 480}
+                height={isMobile ? Math.max(300, Math.round(winH * 0.42)) : 480}
               />
 
               <View
@@ -1559,7 +1653,59 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
               </View>
             </Field>
 
-
+            {/* Mobile-only action bar for the route page — the desktop
+                layout submits from the left column's button, which is
+                hidden here, so page 2 needs its own back/review pair. */}
+            {isMobile && (
+              <View style={{ marginTop: 12 }}>
+                {error ? (
+                  <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 8 }}>
+                    {error}
+                  </Text>
+                ) : null}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setError("");
+                      setStep("form");
+                    }}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 13,
+                      borderRadius: 8,
+                      borderWidth: 1.5,
+                      borderColor: theme.border,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>
+                      Back
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleReview}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 2,
+                      backgroundColor: primary,
+                      borderRadius: 8,
+                      paddingVertical: 13,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "row",
+                      gap: 8,
+                    }}
+                  >
+                    <Car size={14} color="#fff" />
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                      {isEditMode ? "Review Changes" : "Review Booking Request"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             </View>
             </View>
@@ -1643,7 +1789,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
 
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity
-                    onPress={() => setStep("form")}
+                    onPress={() => setStep(isMobile ? "route" : "form")}
                     activeOpacity={0.8}
                     style={{
                       flex: 1,

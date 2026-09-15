@@ -401,21 +401,33 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
 
   // ── Trip list (filtered, live trips first) ──────────────────────────────
 
+  // Explicit priority order for the Trip Requests list: pending needs
+  // assignment first, then approved (waiting on the driver to start),
+  // then ongoing (already moving). Anything else (arrived, returning)
+  // falls after, in whatever order today/departure-time sorting gives it.
+  const STATUS_SORT_PRIORITY: Record<TripStatus, number> = {
+    pending: 0,
+    approved: 1,
+    ongoing: 2,
+    arrived: 3,
+    returning: 3,
+    completed: 4,
+    cancelled: 4,
+    rejected: 4,
+  };
+
   const filteredTrips = useMemo(() => {
     let result = trips.filter(
       (t) => t.status !== "completed" && t.status !== "cancelled" && t.status !== "rejected",
     );
     if (statusFilter !== "all") result = result.filter((t) => t.status === statusFilter);
     return [...result].sort((a, b) => {
-      const aToday = isToday(a.departureDatetime) ? 0 : 1;
-      const bToday = isToday(b.departureDatetime) ? 0 : 1;
-      if (aToday !== bToday) return aToday - bToday;
-      const aActive = ACTIVE_STATUSES.includes(a.status) ? 0 : 1;
-      const bActive = ACTIVE_STATUSES.includes(b.status) ? 0 : 1;
-      if (aActive !== bActive) return aActive - bActive;
-      return (
-        new Date(a.departureDatetime).getTime() - new Date(b.departureDatetime).getTime()
-      );
+      const aDate = new Date(a.departureDatetime).getTime();
+      const bDate = new Date(b.departureDatetime).getTime();
+      if (aDate !== bDate) return aDate - bDate;
+      const aPriority = STATUS_SORT_PRIORITY[a.status] ?? 4;
+      const bPriority = STATUS_SORT_PRIORITY[b.status] ?? 4;
+      return aPriority - bPriority;
     });
   }, [trips, statusFilter]);
 

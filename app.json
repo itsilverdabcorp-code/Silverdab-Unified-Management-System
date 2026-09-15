@@ -35,6 +35,12 @@
           "imageWidth": 76
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to set pickup and drop-off pins."
+        }
+      ],
       "expo-font",
       "expo-sharing",
       "@react-native-community/datetimepicker",
