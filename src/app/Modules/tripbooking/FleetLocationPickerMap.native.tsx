@@ -1,18 +1,22 @@
 // app/Modules/tripbooking/FleetLocationPickerMap.native.tsx
 //
 // Native counterpart to FleetLocationPickerMap.tsx (web/MapLibre version).
-// Same props, same behavior (search, reverse-geocode on pin drop, preset
-// dots, multi-stop pins with a legend, locate-me), reimplemented on
-// react-native-maps + expo-location since MapLibre-in-a-div and browser
-// geolocation don't exist on native. Expo resolves this file automatically
-// for iOS/Android builds because of the .native.tsx suffix — the web file
-// keeps its plain .tsx name and is used for web builds instead. Callers
-// (e.g. TripBookingModal.tsx) import "../../tripbooking/FleetLocationPickerMap"
-// and never need to know which of the two loaded.
+// Uses @maplibre/maplibre-react-native v11 (new-architecture-only release,
+// API aligned with maplibre-gl-js) instead of react-native-maps, so no
+// Google Maps API key or Play Services Maps SDK is needed on Android.
+// Renders the SAME plain OSM raster style (STREETS_STYLE) as the web
+// file — no PMTiles, no vector style, no sprite/glyph resolution needed,
+// since it's a single raster layer with already-absolute tile URLs.
 //
-// searchAddress() / reverseGeocode() are plain fetch() calls to Photon with
-// no DOM dependency, so they're duplicated here unchanged from the web
-// file rather than shared, to avoid introducing a new shared module.
+// Key v11 API renames vs. the older MapLibre RN API (and vs. what a web
+// search might turn up for older docs):
+//   MapView -> Map, PointAnnotation -> ViewAnnotation
+//   coordinate/centerCoordinate -> lngLat/center, zoomLevel -> zoom
+//   setCamera() -> setStop(), defaultSettings -> initialViewState
+//   onPress payload moved into event.nativeEvent
+//
+// searchAddress() / reverseGeocode() are unchanged from the original file
+// (plain fetch() calls to Photon, no map-library dependency).
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -23,13 +27,41 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import {
+  Map as MapLibreMap,
+  Camera as MapLibreCamera,
+  ViewAnnotation as MapLibreViewAnnotation,
+  UserLocation as MapLibreUserLocation,
+} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import { Search, LocateFixed, X } from "lucide-react-native";
 import { FleetLocation } from "../../../../types";
 
 const PHOTON_SEARCH_URL = "https://photon.komoot.io/api/";
 const SEARCH_DEBOUNCE_MS = 300;
+
+// Same raster style as the web version (FleetLocationPickerMap.tsx) —
+// plain OpenStreetMap public tile servers, no API key, no vector
+// style/sprite/glyph resolution needed since it's a single raster layer
+// with already-absolute tile URLs. Kept in sync manually with the web
+// file's STREETS_STYLE constant; if that ever changes, mirror it here too.
+const STREETS_STYLE: any = {
+  version: 8,
+  sources: {
+    "raster-tiles": {
+      type: "raster",
+      tiles: [
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      maxzoom: 19, // OSM's public tile servers top out at z19
+      attribution: "&copy; OpenStreetMap contributors",
+    },
+  },
+  layers: [{ id: "raster-layer", type: "raster", source: "raster-tiles" }],
+};
 
 export type PlaceResult = {
   displayName: string;
@@ -109,12 +141,8 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string |
   }
 }
 
-const DEFAULT_REGION: Region = {
-  latitude: 14.6,
-  longitude: 121.0,
-  latitudeDelta: 0.5,
-  longitudeDelta: 0.5,
-};
+const DEFAULT_CENTER: [number, number] = [121.0, 14.6]; // [lon, lat]
+const DEFAULT_ZOOM = 9;
 
 type PickedPoint = { latitude: number; longitude: number; address?: string };
 
@@ -143,9 +171,12 @@ export default function FleetLocationPickerMap({
   activeKey,
   hideSearch = false,
 }: Props) {
-  const mapRef = useRef<MapView | null>(null);
+  // Using `any` for the ref type since the exported ref type name for
+  // Camera isn't confirmed here — swap in the real `CameraRef` type from
+  // the package if you want stricter typing.
+  const cameraRef = useRef<any>(null);
 
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showUserDot, setShowUserDot] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState("");
 
@@ -161,11 +192,13 @@ export default function FleetLocationPickerMap({
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const point = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      setUserLocation(point);
-      mapRef.current?.animateToRegion(
-        { ...point, latitudeDelta: 0.01, longitudeDelta: 0.01 },
-        800,
-      );
+      setShowUserDot(true);
+      lastCenterRef.current = { lat: point.latitude, lon: point.longitude };
+      cameraRef.current?.setStop({
+        center: [point.longitude, point.latitude],
+        zoom: 15,
+        duration: 800,
+      });
     } catch (err) {
       console.error("Geolocation failed:", err);
       setLocateError("Couldn't get your location.");
@@ -182,7 +215,11 @@ export default function FleetLocationPickerMap({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickRequestIdRef = useRef(0);
   const suppressNextSearchRef = useRef(false);
-  const lastRegionRef = useRef<Region>(DEFAULT_REGION);
+  // Used only to bias address search toward the last known point of
+  // interest. Updated on pick/select/locate rather than on every map
+  // region change, since the v11 region-change event payload shape
+  // isn't confirmed here.
+  const lastCenterRef = useRef<{ lat: number; lon: number }>({ lat: DEFAULT_CENTER[1], lon: DEFAULT_CENTER[0] });
 
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
@@ -208,7 +245,7 @@ export default function FleetLocationPickerMap({
     setSearchError("");
     debounceRef.current = setTimeout(async () => {
       try {
-        const bias = { lat: lastRegionRef.current.latitude, lon: lastRegionRef.current.longitude };
+        const bias = { lat: lastCenterRef.current.lat, lon: lastCenterRef.current.lon };
         const results = await searchAddress(query, bias);
         setSearchResults(results);
         setShowDropdown(true);
@@ -242,33 +279,51 @@ export default function FleetLocationPickerMap({
     .join("|");
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!cameraRef.current) return;
     if (allStops) {
       const validStops = allStops.filter((s) => s.point);
       if (validStops.length === 0) return;
       if (validStops.length === 1) {
         const only = validStops[0].point!;
-        mapRef.current.animateToRegion(
-          { latitude: only.latitude, longitude: only.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
-          500,
-        );
+        cameraRef.current.setStop({
+          center: [only.longitude, only.latitude],
+          zoom: 15,
+          duration: 500,
+        });
       } else {
-        mapRef.current.fitToCoordinates(
-          validStops.map((s) => ({ latitude: s.point!.latitude, longitude: s.point!.longitude })),
-          { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true },
-        );
+        const lats = validStops.map((s) => s.point!.latitude);
+        const lons = validStops.map((s) => s.point!.longitude);
+        // v11 bounds format: [west, south, east, north]
+        const bounds: [number, number, number, number] = [
+          Math.min(...lons),
+          Math.min(...lats),
+          Math.max(...lons),
+          Math.max(...lats),
+        ];
+        cameraRef.current.setStop({
+          bounds,
+          padding: { top: 60, right: 60, bottom: 60, left: 60 },
+          duration: 500,
+        });
       }
     } else if (value) {
-      mapRef.current.animateToRegion(
-        { latitude: value.latitude, longitude: value.longitude, latitudeDelta: 0.006, longitudeDelta: 0.006 },
-        500,
-      );
+      cameraRef.current.setStop({
+        center: [value.longitude, value.latitude],
+        zoom: 16,
+        duration: 500,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopsSignature, value?.latitude, value?.longitude, allStops]);
 
-  function handleMapPress(e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
+  function handleMapPress(event: any) {
+    // v11: payload lives in event.nativeEvent, coordinate field is lngLat.
+    const lngLat = event?.nativeEvent?.lngLat;
+    if (!Array.isArray(lngLat)) return;
+    const [longitude, latitude] = lngLat;
+    if (typeof latitude !== "number" || typeof longitude !== "number") return;
+
+    lastCenterRef.current = { lat: latitude, lon: longitude };
     const requestId = ++clickRequestIdRef.current;
     onPickRef.current({ latitude, longitude });
     reverseGeocode(latitude, longitude).then((address) => {
@@ -279,10 +334,12 @@ export default function FleetLocationPickerMap({
 
   function handleSelectResult(result: PlaceResult) {
     onPickRef.current({ latitude: result.lat, longitude: result.lon, address: result.displayName });
-    mapRef.current?.animateToRegion(
-      { latitude: result.lat, longitude: result.lon, latitudeDelta: 0.004, longitudeDelta: 0.004 },
-      700,
-    );
+    lastCenterRef.current = { lat: result.lat, lon: result.lon };
+    cameraRef.current?.setStop({
+      center: [result.lon, result.lat],
+      zoom: 17,
+      duration: 700,
+    });
     if (debounceRef.current) clearTimeout(debounceRef.current);
     suppressNextSearchRef.current = true;
     setSearchResults([]);
@@ -381,47 +438,53 @@ export default function FleetLocationPickerMap({
       )}
 
       <View style={{ height, width: "100%" }}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_GOOGLE}
+        <MapLibreMap
           style={{ flex: 1 }}
-          initialRegion={
-            value
-              ? { latitude: value.latitude, longitude: value.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
-              : DEFAULT_REGION
-          }
+          mapStyle={STREETS_STYLE}
           onPress={handleMapPress}
-          onRegionChangeComplete={(region) => {
-            lastRegionRef.current = region;
-          }}
         >
+          <MapLibreCamera
+            ref={cameraRef}
+            initialViewState={{
+              center: value ? [value.longitude, value.latitude] : DEFAULT_CENTER,
+              zoom: value ? 15 : DEFAULT_ZOOM,
+            }}
+          />
+
+          {showUserDot && <MapLibreUserLocation accuracy />}
+
           {presets.map((loc) =>
             loc.latitude != null && loc.longitude != null ? (
-              <Marker
-                key={loc.id}
-                coordinate={{ latitude: loc.latitude, longitude: loc.longitude }}
-                title={loc.name}
-                opacity={0.7}
-                pinColor="#94a3b8"
-              />
+              <MapLibreViewAnnotation
+                key={String(loc.id)}
+                id={`preset-${loc.id}`}
+                lngLat={[loc.longitude, loc.latitude]}
+              >
+                <View
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: "#94a3b8",
+                    opacity: 0.7,
+                    borderWidth: 1.5,
+                    borderColor: "#fff",
+                  }}
+                />
+              </MapLibreViewAnnotation>
             ) : null,
-          )}
-
-          {userLocation && (
-            <Marker coordinate={userLocation} title="Your location" pinColor="#4285F4" />
           )}
 
           {allStops
             ? validStops.map((stop, i) => {
                 const isPickup = stop.key === "pickup";
                 const label = isPickup ? "P" : String(i);
+                const isActive = stop.key === activeKey;
                 return (
-                  <Marker
+                  <MapLibreViewAnnotation
                     key={stop.key}
-                    coordinate={{ latitude: stop.point!.latitude, longitude: stop.point!.longitude }}
-                    title={stop.label}
-                    pinColor={isPickup ? "#22c55e" : "#ef4444"}
-                    opacity={stop.key === activeKey ? 1 : 0.85}
+                    id={`stop-${stop.key}`}
+                    lngLat={[stop.point!.longitude, stop.point!.latitude]}
                   >
                     <View
                       style={{
@@ -429,24 +492,32 @@ export default function FleetLocationPickerMap({
                         height: 26,
                         borderRadius: 13,
                         backgroundColor: isPickup ? "#22c55e" : "#ef4444",
-                        borderWidth: stop.key === activeKey ? 3 : 2,
-                        borderColor: stop.key === activeKey ? (theme.primary ?? "#2563eb") : "#fff",
+                        borderWidth: isActive ? 3 : 2,
+                        borderColor: isActive ? (theme.primary ?? "#2563eb") : "#fff",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
                       <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>{label}</Text>
                     </View>
-                  </Marker>
+                  </MapLibreViewAnnotation>
                 );
               })
             : value && (
-                <Marker
-                  coordinate={{ latitude: value.latitude, longitude: value.longitude }}
-                  pinColor={theme.primary ?? "#2563eb"}
-                />
+                <MapLibreViewAnnotation id="picked-value" lngLat={[value.longitude, value.latitude]}>
+                  <View
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      backgroundColor: theme.primary ?? "#2563eb",
+                      borderWidth: 2,
+                      borderColor: "#fff",
+                    }}
+                  />
+                </MapLibreViewAnnotation>
               )}
-        </MapView>
+        </MapLibreMap>
 
         {!value && !allStops?.some((s) => s.point) && (
           <View

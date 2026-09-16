@@ -13,6 +13,11 @@
     },
     "android": {
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_MAPS_API_KEY"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/logo_padded_square.png"
@@ -45,7 +50,8 @@
       "expo-sharing",
       "@react-native-community/datetimepicker",
       "expo-image",
-      "expo-notifications"
+      "expo-notifications",
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

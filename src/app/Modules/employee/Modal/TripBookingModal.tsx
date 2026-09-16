@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   Platform,
 } from "react-native";
-import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed, ArrowRight, ArrowLeft } from "lucide-react-native";
+import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed, ArrowRight, ArrowLeft, Star } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, displayDepartment } from "../../../../../types";
 import { submitTripRequest, getAllFleetLocations, rescheduleFleetTrip, updateFleetTripDropoffs } from "../../../../services/fleetOps";
@@ -19,6 +19,29 @@ import { FleetLocation, FleetTrip } from "../../../../../types";
 import FleetLocationPickerMap, { searchAddress, reverseGeocode, PlaceResult } from "../../tripbooking/FleetLocationPickerMap";
 
 type TripType = "oneway" | "roundtrip";
+
+const FAVORITE_PLACES_STORAGE_KEY = "TRIP_BOOKING_FAVORITE_PLACES";
+
+function placeKey(p: { lat: number; lon: number }): string {
+  return `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`;
+}
+
+function loadFavoritePlaces(): PlaceResult[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAVORITE_PLACES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavoritePlaces(places: PlaceResult[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FAVORITE_PLACES_STORAGE_KEY, JSON.stringify(places));
+  } catch {}
+}
 
 type Props = {
   visible: boolean;
@@ -168,37 +191,12 @@ function LocationSelect({
 }
 
 export default function TripBookingModal({ visible, onClose, user, onSuccess, editTrip }: Props) {
-  if (Platform.OS !== "web") {
-    return (
-      <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.45)",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 24,
-          }}
-        >
-          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, maxWidth: 320 }}>
-            <Text style={{ fontFamily: "Outfit-medium", fontSize: 15, marginBottom: 8 }}>
-              Trip booking isn't available on mobile yet
-            </Text>
-            <Text style={{ fontFamily: "Outfit", fontSize: 13, color: "#666", marginBottom: 16 }}>
-              Please use the web app to book or modify a trip for now.
-            </Text>
-            <TouchableOpacity
-              onPress={onClose}
-              activeOpacity={0.8}
-              style={{ alignSelf: "flex-end", paddingVertical: 8, paddingHorizontal: 14 }}
-            >
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#4169E1" }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  }
+  // Native (iOS/Android) now has a full FleetLocationPickerMap.native.tsx
+  // counterpart (react-native-maps + expo-location), so trip booking no
+  // longer needs to be blocked here — it only used to be blocked because
+  // the web version's map was DOM/MapLibre-only. The web-only branches
+  // further down (raw <input type="date">, document.createElement, HTML5
+  // drag/drop, createPortal) still only run when Platform.OS === "web".
 
   const isEditMode = !!editTrip;
   const safeUser = user ?? ({ username: "", displayName: "" } as ADUser);
@@ -206,6 +204,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   const primary = theme.primary ?? "#4169E1";
   const { width: winW, height: winH } = useWindowDimensions();
   const isMobile = winW < 768;
+  const isNative = Platform.OS !== "web";
 
   const departureDateRef = React.useRef<HTMLInputElement>(null);
   const departureTimeRef = React.useRef<HTMLInputElement>(null);
@@ -340,6 +339,34 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   const [inlineSearchResults, setInlineSearchResults] = useState<PlaceResult[]>([]);
   const [inlineSearchLoading, setInlineSearchLoading] = useState(false);
   const [inlineSearchOpenFor, setInlineSearchOpenFor] = useState<string | null>(null);
+  const [favoritePlaces, setFavoritePlaces] = useState<PlaceResult[]>([]);
+
+  useEffect(() => {
+    setFavoritePlaces(loadFavoritePlaces());
+  }, []);
+
+  function toggleFavoritePlace(place: PlaceResult) {
+    setFavoritePlaces((prev) => {
+      const key = placeKey(place);
+      const exists = prev.some((p) => placeKey(p) === key);
+      const next = exists ? prev.filter((p) => placeKey(p) !== key) : [...prev, place];
+      saveFavoritePlaces(next);
+      return next;
+    });
+  }
+
+  // Shows favorites the instant a field is focused with nothing typed yet —
+  // otherwise falls back to reopening whatever's already in inlineSearchResults.
+  function showFavoritesForField(fieldKey: string, currentText: string) {
+    if (currentText.trim().length === 0) {
+      if (favoritePlaces.length > 0) {
+        setInlineSearchResults(favoritePlaces);
+        openInlineDropdown(fieldKey);
+      }
+      return;
+    }
+    if (inlineSearchResults.length > 0) openInlineDropdown(fieldKey);
+  }
   const [inlineSearchRect, setInlineSearchRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const inlineSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inlineFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -385,6 +412,16 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   function triggerInlineSearch(fieldKey: string, query: string) {
     if (inlineSearchDebounceRef.current) clearTimeout(inlineSearchDebounceRef.current);
     const trimmed = query.trim();
+    if (trimmed.length === 0) {
+      if (favoritePlaces.length > 0) {
+        setInlineSearchResults(favoritePlaces);
+        openInlineDropdown(fieldKey);
+      } else {
+        setInlineSearchResults([]);
+        setInlineSearchOpenFor(null);
+      }
+      return;
+    }
     if (trimmed.length < 3) {
       setInlineSearchResults([]);
       setInlineSearchOpenFor(null);
@@ -881,32 +918,120 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                 Searching…
               </div>
             ) : (
-              inlineSearchResults.map((r, idx) => (
-                <div
-                  key={`${r.lat}-${r.lon}-${idx}`}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleInlineSelect(inlineSearchOpenFor, r);
-                  }}
-                  style={{
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    fontFamily: "Outfit",
-                    fontSize: 12,
-                    color: theme.textActive ?? theme.text,
-                    borderBottom: idx !== inlineSearchResults.length - 1 ? `1px solid ${theme.border}` : "none",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                >
-                  {r.displayName}
-                </div>
-              ))
+              inlineSearchResults.map((r, idx) => {
+                const isFavorite = favoritePlaces.some((p) => placeKey(p) === placeKey(r));
+                return (
+                  <div
+                    key={`${r.lat}-${r.lon}-${idx}`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleInlineSelect(inlineSearchOpenFor, r);
+                    }}
+                    style={{
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      borderBottom: idx !== inlineSearchResults.length - 1 ? `1px solid ${theme.border}` : "none",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 12,
+                        color: theme.textActive ?? theme.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {r.displayName}
+                    </span>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavoritePlace(r);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 2,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Star
+                        size={13}
+                        color={isFavorite ? "#FBBF24" : theme.subtext}
+                        fill={isFavorite ? "#FBBF24" : "transparent"}
+                      />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>,
           document.body,
         )
       : null;
+
+  if (isNative) {
+    return (
+      <NativeTripBookingForm
+        visible={visible}
+        onClose={onClose}
+        theme={theme}
+        primary={primary}
+        winW={winW}
+        winH={winH}
+        user={user}
+        isEditMode={isEditMode}
+        editTrip={editTrip}
+        passengers={passengers}
+        setPassengers={setPassengers}
+        passengerInput={passengerInput}
+        setPassengerInput={setPassengerInput}
+        addingPassenger={addingPassenger}
+        setAddingPassenger={setAddingPassenger}
+        locations={locations}
+        pickupText={pickupText}
+        setPickupText={setPickupText}
+        pickupPoint={pickupPoint}
+        setPickupPoint={setPickupPoint}
+        setPickupLocationId={setPickupLocationId}
+        dropoffStops={dropoffStops}
+        updateStop={updateStop}
+        handleAddStop={handleAddStop}
+        handleRemoveStop={handleRemoveStop}
+        activeMapField={activeMapField}
+        setActiveMapField={setActiveMapField}
+        departureDate={departureDate}
+        setDepartureDate={setDepartureDate}
+        departureTime={departureTime}
+        setDepartureTime={setDepartureTime}
+        purpose={purpose}
+        setPurpose={setPurpose}
+        step={step}
+        setStep={setStep}
+        error={error}
+        setError={setError}
+        submitting={submitting}
+        handleReview={handleReview}
+        handleSubmit={handleSubmit}
+        formatStopText={formatStopText}
+        resetForm={resetForm}
+      />
+    );
+  }
 
   return (
     <>
@@ -1336,7 +1461,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                     value={pickupText}
                     onFocus={() => {
                       setActiveMapField("pickup");
-                      if (inlineSearchResults.length > 0) openInlineDropdown("pickup");
+                      showFavoritesForField("pickup", pickupText);
                     }}
                     onChangeText={(text) => {
                       setPickupText(text);
@@ -1464,7 +1589,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                             value={stop.text}
                             onFocus={() => {
                               setActiveMapField(stop.id);
-                              if (inlineSearchResults.length > 0) openInlineDropdown(stop.id);
+                              showFavoritesForField(stop.id, stop.text);
                             }}
                             onChangeText={(text) => {
                               updateStop(stop.id, {
@@ -1835,5 +1960,403 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     </Modal>
     {inlineDropdown}
     </>
+  );
+}
+
+// ─── Native mobile form — single-column, RN-native inputs throughout.
+// Reuses FleetLocationPickerMap.native.tsx for pickup/drop-off pin
+// selection (search + tap-to-pin + reverse geocode, same as web), and
+// @react-native-community/datetimepicker for date/time instead of raw
+// <input> elements, which don't exist on native. ───────────────────────
+
+type NativeFormProps = {
+  visible: boolean;
+  onClose: () => void;
+  theme: any;
+  primary: string;
+  winW: number;
+  winH: number;
+  user: ADUser;
+  isEditMode: boolean;
+  editTrip?: FleetTrip;
+  passengers: string[];
+  setPassengers: React.Dispatch<React.SetStateAction<string[]>>;
+  passengerInput: string;
+  setPassengerInput: (v: string) => void;
+  addingPassenger: boolean;
+  setAddingPassenger: (v: boolean) => void;
+  locations: FleetLocation[];
+  pickupText: string;
+  setPickupText: (v: string) => void;
+  pickupPoint: { latitude: number; longitude: number; address?: string } | null;
+  setPickupPoint: (v: { latitude: number; longitude: number; address?: string } | null) => void;
+  setPickupLocationId: (v: string | null) => void;
+  dropoffStops: {
+    id: string;
+    point: { latitude: number; longitude: number; address?: string } | null;
+    text: string;
+    locationId: string | null;
+    label: string;
+    labelEdited: boolean;
+  }[];
+  updateStop: (id: string, patch: Partial<any>) => void;
+  handleAddStop: () => void;
+  handleRemoveStop: (id: string) => void;
+  activeMapField: string;
+  setActiveMapField: (v: string) => void;
+  departureDate: string;
+  setDepartureDate: (v: string) => void;
+  departureTime: string;
+  setDepartureTime: (v: string) => void;
+  purpose: string;
+  setPurpose: (v: string) => void;
+  step: "form" | "route" | "confirm";
+  setStep: (v: "form" | "route" | "confirm") => void;
+  error: string;
+  setError: (v: string) => void;
+  submitting: boolean;
+  handleReview: () => void;
+  handleSubmit: () => void;
+  formatStopText: (stop: { point: any; text: string; label: string }) => string;
+  resetForm: () => void;
+};
+
+function NativeTripBookingForm(props: NativeFormProps) {
+  const {
+    visible, onClose, theme, primary, winH, user, isEditMode,
+    passengers, passengerInput, setPassengerInput, addingPassenger, setAddingPassenger,
+    locations, pickupText, setPickupText, pickupPoint, setPickupPoint, setPickupLocationId,
+    dropoffStops, updateStop, handleAddStop, handleRemoveStop, activeMapField, setActiveMapField,
+    departureDate, setDepartureDate, departureTime, setDepartureTime, purpose, setPurpose,
+    step, setStep, error, setError, submitting, handleReview, handleSubmit, formatStopText,
+  } = props;
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Lazy-required so this file doesn't fail to load on web (where this
+  // package isn't installed/needed) — only ever reached when isNative.
+  const DateTimePicker = require("@react-native-community/datetimepicker").default;
+
+  const inputStyle = {
+    backgroundColor: theme.background,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: "Outfit",
+    fontSize: 13,
+    color: theme.textActive ?? theme.text,
+  };
+
+  function handleAddPassenger() {
+    const name = passengerInput.trim();
+    if (!name) {
+      setAddingPassenger(false);
+      return;
+    }
+    props.setPassengers((prev) => [...prev, name]);
+    setPassengerInput("");
+  }
+
+  function onDateChange(event: any, selected?: Date) {
+    setShowDatePicker(false);
+    if (event.type === "dismissed" || !selected) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDepartureDate(`${selected.getFullYear()}-${pad(selected.getMonth() + 1)}-${pad(selected.getDate())}`);
+  }
+
+  function onTimeChange(event: any, selected?: Date) {
+    setShowTimePicker(false);
+    if (event.type === "dismissed" || !selected) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    // Snap to the nearest 30-minute slot, same rule the web version enforces.
+    let h = selected.getHours();
+    const m = selected.getMinutes();
+    const snappedM = m < 15 ? 0 : m < 45 ? 30 : 0;
+    if (m >= 45) h = (h + 1) % 24;
+    setDepartureTime(`${pad(h)}:${pad(snappedM)}`);
+  }
+
+  const dateObjForPicker = departureDate ? new Date(`${departureDate}T${departureTime || "00:00"}:00`) : new Date();
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Header */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingTop: 18,
+            paddingBottom: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {step !== "form" && (
+              <TouchableOpacity
+                onPress={() => setStep(step === "confirm" ? "route" : "form")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <ArrowLeft size={17} color={theme.subtext} />
+              </TouchableOpacity>
+            )}
+            <Text style={{ fontFamily: "Outfit-medium", fontSize: 17, color: theme.textActive ?? theme.text }}>
+              {isEditMode ? "Modify Trip" : "Book a Trip"}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}
+          >
+            <X size={15} color={theme.subtext} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 3, backgroundColor: theme.border }}>
+          <View
+            style={{
+              height: 3,
+              width: step === "form" ? "33%" : step === "route" ? "66%" : "100%",
+              backgroundColor: primary,
+            }}
+          />
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          {step === "form" && (
+            <>
+              <Field label="Requestor" theme={theme}>
+                <View style={[inputStyle, { opacity: 0.7 }]}>
+                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.textActive ?? theme.text }}>
+                    {user.displayName}
+                  </Text>
+                </View>
+              </Field>
+
+              <Field label="Passengers" theme={theme}>
+                {passengers.map((name, i) => (
+                  <View
+                    key={`${name}-${i}`}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6, padding: 8, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border }}
+                  >
+                    <Text style={{ flex: 1, fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text }}>{name}</Text>
+                    <TouchableOpacity onPress={() => props.setPassengers((prev) => prev.filter((_, idx) => idx !== i))}>
+                      <X size={13} color={theme.subtext} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {addingPassenger ? (
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      style={[inputStyle, { flex: 1 }]}
+                      placeholder="Passenger name"
+                      placeholderTextColor={theme.subtext}
+                      value={passengerInput}
+                      onChangeText={setPassengerInput}
+                      onSubmitEditing={handleAddPassenger}
+                      autoFocus
+                    />
+                    <TouchableOpacity onPress={handleAddPassenger} style={{ backgroundColor: primary, borderRadius: 8, paddingHorizontal: 14, justifyContent: "center" }}>
+                      <Plus size={14} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => setAddingPassenger(true)}
+                    style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, borderStyle: "dashed" }}
+                  >
+                    <Plus size={13} color={theme.subtext} />
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>Add passenger</Text>
+                  </TouchableOpacity>
+                )}
+              </Field>
+
+              <Field label="Departure date" required theme={theme}>
+                <TouchableOpacity style={inputStyle} onPress={() => setShowDatePicker(true)}>
+                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: departureDate ? theme.textActive ?? theme.text : theme.subtext }}>
+                    {departureDate || "Select date"}
+                  </Text>
+                </TouchableOpacity>
+              </Field>
+
+              <Field label="Departure time" required theme={theme}>
+                <TouchableOpacity style={inputStyle} onPress={() => setShowTimePicker(true)}>
+                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: departureTime ? theme.textActive ?? theme.text : theme.subtext }}>
+                    {departureTime || "Select time"}
+                  </Text>
+                </TouchableOpacity>
+              </Field>
+
+              {showDatePicker && (
+                <DateTimePicker value={dateObjForPicker} mode="date" display="default" minimumDate={new Date()} onChange={onDateChange} />
+              )}
+              {showTimePicker && (
+                <DateTimePicker value={dateObjForPicker} mode="time" display="default" minuteInterval={30} onChange={onTimeChange} />
+              )}
+
+              <Field label="Purpose / remarks" required theme={theme}>
+                <TextInput
+                  style={[inputStyle, { height: 70, textAlignVertical: "top" }]}
+                  placeholder="e.g. Client visit"
+                  placeholderTextColor={theme.subtext}
+                  multiline
+                  value={purpose}
+                  onChangeText={setPurpose}
+                />
+              </Field>
+
+              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>{error}</Text> : null}
+
+              <TouchableOpacity
+                onPress={() => {
+                  setError("");
+                  if (!departureDate.trim() || !departureTime.trim()) {
+                    setError("Departure date and time are required.");
+                    return;
+                  }
+                  if (!purpose.trim()) {
+                    setError("Purpose / remarks is required.");
+                    return;
+                  }
+                  setStep("route");
+                }}
+                style={{ backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+              >
+                <ArrowRight size={14} color="#fff" />
+                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>Next: set route</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {step === "route" && (
+            <>
+              <Field label="Pickup" required theme={theme}>
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Pickup address"
+                  placeholderTextColor={theme.subtext}
+                  value={pickupText}
+                  onChangeText={(t) => {
+                    setPickupText(t);
+                    setPickupLocationId(null);
+                  }}
+                  onFocus={() => setActiveMapField("pickup")}
+                />
+              </Field>
+
+              {dropoffStops.map((stop, i) => (
+                <Field key={stop.id} label={`Drop-off ${i + 1}`} required={i === 0} theme={theme}>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      style={[inputStyle, { flex: 1 }]}
+                      placeholder={`Drop-off ${i + 1} address`}
+                      placeholderTextColor={theme.subtext}
+                      value={stop.text}
+                      onChangeText={(t) => updateStop(stop.id, { text: t, labelEdited: true })}
+                      onFocus={() => setActiveMapField(stop.id)}
+                    />
+                    {dropoffStops.length > 1 && (
+                      <TouchableOpacity onPress={() => handleRemoveStop(stop.id)} style={{ justifyContent: "center" }}>
+                        <X size={14} color={theme.subtext} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </Field>
+              ))}
+
+              <TouchableOpacity
+                onPress={handleAddStop}
+                style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, borderStyle: "dashed", marginBottom: 14 }}
+              >
+                <Plus size={13} color={theme.subtext} />
+                <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>Add another drop-off</Text>
+              </TouchableOpacity>
+
+              <FleetLocationPickerMap
+                presets={locations}
+                allStops={[
+                  { key: "pickup", label: pickupText || "Pickup", point: pickupPoint },
+                  ...dropoffStops.map((s, i) => ({ key: s.id, label: `Drop-off ${i + 1}: ${s.text || "—"}`, point: s.point })),
+                ]}
+                activeKey={activeMapField}
+                value={activeMapField === "pickup" ? pickupPoint : dropoffStops.find((s) => s.id === activeMapField)?.point ?? null}
+                onPick={(pt) => {
+                  if (activeMapField === "pickup") {
+                    setPickupPoint(pt);
+                    setPickupLocationId(null);
+                    if (pt.address) setPickupText(pt.address);
+                  } else {
+                    const stop = dropoffStops.find((s) => s.id === activeMapField);
+                    if (!stop) return;
+                    updateStop(stop.id, { point: pt, locationId: null, text: !stop.labelEdited && pt.address ? pt.address : stop.text });
+                  }
+                }}
+                theme={theme}
+                height={Math.max(280, Math.round(winH * 0.38))}
+              />
+
+              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginTop: 10 }}>{error}</Text> : null}
+
+              <TouchableOpacity
+                onPress={handleReview}
+                style={{ backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 14 }}
+              >
+                <Car size={14} color="#fff" />
+                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                  {isEditMode ? "Review Changes" : "Review Booking Request"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {step === "confirm" && (
+            <>
+              <View style={{ backgroundColor: theme.surface, borderWidth: 1.5, borderColor: theme.border, borderRadius: 12, padding: 15, marginBottom: 18 }}>
+                {[
+                  { label: "Requestor", value: user.displayName },
+                  { label: "Passengers", value: passengers.length > 0 ? `${passengers.length + 1} (${passengers.join(", ")})` : "1 (just you)" },
+                  { label: "Pickup", value: pickupText || "—" },
+                  ...dropoffStops.map((s, i) => ({ label: `Drop-off ${i + 1}`, value: formatStopText(s) || "—" })),
+                  { label: "Departure", value: departureDate && departureTime ? `${departureDate} ${departureTime}` : "—" },
+                  { label: "Purpose", value: purpose.trim() || "—" },
+                ].map((row, i, arr) => (
+                  <View key={row.label} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 7, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.border, gap: 12 }}>
+                    <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.subtext }}>{row.label}</Text>
+                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flexShrink: 1, textAlign: "right" }}>{row.value}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>{error}</Text> : null}
+
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setStep("route")}
+                  style={{ flex: 1, paddingVertical: 13, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSubmit}
+                  disabled={submitting}
+                  style={{ flex: 2, backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: submitting ? 0.7 : 1 }}
+                >
+                  {submitting ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={14} color="#fff" />}
+                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
+                    {submitting ? "Saving…" : isEditMode ? "Confirm Changes" : "Confirm & Submit"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }

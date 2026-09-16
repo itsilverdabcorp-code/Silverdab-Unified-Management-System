@@ -5,6 +5,7 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
+  Pressable,
   TextInput,
   Modal,
   ActivityIndicator,
@@ -21,7 +22,9 @@ import {
   Package,
   ChevronRight,
   CheckCircle,
+  Star,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, OfficeInventoryItem } from "../../../../../types";
 import { getAllInventoryItems } from "../../../../services/Officeinventory";
@@ -54,6 +57,8 @@ type ModalStep = "cart" | "picker" | "confirm" | "done";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const uid = () => Math.random().toString(36).slice(2, 9);
+
+const FAVORITE_ITEMS_STORAGE_KEY = "SUPPLY_REQUEST_FAVORITE_ITEM_IDS";
 
 // Special-cases a few category values that shouldn't be title-cased word
 // by word (e.g. "ppe" → "PPE" not "Ppe").
@@ -147,10 +152,26 @@ function ItemPickerSheet({
 }: PickerProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   useEffect(() => {
     setSearch("");
     setActiveCategory("All");
+    AsyncStorage.getItem(FAVORITE_ITEMS_STORAGE_KEY)
+      .then((raw) => {
+        if (raw) setFavoriteIds(JSON.parse(raw));
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleFavorite = useCallback((itemId: string) => {
+    setFavoriteIds((prev) => {
+      const next = prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId];
+      AsyncStorage.setItem(FAVORITE_ITEMS_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
   }, []);
 
   const categories = useMemo(
@@ -160,28 +181,39 @@ function ItemPickerSheet({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return items.filter((i) => {
+    const matches = items.filter((i) => {
       const matchSearch =
         i.name.toLowerCase().includes(q) || i.itemCode.toLowerCase().includes(q);
       const matchCat = activeCategory === "All" || i.category === activeCategory;
       return matchSearch && matchCat && !alreadyAdded.includes(i.id);
     });
-  }, [items, search, activeCategory, alreadyAdded]);
+    // Favorited items float to the top; original order otherwise preserved.
+    return [...matches].sort((a, b) => {
+      const aFav = favoriteIds.includes(a.id) ? 1 : 0;
+      const bFav = favoriteIds.includes(b.id) ? 1 : 0;
+      return bFav - aFav;
+    });
+  }, [items, search, activeCategory, alreadyAdded, favoriteIds]);
 
   const renderItem = useCallback(
     ({ item }: { item: OfficeInventoryItem }) => {
       const status = resolveStockStatus(item);
+      const isFavorite = favoriteIds.includes(item.id);
       return (
-        <TouchableOpacity
+        <Pressable
           onPress={() => onSelect(item)}
-          activeOpacity={0.7}
-          style={{
+          style={({ pressed, hovered }: any) => ({
             flexDirection: "row",
             alignItems: "center",
             paddingVertical: 12,
+            paddingHorizontal: 8,
+            marginHorizontal: -8,
+            borderRadius: 10,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
-          }}
+            backgroundColor:
+              pressed || hovered ? theme.primary + "14" : "transparent",
+          })}
         >
           <View
             style={{
@@ -230,14 +262,27 @@ function ItemPickerSheet({
               </Text>
             </View>
           </View>
-          <View style={{ alignItems: "flex-end", gap: 5 }}>
-            <StockBadge status={status} />
-            <ChevronRight size={13} color={theme.subtext} />
-          </View>
-        </TouchableOpacity>
+          <StockBadge status={status} />
+
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorite(item.id);
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ marginLeft: 12 }}
+          >
+            <Star
+              size={17}
+              color={isFavorite ? "#FBBF24" : theme.subtext}
+              fill={isFavorite ? "#FBBF24" : "transparent"}
+            />
+          </TouchableOpacity>
+        </Pressable>
       );
     },
-    [onSelect, theme],
+    [onSelect, theme, favoriteIds, toggleFavorite],
   );
 
   return (

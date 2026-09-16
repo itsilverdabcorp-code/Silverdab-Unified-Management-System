@@ -191,6 +191,23 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
       rooms: prev.rooms.map((r) => (r.id === id ? { ...r, label } : r)),
     }));
 
+  // Moves just the label text within its room, independent of the room's
+  // own position/size — lets you drag the label out from under a seat
+  // block that's been placed over the top of the room.
+  const moveRoomLabel = (id: string, dx: number, dy: number) =>
+    updateLayout((prev) => ({
+      ...prev,
+      rooms: prev.rooms.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              labelOffsetX: (r.labelOffsetX ?? 0) + dx,
+              labelOffsetY: (r.labelOffsetY ?? 22) + dy,
+            }
+          : r,
+      ),
+    }));
+
   const resizeRoom = (id: string, w: number, h: number) =>
     updateLayout((prev) => ({
       ...prev,
@@ -791,7 +808,10 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
 
         <View style={{ position: "relative", zIndex: 30 }}>
           <Pressable
-            style={styles.toolBtn}
+            style={[
+              styles.toolBtn,
+              Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {},
+            ]}
             onPress={() => setUnitMenuOpen((v) => !v)}
           >
             <Text style={styles.toolBtnText}>
@@ -832,10 +852,10 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
                   style={{
                     paddingHorizontal: 14,
                     paddingVertical: 10,
-                    backgroundColor: opt.key === planKey ? theme.border : "transparent",
+                    backgroundColor: opt.key === planKey ? theme.primarySubtle : "transparent",
                   }}
                 >
-                  <Text style={{ color: theme.text, fontSize: 13, fontWeight: opt.key === planKey ? "700" : "500" }}>
+                  <Text style={{ color: opt.key === planKey ? theme.primary : theme.text, fontSize: 13, fontWeight: opt.key === planKey ? "700" : "500" }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -945,6 +965,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
                 resizeResponder={resizeResponderFor(room)}
                 onRename={(label) => renameRoom(room.id, label)}
                 onDelete={() => deleteRoom(room.id)}
+                onMoveLabel={(dx, dy) => moveRoomLabel(room.id, dx, dy)}
               />
               </View>
             ))}
@@ -1227,9 +1248,49 @@ const RoomBlock: React.FC<{
   resizeResponder: ReturnType<typeof PanResponder.create>;
   onRename: (label: string) => void;
   onDelete: () => void;
-}> = ({ room, theme, viewMode, selected, panResponder, resizeResponder, onRename, onDelete }) => {
+  onMoveLabel: (dx: number, dy: number) => void;
+}> = ({ room, theme, viewMode, selected, panResponder, resizeResponder, onRename, onDelete, onMoveLabel }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(room.label);
+
+  // Label defaults to its old fixed spot (top-left corner, 22px down from
+  // the room's top edge) when the layout predates this feature — same
+  // "undefined means default" pattern the doors array backfill already uses.
+  const labelX = room.labelOffsetX ?? 0;
+  const labelY = room.labelOffsetY ?? 22;
+
+  const labelDragStart = useRef<{ x: number; y: number } | null>(null);
+  const labelPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !viewMode && !editing,
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          !viewMode && !editing && (Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2),
+        onPanResponderGrant: (e) => {
+          labelDragStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+          // Same fix as the seat/pod/room drag handlers above — without
+          // this, dragging the label text on web triggers the browser's
+          // native text-selection highlight instead of a clean drag.
+          if (Platform.OS === "web") {
+            (document.body.style as any).userSelect = "none";
+          }
+        },
+        onPanResponderMove: (e) => {
+          if (!labelDragStart.current) return;
+          const dx = e.nativeEvent.pageX - labelDragStart.current.x;
+          const dy = e.nativeEvent.pageY - labelDragStart.current.y;
+          labelDragStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+          onMoveLabel(dx, dy);
+        },
+        onPanResponderRelease: () => {
+          labelDragStart.current = null;
+          if (Platform.OS === "web") {
+            (document.body.style as any).userSelect = "";
+          }
+        },
+      }),
+    [viewMode, editing, onMoveLabel],
+  );
 
   return (
     <View
@@ -1254,18 +1315,34 @@ const RoomBlock: React.FC<{
             onRename(draft.trim() || room.label);
             setEditing(false);
           }}
-          style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, textAlign: "center", color: theme.text, fontSize: 12 }}
+          style={{ position: "absolute", top: labelY, left: labelX, right: 0, textAlign: "center", color: theme.text, fontSize: 12 }}
         />
       ) : (
-        <Pressable
-          disabled={viewMode}
-          onPress={() => !viewMode && setEditing(true)}
-          style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
+        <View
+          {...(!viewMode ? labelPanResponder.panHandlers : {})}
+          style={[
+            { position: "absolute", top: labelY, left: labelX },
+            Platform.OS === "web" && !viewMode ? ({ cursor: "move", userSelect: "none" } as any) : {},
+          ]}
         >
-          <Text style={{ color: theme.text, fontSize: 12, fontWeight: "700", textAlign: "center", textTransform: "uppercase" }}>
-            {room.label}
-          </Text>
-        </Pressable>
+          <Pressable
+            disabled={viewMode}
+            onPress={() => !viewMode && setEditing(true)}
+            style={{ paddingHorizontal: 2 }}
+          >
+            <Text
+              style={{
+                color: theme.text,
+                fontSize: 12,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                ...(Platform.OS === "web" ? ({ whiteSpace: "nowrap" } as any) : {}),
+              }}
+            >
+              {room.label}
+            </Text>
+          </Pressable>
+        </View>
       )}
       {!viewMode && (
         <Pressable onPress={onDelete} style={styles_del}>
@@ -1535,29 +1612,27 @@ const NameSelect: React.FC<{
   };
 
   if (viewMode) {
+    // Show the full name, but drop a trailing middle initial ("L." or
+    // "L") if present — e.g. "Hess M. Espinas" -> "Hess Espinas". A full
+    // middle name (not just an initial) is left as-is.
     const displayName = (() => {
       if (!value) return "";
       const tokens = value.trim().split(/\s+/);
-      if (tokens.length <= 1) return tokens[0] ?? "";
-      // Drop the last token (surname) always.
-      let kept = tokens.slice(0, -1);
-      // If what's left ends in a middle initial ("L." or "L"), drop that
-      // too so we land on first name only; a full middle name ("Paul")
-      // is kept as-is.
-      if (kept.length > 1 && /^[A-Za-z]\.?$/.test(kept[kept.length - 1])) {
-        kept = kept.slice(0, -1);
-      }
-      return kept.join(" ");
+      if (tokens.length <= 2) return value.trim();
+      const middleTokens = tokens.slice(1, -1);
+      const keptMiddle = middleTokens.filter((t) => !/^[A-Za-z]\.?$/.test(t));
+      return [tokens[0], ...keptMiddle, tokens[tokens.length - 1]].join(" ");
     })();
     return (
       <Text
         style={[
           textStyle,
+          { paddingHorizontal: 4, fontSize: (textStyle?.fontSize ?? 11) - (displayName.length > 14 ? 1 : 0) },
           Platform.OS === "web"
-            ? ({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" } as any)
+            ? ({ whiteSpace: "normal", overflow: "hidden", wordBreak: "keep-all", overflowWrap: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: "13px" } as any)
             : {},
         ]}
-        numberOfLines={1}
+        numberOfLines={Platform.OS === "web" ? undefined : 2}
         ellipsizeMode="tail"
       >
         {displayName || placeholder}
@@ -1566,7 +1641,7 @@ const NameSelect: React.FC<{
   }
 
   return (
-    <View ref={wrapperRef} style={{ width: "100%", position: "relative", overflow: "visible" }}>
+    <View ref={wrapperRef} style={{ width: "100%", position: "relative", overflow: "visible", paddingHorizontal: 4 }}>
       <TextInput
         ref={inputRef}
         value={open ? query : value}

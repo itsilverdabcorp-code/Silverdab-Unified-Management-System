@@ -431,6 +431,8 @@ export type SeatPlanRoom = {
   w: number;
   h: number;
   label: string;
+  labelOffsetX?: number;
+  labelOffsetY?: number;
   vertical?: boolean;
   window?: boolean;
 };
