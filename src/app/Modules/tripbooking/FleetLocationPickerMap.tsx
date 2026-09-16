@@ -160,24 +160,19 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string |
 const DEFAULT_CENTER: [number, number] = [121.0, 14.6]; // [lng, lat]
 const DEFAULT_ZOOM = 10;
 
-// CARTO Voyager -- a free, no-API-key raster tile set explicitly designed
-// to resemble Google Maps' look (clean whites/creams, soft yellow major
-// roads, light blue water, minimal label clutter) rather than OSM's
-// default heavier, more saturated style.
 const STREETS_STYLE: any = {
   version: 8,
   sources: {
     "raster-tiles": {
       type: "raster",
       tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
       ],
       tileSize: 256,
-      maxzoom: 20,
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      maxzoom: 19, // OSM's public tile servers top out at z19
+      attribution: "&copy; OpenStreetMap contributors",
     },
   },
   layers: [{ id: "raster-layer", type: "raster", source: "raster-tiles" }],
@@ -309,7 +304,8 @@ export default function FleetLocationPickerMap({
           style: STREETS_STYLE,
           center: value ? [value.longitude, value.latitude] : DEFAULT_CENTER,
           zoom: value ? 14 : DEFAULT_ZOOM,
-          maxZoom: 20, // CARTO Voyager tiles go up to z20
+          maxZoom: 19, // OSM raster tiles don't exist past z19 — requesting
+                        // z20 fails and surfaces as a CORS/400 error
           attributionControl: false,
         });
         map.addControl(new maplibregl.NavigationControl(), "top-right");
