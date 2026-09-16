@@ -136,6 +136,37 @@ const toReadableDate = (value: any): string => {
     return "—";
   }
 };
+
+// Same as toReadableDate but appends the time — used for trip departure/
+// return, where the time of day actually matters to the requester.
+// mysql2's dateStrings option returns "YYYY-MM-DD HH:MM:SS" (space-
+// separated, no timezone) — swap the space for "T" so the Date
+// constructor parses it as local wall-clock time, same fix used
+// elsewhere for this API's date strings.
+const formatDateAndTime = (value: any): string => {
+  if (!value) return "—";
+  try {
+    let date: Date;
+    if (typeof value?.toDate === "function") date = value.toDate();
+    else if (value instanceof Date) date = value;
+    else {
+      const raw = String(value);
+      date = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"));
+    }
+    if (isNaN(date.getTime())) return "—";
+    return (
+      date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }) +
+      " · " +
+      date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    );
+  } catch {
+    return "—";
+  }
+};
 // Room title date — "Aug 18" instead of the raw ISO/DATE string bookingDate
 // comes back as from the API. Parses YYYY-MM-DD (or a full ISO string) as
 // a LOCAL calendar date, not UTC, so it doesn't shift a day depending on
@@ -1824,11 +1855,11 @@ function TripDetailContent({
                 }))
               : [{ label: "Drop-off", value: allLabels[0] }];
           })(),
-          { label: "Departure", value: toReadableDate(trip.departureDatetime) },
+          { label: "Departure", value: formatDateAndTime(trip.departureDatetime) },
           {
             label: "Return",
             value: trip.returnDatetime
-              ? toReadableDate(trip.returnDatetime)
+              ? formatDateAndTime(trip.returnDatetime)
               : "—",
           },
           { label: "Passengers", value: String(trip.passengerCount ?? 1) },

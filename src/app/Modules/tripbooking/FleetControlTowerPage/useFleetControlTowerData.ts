@@ -422,12 +422,25 @@ export function useFleetControlTowerData({ user, onNavigate }: FleetControlTower
     );
     if (statusFilter !== "all") result = result.filter((t) => t.status === statusFilter);
     return [...result].sort((a, b) => {
-      const aDate = new Date(a.departureDatetime).getTime();
-      const bDate = new Date(b.departureDatetime).getTime();
-      if (aDate !== bDate) return aDate - bDate;
+      // Today's trips always come first, regardless of which other day
+      // they'd otherwise sort against. Within "today", and within any
+      // other single day, prioritize pending → approved → ongoing
+      // (arrived/returning after), then time of day as the tiebreaker.
+      const aIsToday = isToday(a.departureDatetime);
+      const bIsToday = isToday(b.departureDatetime);
+      if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
+
+      const aDay = new Date(a.departureDatetime).toDateString();
+      const bDay = new Date(b.departureDatetime).toDateString();
+      if (aDay !== bDay) {
+        return new Date(a.departureDatetime).getTime() - new Date(b.departureDatetime).getTime();
+      }
       const aPriority = STATUS_SORT_PRIORITY[a.status] ?? 4;
       const bPriority = STATUS_SORT_PRIORITY[b.status] ?? 4;
-      return aPriority - bPriority;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return (
+        new Date(a.departureDatetime).getTime() - new Date(b.departureDatetime).getTime()
+      );
     });
   }, [trips, statusFilter]);
 
