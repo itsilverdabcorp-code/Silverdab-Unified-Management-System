@@ -1160,7 +1160,7 @@ function StatusTimeline({
                   marginBottom: 5,
                 }}
               >
-                {s === "Resolved" ? (
+                {s === "Completed" || s === "Resolved" ? (
                   <CheckCircle
                     size={13}
                     color={filled ? c.text : theme.subtext}
@@ -1454,7 +1454,7 @@ function SupplyDetailContent({
         </View>
       ) : (
         <StatusTimeline
-          steps={["Pending", "In Progress", "Resolved"]}
+          steps={["Pending", "In Progress", "Completed"]}
           currentStatus={displayStatus}
           theme={theme}
         />
@@ -1829,7 +1829,7 @@ function TripDetailContent({
         </View>
       ) : (
         <StatusTimeline
-          steps={["Pending", "In Progress", "Resolved"]}
+          steps={["Pending", "In Progress", "Completed"]}
           currentStatus={displayStatus}
           theme={theme}
         />

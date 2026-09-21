@@ -220,13 +220,26 @@ export async function refreshADSession(user: ADUser): Promise<ADUser> {
   const token = await getToken();
   if (!token) throw new Error("No active session.");
 
-  const verifyRes = await fetch(`${BACKEND_URL}/auth/verify`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  const verifyData = await verifyRes.json();
-  if (!verifyData.success) throw new Error("Session expired.");
+  let verifyData: any;
+  try {
+    const verifyRes = await fetch(`${BACKEND_URL}/auth/verify`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    verifyData = await verifyRes.json();
+  } catch (err) {
+    // Network-level failure (unreachable backend, offline, timeout, etc.)
+    // is not the same as an invalid session — don't log the user out just
+    // because the server couldn't be reached right now. Trust the cached
+    // user and let them keep working; the next successful refresh will
+    // catch a truly expired/invalid token.
+    console.error("Session verify network error:", err);
+    return user;
+  }
+
+  // A real response came back — this IS the source of truth on validity.
+  if (!verifyData?.success) throw new Error("Session expired.");
 
   // Pull role + permissions from MySQL (source of truth), falling back
   // to the previously cached role only if the user isn't in MySQL.

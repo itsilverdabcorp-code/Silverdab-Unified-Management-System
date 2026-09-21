@@ -8,8 +8,11 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  FlatList,
+  Pressable,
   useWindowDimensions,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed, ArrowRight, ArrowLeft, Star } from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
@@ -517,6 +520,13 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   // consistent with the other raw-DOM pieces of this modal (web-only).
   const [draggedStopIndex, setDraggedStopIndex] = useState<number | null>(null);
   const [dragOverStopIndex, setDragOverStopIndex] = useState<number | null>(null);
+  // Tracks which stop's drag handle (the dots icon) was last pressed —
+  // the row itself is only made draggable while this matches its id, so
+  // selecting text inside the input (which also fires a native browser
+  // drag) never triggers a reorder drag. This must be state (not a ref):
+  // the draggable attribute is only re-applied to the DOM on a re-render,
+  // so a ref update alone would arm dragging one render too late.
+  const [dragHandleActiveId, setDragHandleActiveId] = useState<string | null>(null);
 
   function reorderDropoffStops(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return;
@@ -1521,8 +1531,12 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                   {dropoffStops.map((stop, i) => (
                     <div
                       key={stop.id}
-                      draggable
+                      draggable={dragHandleActiveId === stop.id}
                       onDragStart={(e: React.DragEvent) => {
+                        if (dragHandleActiveId !== stop.id) {
+                          e.preventDefault();
+                          return;
+                        }
                         setDraggedStopIndex(i);
                         e.dataTransfer.effectAllowed = "move";
                       }}
@@ -1539,14 +1553,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                         }
                         setDraggedStopIndex(null);
                         setDragOverStopIndex(null);
+                        setDragHandleActiveId(null);
                       }}
                       onDragEnd={() => {
                         setDraggedStopIndex(null);
                         setDragOverStopIndex(null);
+                        setDragHandleActiveId(null);
                       }}
                       style={{
                         opacity: draggedStopIndex === i ? 0.4 : 1,
-                        cursor: "grab",
                       }}
                     >
                       <div
@@ -1572,7 +1587,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                             borderStyle: dragOverStopIndex === i ? "dashed" : "solid",
                           }}
                         >
-                          <View style={{ opacity: 0.5 }}>
+                          <div
+                            onMouseDown={() => {
+                              setDragHandleActiveId(stop.id);
+                            }}
+                            onMouseUp={() => {
+                              setDragHandleActiveId(null);
+                            }}
+                            style={{ opacity: 0.5, cursor: "grab", display: "flex" }}
+                          >
                             <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
                               <circle cx="2" cy="2" r="1.3" fill={theme.subtext} />
                               <circle cx="8" cy="2" r="1.3" fill={theme.subtext} />
@@ -1581,7 +1604,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                               <circle cx="2" cy="12" r="1.3" fill={theme.subtext} />
                               <circle cx="8" cy="12" r="1.3" fill={theme.subtext} />
                             </svg>
-                          </View>
+                          </div>
                           <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" }}>
                             <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>{i + 1}</Text>
                           </View>
@@ -2023,7 +2046,7 @@ type NativeFormProps = {
 
 function NativeTripBookingForm(props: NativeFormProps) {
   const {
-    visible, onClose, theme, primary, winH, user, isEditMode,
+    visible, onClose, theme, primary, winW, winH, user, isEditMode,
     passengers, passengerInput, setPassengerInput, addingPassenger, setAddingPassenger,
     locations, pickupText, setPickupText, pickupPoint, setPickupPoint, setPickupLocationId,
     dropoffStops, updateStop, handleAddStop, handleRemoveStop, activeMapField, setActiveMapField,
@@ -2037,6 +2060,100 @@ function NativeTripBookingForm(props: NativeFormProps) {
   // Lazy-required so this file doesn't fail to load on web (where this
   // package isn't installed/needed) — only ever reached when isNative.
   const DateTimePicker = require("@react-native-community/datetimepicker").default;
+
+  // Inline address search for the Pickup / Drop-off fields — same
+  // typeahead behavior as the web version's inline dropdown, but rendered
+  // directly under the field (no portal needed on native).
+  const [nativeSearchResults, setNativeSearchResults] = useState<PlaceResult[]>([]);
+  const [nativeSearchLoading, setNativeSearchLoading] = useState(false);
+  const [nativeSearchOpenFor, setNativeSearchOpenFor] = useState<string | null>(null);
+  const nativeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [nativeFavoritePlaces, setNativeFavoritePlaces] = useState<PlaceResult[]>([]);
+
+  useEffect(() => {
+    setNativeFavoritePlaces(loadFavoritePlaces());
+  }, []);
+
+  function toggleNativeFavoritePlace(place: PlaceResult) {
+    setNativeFavoritePlaces((prev) => {
+      const key = placeKey(place);
+      const exists = prev.some((p) => placeKey(p) === key);
+      const next = exists ? prev.filter((p) => placeKey(p) !== key) : [...prev, place];
+      saveFavoritePlaces(next);
+      return next;
+    });
+  }
+
+  // Shows favorites the instant a field is focused with nothing typed yet —
+  // mirrors showFavoritesForField() in the web layout above.
+  function showNativeFavoritesForField(fieldKey: string, currentText: string) {
+    if (nativeSearchDebounceRef.current) clearTimeout(nativeSearchDebounceRef.current);
+    if (currentText.trim().length === 0) {
+      setNativeSearchLoading(false);
+      if (nativeFavoritePlaces.length > 0) {
+        setNativeSearchResults(nativeFavoritePlaces);
+        setNativeSearchOpenFor(fieldKey);
+      } else {
+        setNativeSearchResults([]);
+        setNativeSearchOpenFor(null);
+      }
+      return;
+    }
+    if (nativeSearchResults.length > 0) setNativeSearchOpenFor(fieldKey);
+  }
+
+  function triggerNativeSearch(fieldKey: string, query: string) {
+    if (nativeSearchDebounceRef.current) clearTimeout(nativeSearchDebounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length === 0) {
+      setNativeSearchLoading(false);
+      if (nativeFavoritePlaces.length > 0) {
+        setNativeSearchResults(nativeFavoritePlaces);
+        setNativeSearchOpenFor(fieldKey);
+      } else {
+        setNativeSearchResults([]);
+        setNativeSearchOpenFor(null);
+      }
+      return;
+    }
+    if (trimmed.length < 3) {
+      setNativeSearchResults([]);
+      setNativeSearchOpenFor(null);
+      return;
+    }
+    setNativeSearchOpenFor(fieldKey);
+    setNativeSearchLoading(true);
+    nativeSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchAddress(trimmed);
+        setNativeSearchResults(results);
+      } catch (err) {
+        console.error("Inline address search failed:", err);
+        setNativeSearchResults([]);
+      } finally {
+        setNativeSearchLoading(false);
+      }
+    }, 300);
+  }
+
+  function handleNativeSelect(fieldKey: string, result: PlaceResult) {
+    const point = { latitude: result.lat, longitude: result.lon, address: result.displayName };
+    if (fieldKey === "pickup") {
+      setPickupPoint(point);
+      setPickupLocationId(null);
+      setPickupText(result.displayName);
+    } else {
+      updateStop(fieldKey, {
+        point,
+        locationId: null,
+        text: result.displayName,
+        labelEdited: true,
+      });
+    }
+    setActiveMapField(fieldKey);
+    setNativeSearchResults([]);
+    setNativeSearchOpenFor(null);
+  }
 
   const inputStyle = {
     backgroundColor: theme.background,
@@ -2081,9 +2198,32 @@ function NativeTripBookingForm(props: NativeFormProps) {
 
   const dateObjForPicker = departureDate ? new Date(`${departureDate}T${departureTime || "00:00"}:00`) : new Date();
 
+  const MODAL_W = winW - 24;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.45)",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: MODAL_W,
+            maxHeight: winH * 0.88,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            overflow: "hidden",
+          }}
+        >
         {/* Header */}
         <View
           style={{
@@ -2112,7 +2252,7 @@ function NativeTripBookingForm(props: NativeFormProps) {
           </View>
           <TouchableOpacity
             onPress={onClose}
-            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surface, alignItems: "center", justifyContent: "center" }}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.background, alignItems: "center", justifyContent: "center" }}
           >
             <X size={15} color={theme.subtext} />
           </TouchableOpacity>
@@ -2128,7 +2268,7 @@ function NativeTripBookingForm(props: NativeFormProps) {
           />
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           {step === "form" && (
             <>
               <Field label="Requestor" theme={theme}>
@@ -2235,36 +2375,182 @@ function NativeTripBookingForm(props: NativeFormProps) {
           )}
 
           {step === "route" && (
-            <>
+            <Pressable onPress={() => setNativeSearchOpenFor(null)}>
               <Field label="Pickup" required theme={theme}>
-                <TextInput
-                  style={inputStyle}
-                  placeholder="Pickup address"
-                  placeholderTextColor={theme.subtext}
-                  value={pickupText}
-                  onChangeText={(t) => {
-                    setPickupText(t);
-                    setPickupLocationId(null);
-                  }}
-                  onFocus={() => setActiveMapField("pickup")}
-                />
+                <View style={{ position: "relative", zIndex: nativeSearchOpenFor === "pickup" ? 50 : 1 }}>
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="Pickup address"
+                    placeholderTextColor={theme.subtext}
+                    value={pickupText}
+                    onChangeText={(t) => {
+                      setPickupText(t);
+                      setPickupLocationId(null);
+                      triggerNativeSearch("pickup", t);
+                    }}
+                    onFocus={() => {
+                      setActiveMapField("pickup");
+                      showNativeFavoritesForField("pickup", pickupText);
+                    }}
+                  />
+                  {nativeSearchOpenFor === "pickup" && (nativeSearchLoading || nativeSearchResults.length > 0) && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        marginTop: 4,
+                        backgroundColor: theme.surface,
+                        borderWidth: 1.5,
+                        borderColor: theme.border,
+                        borderRadius: 8,
+                        maxHeight: 180,
+                        elevation: 8,
+                        zIndex: 50,
+                      }}
+                    >
+                      {nativeSearchLoading ? (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10 }}>
+                          <ActivityIndicator size="small" color={theme.subtext} />
+                          <Text style={{ fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>Searching…</Text>
+                        </View>
+                      ) : (
+                        <FlatList
+                          data={nativeSearchResults}
+                          keyExtractor={(r, idx) => `${r.lat}-${r.lon}-${idx}`}
+                          keyboardShouldPersistTaps="handled"
+                          renderItem={({ item, index }) => {
+                            const isFavorite = nativeFavoritePlaces.some((p) => placeKey(p) === placeKey(item));
+                            return (
+                              <TouchableOpacity
+                                onPress={() => handleNativeSelect("pickup", item)}
+                                style={{
+                                  padding: 10,
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 8,
+                                  borderBottomWidth: index !== nativeSearchResults.length - 1 ? 1 : 0,
+                                  borderBottomColor: theme.border,
+                                }}
+                              >
+                                <Text
+                                  style={{ flex: 1, fontFamily: "Outfit", fontSize: 12, color: theme.textActive ?? theme.text }}
+                                  numberOfLines={2}
+                                >
+                                  {item.displayName}
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => toggleNativeFavoritePlace(item)}
+                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                  style={{ padding: 2 }}
+                                >
+                                  <Star
+                                    size={15}
+                                    color={isFavorite ? "#FBBF24" : theme.subtext}
+                                    fill={isFavorite ? "#FBBF24" : "transparent"}
+                                  />
+                                </TouchableOpacity>
+                              </TouchableOpacity>
+                            );
+                          }}
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
               </Field>
 
               {dropoffStops.map((stop, i) => (
                 <Field key={stop.id} label={`Drop-off ${i + 1}`} required={i === 0} theme={theme}>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput
-                      style={[inputStyle, { flex: 1 }]}
-                      placeholder={`Drop-off ${i + 1} address`}
-                      placeholderTextColor={theme.subtext}
-                      value={stop.text}
-                      onChangeText={(t) => updateStop(stop.id, { text: t, labelEdited: true })}
-                      onFocus={() => setActiveMapField(stop.id)}
-                    />
-                    {dropoffStops.length > 1 && (
-                      <TouchableOpacity onPress={() => handleRemoveStop(stop.id)} style={{ justifyContent: "center" }}>
-                        <X size={14} color={theme.subtext} />
-                      </TouchableOpacity>
+                  <View style={{ position: "relative", zIndex: nativeSearchOpenFor === stop.id ? 50 : 1 }}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TextInput
+                        style={[inputStyle, { flex: 1 }]}
+                        placeholder={`Drop-off ${i + 1} address`}
+                        placeholderTextColor={theme.subtext}
+                        value={stop.text}
+                        onChangeText={(t) => {
+                          updateStop(stop.id, { text: t, labelEdited: true });
+                          triggerNativeSearch(stop.id, t);
+                        }}
+                        onFocus={() => {
+                          setActiveMapField(stop.id);
+                          showNativeFavoritesForField(stop.id, stop.text);
+                        }}
+                      />
+                      {dropoffStops.length > 1 && (
+                        <TouchableOpacity onPress={() => handleRemoveStop(stop.id)} style={{ justifyContent: "center" }}>
+                          <X size={14} color={theme.subtext} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {nativeSearchOpenFor === stop.id && (nativeSearchLoading || nativeSearchResults.length > 0) && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          marginTop: 4,
+                          backgroundColor: theme.surface,
+                          borderWidth: 1.5,
+                          borderColor: theme.border,
+                          borderRadius: 8,
+                          maxHeight: 180,
+                          elevation: 8,
+                          zIndex: 50,
+                        }}
+                      >
+                        {nativeSearchLoading ? (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10 }}>
+                            <ActivityIndicator size="small" color={theme.subtext} />
+                            <Text style={{ fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>Searching…</Text>
+                          </View>
+                        ) : (
+                          <FlatList
+                            data={nativeSearchResults}
+                            keyExtractor={(r, idx) => `${r.lat}-${r.lon}-${idx}`}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item, index }) => {
+                              const isFavorite = nativeFavoritePlaces.some((p) => placeKey(p) === placeKey(item));
+                              return (
+                                <TouchableOpacity
+                                  onPress={() => handleNativeSelect(stop.id, item)}
+                                  style={{
+                                    padding: 10,
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    borderBottomWidth: index !== nativeSearchResults.length - 1 ? 1 : 0,
+                                    borderBottomColor: theme.border,
+                                  }}
+                                >
+                                  <Text
+                                    style={{ flex: 1, fontFamily: "Outfit", fontSize: 12, color: theme.textActive ?? theme.text }}
+                                    numberOfLines={2}
+                                  >
+                                    {item.displayName}
+                                  </Text>
+                                  <TouchableOpacity
+                                    onPress={() => toggleNativeFavoritePlace(item)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    style={{ padding: 2 }}
+                                  >
+                                    <Star
+                                      size={15}
+                                      color={isFavorite ? "#FBBF24" : theme.subtext}
+                                      fill={isFavorite ? "#FBBF24" : "transparent"}
+                                    />
+                                  </TouchableOpacity>
+                                </TouchableOpacity>
+                              );
+                            }}
+                          />
+                        )}
+                      </View>
                     )}
                   </View>
                 </Field>
@@ -2312,7 +2598,7 @@ function NativeTripBookingForm(props: NativeFormProps) {
                   {isEditMode ? "Review Changes" : "Review Booking Request"}
                 </Text>
               </TouchableOpacity>
-            </>
+            </Pressable>
           )}
 
           {step === "confirm" && (
@@ -2356,7 +2642,9 @@ function NativeTripBookingForm(props: NativeFormProps) {
             </>
           )}
         </ScrollView>
+        </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

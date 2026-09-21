@@ -207,14 +207,7 @@ export default function FleetLocationPickerMap({
     }
   }
 
-  const [searchQuery, setSearchQuery] = useState(searchValue ?? "");
-  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickRequestIdRef = useRef(0);
-  const suppressNextSearchRef = useRef(false);
   // Used only to bias address search toward the last known point of
   // interest. Updated on pick/select/locate rather than on every map
   // region change, since the v11 region-change event payload shape
@@ -223,54 +216,6 @@ export default function FleetLocationPickerMap({
 
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (suppressNextSearchRef.current) {
-      suppressNextSearchRef.current = false;
-      setSearching(false);
-      return;
-    }
-
-    const query = searchQuery.trim();
-    if (query.length < 3) {
-      setSearchResults([]);
-      setSearching(false);
-      setSearchError("");
-      return;
-    }
-
-    setSearching(true);
-    setSearchError("");
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const bias = { lat: lastCenterRef.current.lat, lon: lastCenterRef.current.lon };
-        const results = await searchAddress(query, bias);
-        setSearchResults(results);
-        setShowDropdown(true);
-      } catch (err) {
-        console.error("Address search failed:", err);
-        setSearchError("Search failed — try again.");
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (searchValue !== undefined && searchValue !== searchQuery) {
-      suppressNextSearchRef.current = true;
-      setSearchQuery(searchValue);
-      setShowDropdown(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchValue]);
 
   // Fit to every stop (or the single value pin) whenever the set of
   // points changes, mirroring the web version's fitBounds/easeTo logic.
@@ -332,111 +277,10 @@ export default function FleetLocationPickerMap({
     });
   }
 
-  function handleSelectResult(result: PlaceResult) {
-    onPickRef.current({ latitude: result.lat, longitude: result.lon, address: result.displayName });
-    lastCenterRef.current = { lat: result.lat, lon: result.lon };
-    cameraRef.current?.setStop({
-      center: [result.lon, result.lat],
-      zoom: 17,
-      duration: 700,
-    });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    suppressNextSearchRef.current = true;
-    setSearchResults([]);
-    setShowDropdown(false);
-    setSearchQuery(result.displayName);
-    onSearchChange?.(result.displayName);
-  }
-
   const validStops = (allStops ?? []).filter((s) => s.point);
 
   return (
     <View style={{ borderRadius: 8, borderWidth: 1, borderColor: theme.border, overflow: "hidden" }}>
-      {!hideSearch && (
-        <View style={{ backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, padding: 8 }}>
-          <View style={{ position: "relative", justifyContent: "center" }}>
-            <Search size={13} color={theme.subtext} style={{ position: "absolute", left: 9, zIndex: 1 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={(val) => {
-                setSearchQuery(val);
-                setShowDropdown(true);
-                onSearchChange?.(val);
-              }}
-              onFocus={() => {
-                if (searchResults.length > 0) setShowDropdown(true);
-              }}
-              placeholder="Search an address..."
-              placeholderTextColor={theme.subtext}
-              style={{
-                backgroundColor: theme.background,
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: 6,
-                paddingLeft: 28,
-                paddingRight: 10,
-                paddingVertical: 7,
-                fontSize: 12.5,
-                color: theme.text,
-                fontFamily: "Outfit",
-              }}
-            />
-          </View>
-
-          {showDropdown && (searching || searchResults.length > 0 || searchError) && (
-            <View
-              style={{
-                backgroundColor: theme.surface,
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: 6,
-                marginTop: 4,
-                maxHeight: 180,
-              }}
-            >
-              {searching && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8 }}>
-                  <ActivityIndicator size="small" color={theme.subtext} />
-                  <Text style={{ fontSize: 11, color: theme.subtext, fontFamily: "Outfit" }}>Searching...</Text>
-                </View>
-              )}
-              {!searching && searchError ? (
-                <Text style={{ fontSize: 11, color: "#dc2626", paddingHorizontal: 12, paddingVertical: 8, fontFamily: "Outfit" }}>
-                  {searchError}
-                </Text>
-              ) : null}
-              {!searching && !searchError && (
-                <FlatList
-                  data={searchResults}
-                  keyExtractor={(r, idx) => `${r.lat}-${r.lon}-${idx}`}
-                  keyboardShouldPersistTaps="handled"
-                  ListEmptyComponent={
-                    <Text style={{ fontSize: 11, color: theme.subtext, paddingHorizontal: 12, paddingVertical: 8, fontFamily: "Outfit" }}>
-                      No matches found.
-                    </Text>
-                  }
-                  renderItem={({ item, index }) => (
-                    <TouchableOpacity
-                      onPress={() => handleSelectResult(item)}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderBottomWidth: index !== searchResults.length - 1 ? 1 : 0,
-                        borderBottomColor: theme.border,
-                      }}
-                    >
-                      <Text style={{ fontSize: 11.5, color: theme.text, fontFamily: "Outfit" }} numberOfLines={2}>
-                        {item.displayName}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-            </View>
-          )}
-        </View>
-      )}
-
       <View style={{ height, width: "100%" }}>
         <MapLibreMap
           style={{ flex: 1 }}

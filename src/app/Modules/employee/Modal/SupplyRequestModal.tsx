@@ -200,86 +200,96 @@ function ItemPickerSheet({
       const status = resolveStockStatus(item);
       const isFavorite = favoriteIds.includes(item.id);
       return (
-        <Pressable
-          onPress={() => onSelect(item)}
-          style={({ pressed, hovered }: any) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 12,
-            paddingHorizontal: 8,
-            marginHorizontal: -8,
-            borderRadius: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border,
-            backgroundColor:
-              pressed || hovered ? theme.primary + "14" : "transparent",
-          })}
+        <View
+          style={{
+            marginBottom: 5,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            backgroundColor: theme.background,
+            overflow: "hidden",
+          }}
         >
-          <View
+          <TouchableOpacity
+            onPress={() => onSelect(item)}
+            activeOpacity={0.7}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 9,
-              backgroundColor: theme.background,
-              borderWidth: 1,
-              borderColor: theme.border,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 11,
+              paddingVertical: 14,
+              paddingHorizontal: 12,
+              position: "relative",
             }}
           >
-            <Package size={16} color={theme.subtext} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontFamily: "Outfit-SemiBold",
-                fontSize: 13,
-                color: theme.textActive,
-              }}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9,
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 10,
+                  flexShrink: 0,
+                }}
+              >
+                <Package size={15} color={theme.subtext} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0, paddingRight: 90 }}>
+                <Text
+                  style={{
+                    fontFamily: "Outfit-SemiBold",
+                    fontSize: 13,
+                    color: theme.textActive,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Outfit",
+                    fontSize: 11,
+                    color: theme.subtext,
+                    marginTop: 3,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.itemCode}   {item.category}   {item.currentStock} {item.unit}
+                </Text>
+              </View>
+            </View>
+
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
-                marginTop: 3,
+                gap: 8,
+                position: "absolute",
+                right: 12,
+                top: 0,
+                bottom: 0,
               }}
             >
-              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
-                {item.itemCode}
-              </Text>
-              <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
-              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
-                {item.category}
-              </Text>
-              <Text style={{ color: theme.border, fontSize: 10 }}>·</Text>
-              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
-                {item.currentStock} {item.unit}
-              </Text>
+              <StockBadge status={status} />
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(item.id);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Star
+                  size={15}
+                  color={isFavorite ? "#FBBF24" : theme.subtext}
+                  fill={isFavorite ? "#FBBF24" : "transparent"}
+                />
+              </TouchableOpacity>
             </View>
-          </View>
-          <StockBadge status={status} />
-
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              toggleFavorite(item.id);
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ marginLeft: 12 }}
-          >
-            <Star
-              size={17}
-              color={isFavorite ? "#FBBF24" : theme.subtext}
-              fill={isFavorite ? "#FBBF24" : "transparent"}
-            />
           </TouchableOpacity>
-        </Pressable>
+        </View>
       );
     },
     [onSelect, theme, favoriteIds, toggleFavorite],
@@ -500,7 +510,7 @@ function CartRow({
         borderWidth: 1.5,
         borderColor: theme.border,
         borderRadius: 12,
-        marginBottom: 10,
+        marginBottom: 14,
         overflow: "hidden",
       }}
     >
@@ -798,7 +808,13 @@ const addToCart = useCallback((item: OfficeInventoryItem) => {
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={
+          step === "picker"
+            ? undefined
+            : Platform.OS === "ios"
+              ? "padding"
+              : "height"
+        }
         style={{ flex: 1 }}
       >
         {/* Backdrop */}
