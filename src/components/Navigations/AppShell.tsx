@@ -31,6 +31,8 @@ import FleetAllTripsPage from "@/app/Modules/tripbooking/FleetAllTripsPage";
 import PageErrorBoundary from "../common/PageErrorBoundary";
 import RoomReservationPage from "@/app/Modules/roomreservation/RoomReservationPage";
 import SeatPlanPage from "@/app/Modules/it/seatplan/SeatPlanPage";
+import FormsPage from "@/app/Modules/it/forms/FormsPage";
+
 
 const LAST_PAGE_KEY = "SUMS_LAST_PAGE";
 
@@ -95,6 +97,8 @@ function renderPage(
       );
     case "seatplan":
       return <SeatPlanPage user={user} />;
+    case "forms":
+      return <FormsPage user={user} initialView="saved" />;
     case "tickets":
       return (
         <PlaceholderPage

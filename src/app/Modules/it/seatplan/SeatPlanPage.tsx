@@ -77,6 +77,9 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
+  const [canvasRotation, setCanvasRotation] = useState(0); // 0 | 90 | 180 | 270
+  const [isCompact, setIsCompact] = useState(false); // phone-width layout
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragStart = useRef<{ x: number; y: number; origX: number; origY: number } | null>(null);
   const resizeStart = useRef<{ x: number; y: number; origW: number; origH: number } | null>(null);
@@ -121,6 +124,13 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
       return () => clearTimeout(t);
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      recenter();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRotation]);
 
   // ── IT inventory lookup (for the "assigned devices" popup on double-click) ──
   useEffect(() => {
@@ -520,6 +530,45 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   }, [layout]);
 
+  // The canvas is visually rotated around its own center (CANVAS_W/2,
+  // CANVAS_H/2) — see the transform in the canvas View below. To center
+  // the viewport correctly at any rotation, project each corner of the
+  // (unrotated) content bounding box through that same rotation around
+  // the same pivot, then take the bounding box of the rotated corners.
+  // That gives the actual on-screen footprint of the content.
+  const getRotatedContentBounds = useCallback(() => {
+    const bounds = getContentBounds();
+    if (!canvasRotation) return bounds;
+
+    const cx = CANVAS_W / 2;
+    const cy = CANVAS_H / 2;
+    const rad = (canvasRotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const corners = [
+      { x: bounds.x, y: bounds.y },
+      { x: bounds.x + bounds.w, y: bounds.y },
+      { x: bounds.x, y: bounds.y + bounds.h },
+      { x: bounds.x + bounds.w, y: bounds.y + bounds.h },
+    ].map(({ x, y }) => {
+      const dx = x - cx;
+      const dy = y - cy;
+      return {
+        x: cx + dx * cos - dy * sin,
+        y: cy + dx * sin + dy * cos,
+      };
+    });
+
+    const xs = corners.map((c) => c.x);
+    const ys = corners.map((c) => c.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }, [getContentBounds, canvasRotation]);
+
   const recenter = useCallback(() => {
     const { width, height } = viewportSize.current;
     if (!width || !height) {
@@ -529,7 +578,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
       return;
     }
     const pad = 60;
-    const bounds = getContentBounds();
+    const bounds = getRotatedContentBounds();
     const fitZoom = Math.min(
       (width - pad) / bounds.w,
       (height - pad) / bounds.h,
@@ -539,7 +588,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
     setZoom(newZoom);
     setPanX((width - bounds.w * newZoom) / 2 - bounds.x * newZoom);
     setPanY((height - bounds.h * newZoom) / 2 - bounds.y * newZoom);
-  }, [getContentBounds]);
+  }, [getRotatedContentBounds]);
 
   // ── Scroll-wheel zoom (web only, zooms toward cursor position) ──────
   useEffect(() => {
@@ -689,20 +738,39 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
         },
         onMoveShouldSetPanResponder: (e, gesture) => {
           if (Platform.OS === "web" && e.nativeEvent.touches.length < 2) return false;
+          // Always claim the gesture the instant a 2nd finger appears, even
+          // if a 1-finger pan already began — otherwise pinch never engages.
+          if (e.nativeEvent.touches.length === 2) return true;
           return Math.abs(gesture.dx) > 2 || Math.abs(gesture.dy) > 2;
         },
         onPanResponderGrant: (e) => {
           const touches = e.nativeEvent.touches;
           if (touches.length === 2) {
-            pinchStart.current = { dist: dist(touches), zoom };
+            pinchStart.current = { dist: dist(touches), zoom: zoomRef.current };
             panStart.current = null;
           } else {
-            panStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, origPanX: panX, origPanY: panY };
+            panStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, origPanX: panXRef.current, origPanY: panYRef.current };
             pinchStart.current = null;
           }
         },
         onPanResponderMove: (e) => {
           const touches = e.nativeEvent.touches;
+
+          // Transition: gesture started with 1 finger (pan) but a 2nd
+          // finger has now landed — switch into pinch instead of staying
+          // stuck panning off the first finger's stale delta.
+          if (touches.length === 2 && !pinchStart.current) {
+            pinchStart.current = { dist: dist(touches), zoom: zoomRef.current };
+            panStart.current = null;
+            return;
+          }
+          // Reverse transition: back down to 1 finger after a pinch.
+          if (touches.length < 2 && pinchStart.current) {
+            pinchStart.current = null;
+            panStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, origPanX: panXRef.current, origPanY: panYRef.current };
+            return;
+          }
+
           if (touches.length === 2 && pinchStart.current) {
             const newDist = dist(touches);
             const scale = newDist / pinchStart.current.dist;
@@ -719,8 +787,12 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
           panStart.current = null;
           pinchStart.current = null;
         },
+        onPanResponderTerminate: () => {
+          panStart.current = null;
+          pinchStart.current = null;
+        },
       }),
-    [zoom, panX, panY],
+    [],
   );
 
   // ── Drag handling (mouse/touch via PanResponder) ─────────────────────
@@ -803,132 +875,229 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
     <>
     <View style={styles.container}>
       {/* Toolbar */}
-      <View style={[styles.toolbar, { position: "relative", zIndex: 50 }]}>
-        <Text style={styles.title}>Seat Plan</Text>
+      {isCompact ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, paddingRight: 24 }}
+          style={[styles.toolbarCompactScroll, { position: "relative", zIndex: 100, flexGrow: 0, flexShrink: 0, ...(Platform.OS === "web" ? ({ isolation: "isolate" } as any) : {}) }]}
+        >
+          <Text style={[styles.title, { fontSize: 15, marginRight: 4 }]}>Seat Plan</Text>
 
-        <View style={{ position: "relative", zIndex: 30 }}>
-          <Pressable
-            style={[
-              styles.toolBtn,
-              Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {},
-            ]}
-            onPress={() => setUnitMenuOpen((v) => !v)}
-          >
-            <Text style={styles.toolBtnText}>
-              {(SEAT_PLAN_OPTIONS.find((o) => o.key === planKey)?.label ?? "Select unit")} ▾
-            </Text>
+          <View style={{ position: "relative", zIndex: 30 }}>
+            <Pressable style={styles.toolBtn} onPress={() => setUnitMenuOpen((v) => !v)}>
+              <Text style={styles.toolBtnText}>
+                {(SEAT_PLAN_OPTIONS.find((o) => o.key === planKey)?.label ?? "Unit")} ▾
+              </Text>
+            </Pressable>
+            {unitMenuOpen && (
+              <View
+                style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 4,
+                  backgroundColor: theme.surfaceRaised, borderWidth: 1, borderColor: theme.border,
+                  borderRadius: 8, overflow: "hidden", minWidth: 150, zIndex: 30, elevation: 8,
+                  ...(Platform.OS === "web" ? { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" } as any : {}),
+                }}
+              >
+                {SEAT_PLAN_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => {
+                      setUnitMenuOpen(false);
+                      if (opt.key !== planKey) {
+                        setPlanKey(opt.key);
+                        setHistory([]);
+                        setSelected(null);
+                        setViewMode(true);
+                      }
+                    }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: opt.key === planKey ? theme.primarySubtle : "transparent" }}
+                  >
+                    <Text style={{ color: opt.key === planKey ? theme.primary : theme.text, fontSize: 13, fontWeight: opt.key === planKey ? "700" : "500" }}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <Pressable style={styles.toolBtn} onPress={() => setCanvasRotation((r) => (r === 0 ? 90 : 0))}>
+            <Text style={styles.toolBtnText}>⟳ Rotate</Text>
           </Pressable>
 
-          {unitMenuOpen && (
-            <View
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                marginTop: 4,
-                backgroundColor: theme.surfaceRaised,
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: 8,
-                overflow: "hidden",
-                minWidth: 150,
-                zIndex: 30,
-                elevation: 8,
-                ...(Platform.OS === "web" ? { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" } as any : {}),
-              }}
-            >
-              {SEAT_PLAN_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.key}
-                  onPress={() => {
-                    setUnitMenuOpen(false);
-                    if (opt.key !== planKey) {
-                      setPlanKey(opt.key);
-                      setHistory([]);
-                      setSelected(null);
-                      setViewMode(true);
-                    }
-                  }}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    backgroundColor: opt.key === planKey ? theme.primarySubtle : "transparent",
-                  }}
-                >
-                  <Text style={{ color: opt.key === planKey ? theme.primary : theme.text, fontSize: 13, fontWeight: opt.key === planKey ? "700" : "500" }}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+          <Pressable style={styles.toolBtn} onPress={recenter}>
+            <Text style={styles.toolBtnText}>⤢</Text>
+          </Pressable>
+
+          {!viewMode && (
+            <Pressable style={[styles.toolBtn, { minWidth: 44, flexShrink: 0 }]} onPress={() => setMoreMenuOpen((v) => !v)}>
+              <Text style={styles.toolBtnText}>⋯ Tools</Text>
+            </Pressable>
           )}
-        </View>
 
-        <Pressable
-          onPress={() => setViewMode((v) => !v)}
-          style={[styles.modeBtn, viewMode ? styles.modeBtnView : styles.modeBtnEdit]}
-        >
-          <Text style={styles.modeBtnText}>{viewMode ? "👁 View mode" : "✎ Edit mode"}</Text>
-        </Pressable>
-
-        {!viewMode && (
-          <>
-            <Pressable style={styles.toolBtn} onPress={addSeat}>
-              <Text style={styles.toolBtnText}>+ Seat</Text>
-            </Pressable>
-            <Pressable style={styles.toolBtn} onPress={addPod}>
-              <Text style={styles.toolBtnText}>+ Seat block</Text>
-            </Pressable>
-            <Pressable style={styles.toolBtn} onPress={addRoom}>
-              <Text style={styles.toolBtnText}>+ Room</Text>
-            </Pressable>
-
-            <Pressable style={styles.toolBtn} onPress={addDoor}>
-              <Text style={styles.toolBtnText}>+ Door</Text>
-            </Pressable>
-
+          <View style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={[styles.saveDot, saveState === "saving" && styles.saveDotSaving, saveState === "error" && styles.saveDotError]} />
             <Pressable
-              style={[styles.toolBtn, history.length === 0 && { opacity: 0.4 }]}
-              onPress={undo}
-              disabled={history.length === 0}
+              onPress={() => setViewMode((v) => !v)}
+              style={[styles.modeBtnCompact, viewMode ? styles.modeBtnView : styles.modeBtnEdit]}
             >
-              <Text style={styles.toolBtnText}>↶ Undo</Text>
+              <Text style={styles.modeBtnText}>{viewMode ? "👁" : "✎"}</Text>
             </Pressable>
-          </>
-        )}
+          </View>
+        </ScrollView>
+      ) : null}
 
-        <Pressable style={styles.toolBtn} onPress={() => setZoom((z) => Math.max(0.2, z - 0.15))}>
-          <Text style={styles.toolBtnText}>−</Text>
-        </Pressable>
-        <Text style={{ color: theme.subtext, fontSize: 11, minWidth: 36, textAlign: "center" }}>
-          {Math.round(zoom * 100)}%
-        </Text>
-        <Pressable style={styles.toolBtn} onPress={() => setZoom((z) => Math.min(3, z + 0.15))}>
-          <Text style={styles.toolBtnText}>+</Text>
-        </Pressable>
-        <Pressable style={styles.toolBtn} onPress={recenter}>
-          <Text style={styles.toolBtnText}>⤢ Recenter</Text>
-        </Pressable>
-
-        <View style={styles.saveIndicator}>
-          <View
-            style={[
-              styles.saveDot,
-              saveState === "saving" && styles.saveDotSaving,
-              saveState === "error" && styles.saveDotError,
-            ]}
-          />
-          <Text style={styles.saveText}>
-            {saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : "Saved"}
-          </Text>
+      {isCompact && moreMenuOpen && !viewMode && (
+        <View
+          style={{
+            position: "absolute",
+            top: 52,
+            right: 10,
+            backgroundColor: theme.surfaceRaised,
+            borderWidth: 1,
+            borderColor: theme.border,
+            borderRadius: 8,
+            overflow: "hidden",
+            minWidth: 170,
+            zIndex: 200,
+            elevation: 20,
+            ...(Platform.OS === "web" ? { boxShadow: "0 4px 12px rgba(0,0,0,0.25)" } as any : {}),
+          }}
+        >
+          {[
+            { label: "+ Seat", onPress: addSeat },
+            { label: "+ Seat block", onPress: addPod },
+            { label: "+ Room", onPress: addRoom },
+            { label: "+ Door", onPress: addDoor },
+            { label: "↶ Undo", onPress: undo, disabled: history.length === 0 },
+          ].map((item) => (
+            <Pressable
+              key={item.label}
+              disabled={item.disabled}
+              onPress={() => {
+                item.onPress();
+                setMoreMenuOpen(false);
+              }}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, opacity: item.disabled ? 0.4 : 1 }}
+            >
+              <Text style={{ color: theme.text, fontSize: 13, fontWeight: "500" }}>{item.label}</Text>
+            </Pressable>
+          ))}
         </View>
-      </View>
+      )}
+
+      {!isCompact && (
+        <View style={[styles.toolbar, { position: "relative", zIndex: 100, ...(Platform.OS === "web" ? ({ isolation: "isolate" } as any) : {}) }]}>
+          <Text style={[styles.title, { flexShrink: 0 }]}>Seat Plan</Text>
+
+          <View style={{ position: "relative", zIndex: 30, flexShrink: 0 }}>
+            <Pressable
+              style={[styles.toolBtn, Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}]}
+              onPress={() => setUnitMenuOpen((v) => !v)}
+            >
+              <Text style={styles.toolBtnText}>
+                {(SEAT_PLAN_OPTIONS.find((o) => o.key === planKey)?.label ?? "Select unit")} ▾
+              </Text>
+            </Pressable>
+
+            {unitMenuOpen && (
+              <View
+                style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 4,
+                  backgroundColor: theme.surfaceRaised, borderWidth: 1, borderColor: theme.border,
+                  borderRadius: 8, overflow: "hidden", minWidth: 150, zIndex: 30, elevation: 8,
+                  ...(Platform.OS === "web" ? { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" } as any : {}),
+                }}
+              >
+                {SEAT_PLAN_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => {
+                      setUnitMenuOpen(false);
+                      if (opt.key !== planKey) {
+                        setPlanKey(opt.key);
+                        setHistory([]);
+                        setSelected(null);
+                        setViewMode(true);
+                      }
+                    }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: opt.key === planKey ? theme.primarySubtle : "transparent" }}
+                  >
+                    <Text style={{ color: opt.key === planKey ? theme.primary : theme.text, fontSize: 13, fontWeight: opt.key === planKey ? "700" : "500" }}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <Pressable
+            onPress={() => setViewMode((v) => !v)}
+            style={[styles.modeBtn, viewMode ? styles.modeBtnView : styles.modeBtnEdit]}
+          >
+            <Text style={styles.modeBtnText}>{viewMode ? "👁 View mode" : "✎ Edit mode"}</Text>
+          </Pressable>
+
+          {!viewMode && (
+            <>
+              <Pressable style={styles.toolBtn} onPress={addSeat}>
+                <Text style={styles.toolBtnText}>+ Seat</Text>
+              </Pressable>
+              <Pressable style={styles.toolBtn} onPress={addPod}>
+                <Text style={styles.toolBtnText}>+ Seat block</Text>
+              </Pressable>
+              <Pressable style={styles.toolBtn} onPress={addRoom}>
+                <Text style={styles.toolBtnText}>+ Room</Text>
+              </Pressable>
+              <Pressable style={styles.toolBtn} onPress={addDoor}>
+                <Text style={styles.toolBtnText}>+ Door</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.toolBtn, history.length === 0 && { opacity: 0.4 }]}
+                onPress={undo}
+                disabled={history.length === 0}
+              >
+                <Text style={styles.toolBtnText}>↶ Undo</Text>
+              </Pressable>
+            </>
+          )}
+
+          <View style={styles.toolbarGroup}>
+            <Pressable style={styles.toolBtn} onPress={() => setZoom((z) => Math.max(0.2, z - 0.15))}>
+              <Text style={styles.toolBtnText}>−</Text>
+            </Pressable>
+            <Text style={{ color: theme.subtext, fontSize: 11, minWidth: 36, textAlign: "center" }}>
+              {Math.round(zoom * 100)}%
+            </Text>
+            <Pressable style={styles.toolBtn} onPress={() => setZoom((z) => Math.min(3, z + 0.15))}>
+              <Text style={styles.toolBtnText}>+</Text>
+            </Pressable>
+            <Pressable style={styles.toolBtn} onPress={() => setCanvasRotation((r) => (r === 0 ? 90 : 0))}>
+              <Text style={styles.toolBtnText}>⟳ Rotate view</Text>
+            </Pressable>
+            <Pressable style={styles.toolBtn} onPress={recenter}>
+              <Text style={styles.toolBtnText}>⤢ Recenter</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.saveIndicator}>
+            <View style={[styles.saveDot, saveState === "saving" && styles.saveDotSaving, saveState === "error" && styles.saveDotError]} />
+            <Text style={styles.saveText}>
+              {saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : "Saved"}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* end toolbar block */}
 
       {/* Canvas */}
       <View
         ref={viewportRef}
         style={[
-          { flex: 1, overflow: "hidden" },
+          { flex: 1, overflow: "hidden", position: "relative", zIndex: 1, ...(Platform.OS === "web" ? ({ isolation: "isolate" } as any) : {}) },
           Platform.OS === "web"
             ? ({
                 backgroundImage: `linear-gradient(${theme.border} 1px, transparent 1px), linear-gradient(90deg, ${theme.border} 1px, transparent 1px), linear-gradient(${theme.borderStrong} 1px, transparent 1px), linear-gradient(90deg, ${theme.borderStrong} 1px, transparent 1px)`,
@@ -939,6 +1108,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
         ]}
         onLayout={(e) => {
           viewportSize.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height };
+          setIsCompact(e.nativeEvent.layout.width < 640);
         }}
         {...viewportPanResponder.panHandlers}
       >
@@ -949,7 +1119,20 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
             {
               width: CANVAS_W,
               height: CANVAS_H,
-              transform: [{ translateX: panX }, { translateY: panY }, { scale: zoom }],
+              transform: [
+                { translateX: panX },
+                { translateY: panY },
+                { scale: zoom },
+                // Rotate around the canvas's own center, not the pan/zoom
+                // origin — offset by half width/height so the rotation
+                // pivot lands in the middle of the content, then undo the
+                // offset after rotating.
+                { translateX: CANVAS_W / 2 },
+                { translateY: CANVAS_H / 2 },
+                { rotate: `${canvasRotation}deg` },
+                { translateX: -CANVAS_W / 2 },
+                { translateY: -CANVAS_H / 2 },
+              ],
               transformOrigin: "0 0" as any,
             },
           ]}
@@ -966,6 +1149,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
                 onRename={(label) => renameRoom(room.id, label)}
                 onDelete={() => deleteRoom(room.id)}
                 onMoveLabel={(dx, dy) => moveRoomLabel(room.id, dx, dy)}
+                canvasRotation={canvasRotation}
               />
               </View>
             ))}
@@ -984,6 +1168,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
                 onOpenGrid={() => setGridModalPod({ id: pod.id, rows: pod.rows, cols: pod.cols })}
                 onOpenDevices={(name, index) => openDevicesForName(name, { kind: "podCell", podId: pod.id, index })}
                 employeeNames={employeeNames}
+                canvasRotation={canvasRotation}
               />
             ))}
             {layout.seats.map((seat) => (
@@ -1005,6 +1190,7 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
                 onDelete={() => deleteSeat(seat.id)}
                 onOpenDevices={(name) => openDevicesForName(name, { kind: "seat", id: seat.id })}
                 employeeNames={employeeNames}
+                canvasRotation={canvasRotation}
               />
             ))}
             {layout.doors.map((door) => (
@@ -1239,6 +1425,15 @@ const SeatPlanPage: React.FC<Props> = ({ user }) => {
 
 // ── Sub-components ──────────────────────────────────────────────────────
 
+const Upright: React.FC<{ rotation: number; children: React.ReactNode; style?: any }> = ({ rotation, children, style }) => {
+  if (!rotation) return <>{children}</>;
+  return (
+    <View style={[{ transform: [{ rotate: `${-rotation}deg` }] }, style]}>
+      {children}
+    </View>
+  );
+};
+
 const RoomBlock: React.FC<{
   room: SeatPlanRoom;
   theme: any;
@@ -1249,7 +1444,8 @@ const RoomBlock: React.FC<{
   onRename: (label: string) => void;
   onDelete: () => void;
   onMoveLabel: (dx: number, dy: number) => void;
-}> = ({ room, theme, viewMode, selected, panResponder, resizeResponder, onRename, onDelete, onMoveLabel }) => {
+  canvasRotation: number;
+}> = ({ room, theme, viewMode, selected, panResponder, resizeResponder, onRename, onDelete, onMoveLabel, canvasRotation }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(room.label);
 
@@ -1307,16 +1503,20 @@ const RoomBlock: React.FC<{
     >
       <View {...(!viewMode ? panResponder.panHandlers : {})} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 22 }} />
       {editing ? (
-        <TextInput
-          autoFocus
-          value={draft}
-          onChangeText={setDraft}
-          onBlur={() => {
-            onRename(draft.trim() || room.label);
-            setEditing(false);
-          }}
-          style={{ position: "absolute", top: labelY, left: labelX, right: 0, textAlign: "center", color: theme.text, fontSize: 12 }}
-        />
+        <View style={{ position: "absolute", top: labelY, left: labelX, right: 0 }}>
+          <Upright rotation={canvasRotation}>
+            <TextInput
+              autoFocus
+              value={draft}
+              onChangeText={setDraft}
+              onBlur={() => {
+                onRename(draft.trim() || room.label);
+                setEditing(false);
+              }}
+              style={{ textAlign: "center", color: theme.text, fontSize: 12 }}
+            />
+          </Upright>
+        </View>
       ) : (
         <View
           {...(!viewMode ? labelPanResponder.panHandlers : {})}
@@ -1325,23 +1525,25 @@ const RoomBlock: React.FC<{
             Platform.OS === "web" && !viewMode ? ({ cursor: "move", userSelect: "none" } as any) : {},
           ]}
         >
-          <Pressable
-            disabled={viewMode}
-            onPress={() => !viewMode && setEditing(true)}
-            style={{ paddingHorizontal: 2 }}
-          >
-            <Text
-              style={{
-                color: theme.text,
-                fontSize: 12,
-                fontWeight: "700",
-                textTransform: "uppercase",
-                ...(Platform.OS === "web" ? ({ whiteSpace: "nowrap" } as any) : {}),
-              }}
+          <Upright rotation={canvasRotation}>
+            <Pressable
+              disabled={viewMode}
+              onPress={() => !viewMode && setEditing(true)}
+              style={{ paddingHorizontal: 2 }}
             >
-              {room.label}
-            </Text>
-          </Pressable>
+              <Text
+                style={{
+                  color: theme.text,
+                  fontSize: 12,
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  ...(Platform.OS === "web" ? ({ whiteSpace: "nowrap" } as any) : {}),
+                }}
+              >
+                {room.label}
+              </Text>
+            </Pressable>
+          </Upright>
         </View>
       )}
       {!viewMode && (
@@ -1410,7 +1612,8 @@ const PodBlock: React.FC<{
   onOpenGrid: () => void;
   onOpenDevices: (name: string, index: number) => void;
   employeeNames: string[];
-}> = ({ pod, theme, viewMode, selected, panResponder, onCellChange, onReshape, onTogglePortrait, onDelete, onOpenGrid, onOpenDevices, employeeNames }) => {
+  canvasRotation: number;
+}> = ({ pod, theme, viewMode, selected, panResponder, onCellChange, onReshape, onTogglePortrait, onDelete, onOpenGrid, onOpenDevices, employeeNames, canvasRotation }) => {
   const cellW = pod.portrait ? 52 : 96;
   const cellH = pod.portrait ? 96 : 52;
   const [openCellIndex, setOpenCellIndex] = useState<number | null>(null);
@@ -1454,6 +1657,7 @@ const PodBlock: React.FC<{
               onChange={(v) => onCellChange(i, v)}
               onOpenChange={(open) => setOpenCellIndex(open ? i : null)}
               onOpenDevices={(name) => onOpenDevices(name, i)}
+              canvasRotation={canvasRotation}
             />
           </View>
         ))}
@@ -1623,20 +1827,52 @@ const NameSelect: React.FC<{
       const keptMiddle = middleTokens.filter((t) => !/^[A-Za-z]\.?$/.test(t));
       return [tokens[0], ...keptMiddle, tokens[tokens.length - 1]].join(" ");
     })();
+
+    const baseSize = textStyle?.fontSize ?? 11;
+    const shrinkSteps = displayName.length > 20 ? 2.5 : displayName.length > 14 ? 1.5 : 0;
+    const fittedSize = Math.max(8, baseSize - shrinkSteps);
+
+    // Manually wrap into lines by word count, rather than relying on
+    // CSS/RN text-wrapping (which was not reliably constraining width
+    // across platforms). Roughly 2 words per line for names, up to 3
+    // lines, so long multi-word names always break instead of overflow.
+    const words = displayName.split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    if (words.length <= 1) {
+      lines.push(displayName);
+    } else if (words.length === 2) {
+      lines.push(words[0], words[1]);
+    } else if (words.length === 3) {
+      lines.push(words[0], words[1], words[2]);
+    } else {
+      // 4+ words: pair them up, 2 per line, last line takes any remainder
+      for (let i = 0; i < words.length; i += 2) {
+        lines.push(words.slice(i, i + 2).join(" "));
+      }
+    }
+    const cappedLines = lines.slice(0, 3);
+
     return (
-      <Text
-        style={[
-          textStyle,
-          { paddingHorizontal: 4, fontSize: (textStyle?.fontSize ?? 11) - (displayName.length > 14 ? 1 : 0) },
-          Platform.OS === "web"
-            ? ({ whiteSpace: "normal", overflow: "hidden", wordBreak: "keep-all", overflowWrap: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: "13px" } as any)
-            : {},
-        ]}
-        numberOfLines={Platform.OS === "web" ? undefined : 2}
-        ellipsizeMode="tail"
-      >
-        {displayName || placeholder}
-      </Text>
+      <View style={{ width: "100%", alignItems: "center", paddingHorizontal: 2 }}>
+        {(cappedLines.length ? cappedLines : [placeholder]).map((line, i) => (
+          <Text
+            key={i}
+            style={[
+              textStyle,
+              {
+                fontSize: fittedSize,
+                lineHeight: fittedSize + 2,
+                textAlign: "center",
+                width: "100%",
+              },
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {line}
+          </Text>
+        ))}
+      </View>
     );
   }
 
@@ -1779,7 +2015,8 @@ const PodCell: React.FC<{
   onChange: (value: string) => void;
   onOpenChange?: (open: boolean) => void;
   onOpenDevices: (name: string) => void;
-}> = ({ name, w, h, portrait, viewMode, theme, employeeNames, onChange, onOpenChange, onOpenDevices }) => {
+  canvasRotation: number;
+}> = ({ name, w, h, portrait, viewMode, theme, employeeNames, onChange, onOpenChange, onOpenDevices, canvasRotation }) => {
   const lastTap = useRef(0);
   const cellRef = useRef<any>(null);
 
@@ -1846,26 +2083,30 @@ const PodCell: React.FC<{
         Platform.OS === "web" ? ({ userSelect: "none" } as any) : {},
       ]}
     >
-      <NameSelect
-        value={name}
-        options={employeeNames}
-        viewMode={viewMode && !forceEditEmpty}
-        autoOpen={forceEditEmpty}
-        theme={theme}
-        placeholder="—"
-        onChange={(v) => {
-          onChange(v);
-          setForceEditEmpty(false);
-        }}
-        onOpenChange={onOpenChange}
-        textStyle={{
-          textAlign: "center",
-          fontSize: 11,
-          fontWeight: "600",
-          color: name.trim() ? theme.primarySubtleText : theme.subtext,
-          width: "100%",
-        }}
-      />
+      <View style={{ width: w - 6 }}>
+        <Upright rotation={canvasRotation}>
+          <NameSelect
+            value={name}
+            options={employeeNames}
+            viewMode={viewMode && !forceEditEmpty}
+            autoOpen={forceEditEmpty}
+            theme={theme}
+            placeholder="—"
+            onChange={(v) => {
+              onChange(v);
+              setForceEditEmpty(false);
+            }}
+            onOpenChange={onOpenChange}
+            textStyle={{
+              textAlign: "center",
+              fontSize: 10,
+              fontWeight: "600",
+              color: name.trim() ? theme.primarySubtleText : theme.subtext,
+              width: w - 6,
+            }}
+          />
+        </Upright>
+      </View>
     </Pressable>
   );
 };
@@ -1881,7 +2122,8 @@ const SeatBlock: React.FC<{
   onDelete: () => void;
   onOpenDevices: (name: string) => void;
   employeeNames: string[];
-}> = ({ seat, theme, viewMode, selected, panResponder, onNameChange, onToggleRotate, onDelete, onOpenDevices, employeeNames }) => {
+  canvasRotation: number;
+}> = ({ seat, theme, viewMode, selected, panResponder, onNameChange, onToggleRotate, onDelete, onOpenDevices, employeeNames, canvasRotation }) => {
   const rotated = seat.rot === 90;
   const w = rotated ? SEAT_H : SEAT_W;
   const h = rotated ? SEAT_W : SEAT_H;
@@ -1957,25 +2199,29 @@ const SeatBlock: React.FC<{
           Platform.OS === "web" ? ({ userSelect: "none" } as any) : {},
         ]}
       >
-        <NameSelect
-          value={seat.name}
-          options={employeeNames}
-          viewMode={viewMode && !forceEditEmpty}
-          autoOpen={forceEditEmpty}
-          theme={theme}
-          placeholder="Unassigned"
-          onChange={(v) => {
-            onNameChange(v);
-            setForceEditEmpty(false);
-          }}
-          textStyle={{
-            textAlign: "center",
-            fontSize: 11,
-            fontWeight: "600",
-            color: seat.name.trim() ? theme.primarySubtleText : theme.subtext,
-            width: "100%",
-          }}
-        />
+        <View style={{ width: w - 8 }}>
+          <Upright rotation={canvasRotation}>
+            <NameSelect
+              value={seat.name}
+              options={employeeNames}
+              viewMode={viewMode && !forceEditEmpty}
+              autoOpen={forceEditEmpty}
+              theme={theme}
+              placeholder="Unassigned"
+              onChange={(v) => {
+                onNameChange(v);
+                setForceEditEmpty(false);
+              }}
+              textStyle={{
+                textAlign: "center",
+                fontSize: 11,
+                fontWeight: "600",
+                color: seat.name.trim() ? theme.primarySubtleText : theme.subtext,
+                width: w - 8,
+              }}
+            />
+          </Upright>
+        </View>
       </Pressable>
       {!viewMode && (
         <>
@@ -2054,13 +2300,33 @@ function makeStyles(theme: any) {
       flexDirection: "row" as const,
       alignItems: "center" as const,
       gap: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       borderBottomWidth: 1,
       borderBottomColor: theme.border,
       backgroundColor: theme.surface,
       flexWrap: "wrap" as const,
+      rowGap: 6,
     },
+    toolbarCompact: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      backgroundColor: theme.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      gap: 8,
+    },
+    toolbarCompactScroll: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      backgroundColor: theme.surface,
+    },
+    toolbarGroup: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+    },
+    modeBtnCompact: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7 },
     title: { color: theme.text, fontSize: 18, fontWeight: "700" as const, marginRight: 8 },
     modeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 7 },
     modeBtnView: { backgroundColor: "#2f6690" },
@@ -2077,7 +2343,7 @@ function makeStyles(theme: any) {
     toolBtnText: { color: theme.text, fontSize: 12.5, fontWeight: "600" as const },
     dangerBtn: { borderColor: "#8f3a2d" },
     dangerBtnText: { color: "#c1503f" },
-    saveIndicator: { flexDirection: "row" as const, alignItems: "center" as const, gap: 5, marginLeft: "auto" as const },
+    saveIndicator: { flexDirection: "row" as const, alignItems: "center" as const, gap: 5 },
     saveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#4caf6b" },
     saveDotSaving: { backgroundColor: "#e8a33d" },
     saveDotError: { backgroundColor: "#c1503f" },

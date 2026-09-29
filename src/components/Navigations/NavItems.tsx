@@ -621,6 +621,41 @@ export const SeatPlanIcon: React.FC<{ color: string; size?: number }> = ({
   </Svg>
 );
 
+export const FormsIcon: React.FC<{ color: string; size?: number }> = ({
+  color,
+  size = 20,
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M14 2v6h6"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M8 13h8M8 17h5"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M15.5 16.5l1.2 1.2 2.3-2.4"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const RoomReservationIcon: React.FC<{
   color: string;
   size?: number;
@@ -663,6 +698,7 @@ const ROUTE_BY_KEY: Record<string, string> = {
   users: "/users",
   audit: "/audit-trail",
   seatplan: "/it/seat-plan",
+  forms: "/it/forms",
   tickets: "/it/tickets",
   inventory: "/it/inventory",
   consumables: "/it/consumables",
@@ -767,6 +803,12 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           icon: SeatPlanIcon,
           href: href("seatplan"),
         },
+        {
+          key: "forms",
+          label: "Forms",
+          icon: FormsIcon,
+          href: href("forms"),
+        },
       ],
     },
     {
@@ -870,6 +912,12 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
           label: "IT Consumables",
           icon: ConsumablesIcon,
           href: href("consumables"),
+        },
+        {
+          key: "forms",
+          label: "Forms",
+          icon: FormsIcon,
+          href: href("forms"),
         },
       ],
     },
@@ -1047,6 +1095,12 @@ export function getNavSectionsForUser(user: {
             label: "Seat Plan",
             icon: SeatPlanIcon,
             href: href("seatplan"),
+          },
+          {
+            key: "forms",
+            label: "Forms",
+            icon: FormsIcon,
+            href: href("forms"),
           },
         ]
       : [];
