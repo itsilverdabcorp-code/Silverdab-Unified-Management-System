@@ -237,7 +237,15 @@ export default function AppShell({ user, onLogout }: Props) {
 
       let keyFromUrl: string | null = null;
       if (typeof window !== "undefined" && window.location) {
-        keyFromUrl = getKeyFromHref(sections, window.location.pathname);
+        keyFromUrl =
+          getKeyFromHref(sections, window.location.pathname) ??
+          sections
+            .flatMap((s) => s.items)
+            .find(
+              (i) =>
+                i.href && window.location.pathname.startsWith(i.href + "/"),
+            )?.key ??
+          null;
       }
 
       let candidateKey = keyFromUrl;
@@ -259,7 +267,7 @@ export default function AppShell({ user, onLogout }: Props) {
           : defaultKeyForUser;
 
       setActiveKey(resolvedKey);
-      updateBrowserUrl(resolvedKey);
+      if (keyFromUrl !== resolvedKey) updateBrowserUrl(resolvedKey);
       setRestored(true);
     };
     restore();

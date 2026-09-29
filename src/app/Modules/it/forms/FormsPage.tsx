@@ -1,5 +1,5 @@
 import { Download, Plus, Printer, RotateCcw, X } from "lucide-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Platform,
@@ -104,7 +104,7 @@ const API_URL = "https://api.silvergraph.ai";
 const TOKEN_KEY = "AD_AUTH_TOKEN"; // matches adAuthService.ts
 const STD_REMARK =
   "All items were verified to be in good working condition upon issuance. Any catastrophic damage, including but not limited to severe physical damage, liquid damage, loss of parts, unauthorized modification, or damage caused by misuse or negligence, may be charged to the user.";
-const SHORT_REMARK = "All items working good during issuance.";
+
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type ItemRow = {
@@ -186,9 +186,44 @@ const suggestRef = (company: CompanyKey, date: string, issuedNo: string) => {
 // ── Page ─────────────────────────────────────────────────────────────────────
 type Props = { user: ADUser; initialView?: "form" | "saved" };
 
+// ── Routing helpers (web only) ──────────────────────────────────────────────
+const isWeb = () => Platform.OS === "web" && typeof window !== "undefined";
+const RECORD_RE = /\/(view|edit)\/([^/]+)\/?$/;
+const NEW_RE = /\/new\/?$/;
+
+const parseRoute = ():
+  | { mode: "view" | "edit"; refNo: string }
+  | { mode: "new"; refNo: null }
+  | null => {
+  if (!isWeb()) return null;
+  const p = window.location.pathname;
+  const m = p.match(RECORD_RE);
+  if (m) return { mode: m[1] as "view" | "edit", refNo: decodeURIComponent(m[2]) };
+  if (NEW_RE.test(p)) return { mode: "new", refNo: null };
+  return null;
+};
+
 export default function FormsPage({ user, initialView }: Props) {
-  const [view, setView] = useState<"form" | "saved">(initialView ?? "form");
-  const [readOnly, setReadOnly] = useState(false);
+  const [initialRoute] = useState(parseRoute);
+  const [view, setView] = useState<"form" | "saved">(
+    initialRoute ? "form" : initialView ?? "form",
+  );
+  const [readOnly, setReadOnly] = useState(initialRoute?.mode === "view");
+
+  // The Forms route without any /view, /edit or /new suffix.
+  const basePathRef = useRef(
+    isWeb()
+      ? window.location.pathname
+          .replace(/\/(view|edit)\/[^/]+\/?$/, "")
+          .replace(/\/new\/?$/, "")
+          .replace(/\/$/, "")
+      : "",
+  );
+  const pushPath = (suffix: string) => {
+    if (!isWeb()) return;
+    const target = basePathRef.current + suffix;
+    if (window.location.pathname !== target) window.history.pushState({}, "", target);
+  };
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
   const stacked = width < 1100; // form above preview on narrow screens
@@ -405,31 +440,64 @@ export default function FormsPage({ user, initialView }: Props) {
     }
   };
 
-  const goToSaved = () => setView("saved");
+    const goToSaved = () => {
+    setView("saved");
+    pushPath("");
+  };
 
   const handleViewFromSaved = async (refNo: string) => {
     setReadOnly(true);
     setSearchRef(refNo);
-    await loadRefNo(refNo);
     setView("form");
+    pushPath(`/view/${encodeURIComponent(refNo)}`);
+    await loadRefNo(refNo);
   };
 
   const handleEditFromSaved = async (refNo: string) => {
     setReadOnly(false);
     setSearchRef(refNo);
-    await loadRefNo(refNo);
     setView("form");
+    pushPath(`/edit/${encodeURIComponent(refNo)}`);
+    await loadRefNo(refNo);
   };
 
   const handleNewForm = () => {
-    console.log("handleNewForm fired");
     setForm(emptyForm());
     setRows([newRow()]);
     setLoadedRefNo(null);
     setSearchRef("");
     setReadOnly(false);
     setView("form");
+    pushPath("/new");
   };
+
+  // Open the right screen from the URL (refresh / shared link / back button).
+  const applyRoute = () => {
+    if (!isWeb() || !window.location.pathname.startsWith(basePathRef.current)) return;
+    const r = parseRoute();
+    if (r && r.refNo) {
+      setReadOnly(r.mode === "view");
+      setSearchRef(r.refNo);
+      setView("form");
+      loadRefNo(r.refNo);
+    } else if (r && r.mode === "new") {
+      setForm(emptyForm());
+      setRows([newRow()]);
+      setLoadedRefNo(null);
+      setSearchRef("");
+      setReadOnly(false);
+      setView("form");
+    } else {
+      setView("saved");
+    }
+  };
+
+  useEffect(() => {
+    if (initialRoute?.refNo) loadRefNo(initialRoute.refNo); // deep link on first load
+    if (!isWeb()) return;
+    window.addEventListener("popstate", applyRoute);
+    return () => window.removeEventListener("popstate", applyRoute);
+  }, []);
 
   const filledRows = useMemo(
     () => rows.filter((r) => [r.qty, r.brand, r.desc, r.warranty, r.purchased].some((v) => v.trim())),
@@ -1018,11 +1086,7 @@ export default function FormsPage({ user, initialView }: Props) {
             label="Standard (damage clause)"
             onPress={() => setField("remarks", STD_REMARK)}
           />
-          <Chip
-            active={form.remarks === SHORT_REMARK}
-            label="Working good"
-            onPress={() => setField("remarks", SHORT_REMARK)}
-          />
+
         </View>
         <TextInput
           style={[S.input, { minHeight: 84, textAlignVertical: "top" }]}

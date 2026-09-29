@@ -116,7 +116,7 @@ export default function SavedFormsPage({ user, onEdit, onView, onBack, onNew }: 
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.surface }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* top bar */}
       <View
         style={{
@@ -177,105 +177,119 @@ export default function SavedFormsPage({ user, onEdit, onView, onBack, onNew }: 
           <Text style={{ fontFamily: "Outfit", color: theme.dangerText, textAlign: "center" }}>{error}</Text>
         </View>
       ) : (
-        <ScrollView horizontal contentContainerStyle={{ minWidth: "100%" }}>
+                <ScrollView horizontal contentContainerStyle={{ minWidth: "100%" }}>
           <View style={{ flex: 1, padding: 20 }}>
-            {/* header row */}
             <View
               style={{
-                flexDirection: "row",
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.navBorder,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: 8,
+                overflow: "hidden",
               }}
             >
-              {COLS.map((c) => (
-                <Text
-                  key={c.key}
-                  style={{
-                    flex: c.flex,
-                    minWidth: c.key === "actions" ? 90 : 110,
-                    fontFamily: "Outfit-Bold",
-                    fontSize: 11,
-                    letterSpacing: 0.6,
-                    textTransform: "uppercase",
-                    color: theme.textInactive,
-                  }}
-                >
-                  {c.label}
-                </Text>
-              ))}
-            </View>
+              {/* header row */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.border,
+                  backgroundColor: theme.surfaceRaised,
+                }}
+              >
+                {COLS.map((c) => (
+                  <Text
+                    key={c.key}
+                    style={{
+                      flex: c.flex,
+                      minWidth: c.key === "actions" ? 160 : 110,
+                      fontFamily: "Outfit-medium",
+                      fontSize: 11,
+                      letterSpacing: 0.6,
+                      textTransform: "uppercase",
+                      color: theme.subtext,
+                    }}
+                  >
+                    {c.label}
+                  </Text>
+                ))}
+              </View>
 
-            {filtered.length === 0 ? (
-              <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.textInactive, padding: 20, textAlign: "center" }}>
-                No saved sign sheets found.
-              </Text>
-            ) : (
-              filtered.map((s) => (
-                <TouchableOpacity
-                  key={s.refNo}
-                  activeOpacity={0.7}
-                  onPress={() => onEdit?.(s.refNo)}
+              {filtered.length === 0 ? (
+                <Text
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.navBorder,
-                    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+                    fontFamily: "Outfit",
+                    fontSize: 13,
+                    color: theme.subtext,
+                    padding: 20,
+                    textAlign: "center",
+                    backgroundColor: theme.surface,
                   }}
                 >
-                  <Text style={{ flex: 1.6, minWidth: 110, fontFamily: "Outfit-medium", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.refNo}
-                  </Text>
-                  <Text style={{ flex: 1.6, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.name || "—"}
-                  </Text>
-                  <Text style={{ flex: 1.2, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.department || "—"}
-                  </Text>
-                  <Text style={{ flex: 1, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.issuedNo || "—"}
-                  </Text>
-                  <Text style={{ flex: 1, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {fmtDate(s.date)}
-                  </Text>
-                  <Text style={{ flex: 1.4, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.deliveredBy?.name || "—"}
-                  </Text>
-                  <Text style={{ flex: 1.4, minWidth: 110, fontFamily: "Outfit", fontSize: 12.5, color: "#ffffff" }}>
-                    {s.approvedBy?.name || "—"}
-                  </Text>
-                  <View style={{ flex: 1.4, minWidth: 90, flexDirection: "row", gap: 8 }}>
+                  No saved sign sheets found.
+                </Text>
+              ) : (
+                filtered.map((s, index) => {
+                  const cell = {
+                    minWidth: 110,
+                    fontFamily: "Outfit",
+                    fontSize: 12.5,
+                    color: theme.text,
+                  } as const;
+                  return (
                     <TouchableOpacity
-                      onPress={() => onView?.(s.refNo)}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 7,
-                        borderWidth: 1,
-                        borderColor: theme.navBorder,
-                      }}
-                    >
-                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive }}>View</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                      key={s.refNo}
+                      activeOpacity={0.7}
                       onPress={() => onEdit?.(s.refNo)}
                       style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        paddingVertical: 8,
                         paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 7,
-                        backgroundColor: theme.iconActive,
+                        borderBottomWidth: index === filtered.length - 1 ? 0 : 1,
+                        borderBottomColor: theme.border,
+                        backgroundColor: index % 2 === 0 ? theme.surface : theme.background,
+                        ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
                       }}
                     >
-                      <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: "#fff" }}>Edit</Text>
+                      <Text style={[cell, { flex: 1.6, fontFamily: "Outfit-medium" }]}>{s.refNo}</Text>
+                      <Text style={[cell, { flex: 1.6 }]}>{s.name || "—"}</Text>
+                      <Text style={[cell, { flex: 1.2 }]}>{s.department || "—"}</Text>
+                      <Text style={[cell, { flex: 1 }]}>{s.issuedNo || "—"}</Text>
+                      <Text style={[cell, { flex: 1 }]}>{fmtDate(s.date)}</Text>
+                      <Text style={[cell, { flex: 1.4 }]}>{s.deliveredBy?.name || "—"}</Text>
+                      <Text style={[cell, { flex: 1.4 }]}>{s.approvedBy?.name || "—"}</Text>
+                      <View style={{ flex: 1.4, minWidth: 160, flexDirection: "row", gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => onView?.(s.refNo)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 7,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.text }}>View</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => onEdit?.(s.refNo)}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 7,
+                            backgroundColor: theme.primary,
+                          }}
+                        >
+                          <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.primaryText }}>Edit</Text>
+                        </TouchableOpacity>
+                      </View>
                     </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
+                  );
+                })
+              )}
+            </View>
           </View>
         </ScrollView>
       )}
