@@ -157,11 +157,14 @@ const lineTotal = (r: Line) => {
   const d = r.disc ? Math.min(100, Math.max(0, parseFloat(r.pct) || 0)) : 0;
   return p * (1 - d / 100);
 };
+const decimalsOf = (cur: string) => (cur === "¥" ? 0 : 2);
 const money = (cur: string, n: number) =>
   `${cur}${Number(n || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimalsOf(cur),
+    maximumFractionDigits: decimalsOf(cur),
   })}`;
+const RATE_CODE: Record<string, "USD" | "JPY"> = { $: "USD", "¥": "JPY" };
+const RATE_REFRESH_MS = 5 * 60 * 1000; // re-check the rate every 5 minutes
 const lineCount = (text: string, cpl: number) =>
   (text || "")
     .split("\n")
@@ -237,6 +240,11 @@ export default function StatementFormPage({
   const [tailH, setTailH] = useState(0);
   const [lastNumInput, setLastNumInput] = useState("");
   const [needsSeed, setNeedsSeed] = useState(false);
+  const [rates, setRates] = useState<{ USD: number; JPY: number } | null>(null);
+  const [ratesAt, setRatesAt] = useState<Date | null>(null);
+  const [rateError, setRateError] = useState(false);
+  // Rate frozen on a saved statement, so old statements don't change when the market moves.
+  const [lockedRate, setLockedRate] = useState<{ cur: string; rate: number } | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -278,6 +286,7 @@ export default function StatementFormPage({
         setBillName(s.billToName ?? "");
         setBillAddr(s.billToAddress ?? "");
         setCurrency(s.currency || "₱");
+        setLockedRate({ cur: s.currency || "₱", rate: Number(s.exchangeRate) || 1 });
         setRows(
           Array.isArray(s.items) && s.items.length > 0
             ? s.items.map((it: any) => ({
@@ -302,6 +311,36 @@ export default function StatementFormPage({
     })();
   }, [statementNo]);
 
+  // Themed scrollbars (web only), scoped to this page via #stmt-root.
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    const id = "stmt-scrollbar-style";
+    let el = document.getElementById(id) as HTMLStyleElement | null;
+    if (!el) {
+      el = document.createElement("style");
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = `
+      #stmt-root * {
+        scrollbar-width: thin;
+        scrollbar-color: ${theme.textInactive} transparent;
+      }
+      #stmt-root *::-webkit-scrollbar { width: 10px; height: 10px; }
+      #stmt-root *::-webkit-scrollbar-track { background: transparent; }
+      #stmt-root *::-webkit-scrollbar-thumb {
+        background-color: ${theme.textInactive};
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      #stmt-root *::-webkit-scrollbar-thumb:hover {
+        background-color: ${theme.iconActive};
+      }
+      #stmt-root *::-webkit-scrollbar-corner { background: transparent; }
+    `;
+  }, [theme.textInactive, theme.iconActive]);
+
   // New statement: preview the next automatic number (re-fetched when the year changes).
   const year = isoOk(date)
     ? date.slice(0, 4)
@@ -320,6 +359,40 @@ export default function StatementFormPage({
   }, [year, loadedNo]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Live exchange rate (PHP → USD / JPY) ──
+  const fetchRates = async () => {
+    try {
+      const res = await fetch("https://open.er-api.com/v6/latest/PHP");
+      const data = await res.json();
+      if (data.result !== "success") throw new Error("Bad response");
+      setRates({ USD: data.rates.USD, JPY: data.rates.JPY });
+      setRatesAt(new Date());
+      setRateError(false);
+    } catch {
+      setRateError(true);
+    }
+  };
+  useEffect(() => {
+    fetchRates();
+    const t = setInterval(fetchRates, RATE_REFRESH_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  const liveRate: number | null = RATE_CODE[currency]
+    ? (rates?.[RATE_CODE[currency]] ?? null)
+    : 1;
+  const rate: number | null =
+    currency === "₱"
+      ? 1
+      : lockedRate && lockedRate.cur === currency
+        ? lockedRate.rate
+        : liveRate;
+  const fx = rate ?? 1;
+  const conv = (n: number) => {
+    const f = 10 ** decimalsOf(currency);
+    return Math.round(n * fx * f) / f;
+  };
+
   const activeBank: Partial<Bank> =
     customBank ?? banks.find((b) => b.id === bankId) ?? {};
   const activeFields = bankFieldsOf(activeBank);
@@ -327,7 +400,7 @@ export default function StatementFormPage({
     () => rows.filter((r) => r.date || r.desc.trim() || r.price !== ""),
     [rows],
   );
-  const grandTotal = filled.reduce((s, r) => s + lineTotal(r), 0);
+  const grandTotal = filled.reduce((s, r) => s + conv(lineTotal(r)), 0);
 
   const updateRow = (id: string, patch: Partial<Line>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -431,12 +504,15 @@ export default function StatementFormPage({
     if (filled.length === 0)
       return showToast("Add at least one statement line.");
     if (!customBank && !bankId) return showToast("Pick a bank template.");
+    if (rate == null)
+      return showToast("Exchange rate isn't available yet. Try again in a moment.");
 
     const payload = {
       date,
       billToName: billName.trim(),
       billToAddress: billAddr,
       currency,
+      exchangeRate: rate,
       items: filled.map((r) => ({
         date: r.date || null,
         description: r.desc,
@@ -717,6 +793,45 @@ export default function StatementFormPage({
               />
             ))}
           </View>
+          {currency !== "₱" && (
+            <Text
+              style={{
+                fontFamily: "Outfit",
+                fontSize: 11.5,
+                color: theme.textInactive,
+                marginTop: 8,
+                lineHeight: 16,
+              }}
+            >
+              {rate == null
+                ? rateError
+                  ? "Couldn't load the exchange rate. Check your connection."
+                  : "Loading exchange rate…"
+                : `Unit prices are entered in ₱ and converted. 1 ₱ = ${rate.toFixed(
+                    currency === "¥" ? 4 : 6,
+                  )} ${RATE_CODE[currency]}${
+                    lockedRate && lockedRate.cur === currency
+                      ? " (rate saved with this statement)"
+                      : ratesAt
+                        ? ` · updated ${ratesAt.toLocaleTimeString()}`
+                        : ""
+                  }`}
+            </Text>
+          )}
+          {currency !== "₱" &&
+          lockedRate &&
+          lockedRate.cur === currency &&
+          liveRate != null ? (
+            <View style={{ flexDirection: "row", marginTop: 8 }}>
+              <Btn
+                label="Use live rate"
+                Icon={RotateCcw}
+                onPress={() => setLockedRate(null)}
+                compact
+                dashed
+              />
+            </View>
+          ) : null}
         </Field>
         <Field label="Bill to — Name">
           <TextInput
@@ -809,7 +924,7 @@ export default function StatementFormPage({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={mini}>UNIT PRICE</Text>
+                <Text style={mini}>UNIT PRICE (₱)</Text>
                 <TextInput
                   style={[S.input, small]}
                   value={r.price}
@@ -886,7 +1001,7 @@ export default function StatementFormPage({
                     paddingVertical: 8,
                   }}
                 >
-                  {money(currency, lineTotal(r))}
+                  {money(currency, conv(lineTotal(r)))}
                 </Text>
               </View>
             </View>
@@ -1158,11 +1273,11 @@ export default function StatementFormPage({
                     {r.desc}
                   </Text>
                   <Text style={[P.txt, { width: 122, textAlign: "right" }]}>
-                    {has ? money(currency, parseFloat(r.price) || 0) : ""}
+                    {has ? money(currency, conv(parseFloat(r.price) || 0)) : ""}
                   </Text>
                   <View style={{ width: 122, alignItems: "flex-end" }}>
                     <Text style={P.txt}>
-                      {has ? money(currency, lineTotal(r)) : ""}
+                      {has ? money(currency, conv(lineTotal(r))) : ""}
                     </Text>
                     {has && d > 0 ? (
                       <Text
@@ -1267,7 +1382,10 @@ export default function StatementFormPage({
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: theme.surface }}>
+    <View
+      nativeID="stmt-root"
+      style={{ flex: 1, backgroundColor: theme.surface }}
+    >
       {/* top bar */}
       <View
         style={{
