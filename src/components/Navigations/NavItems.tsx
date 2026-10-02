@@ -699,6 +699,7 @@ const ROUTE_BY_KEY: Record<string, string> = {
   audit: "/audit-trail",
   seatplan: "/it/seat-plan",
   forms: "/it/forms",
+  execforms: "/executive/forms",
   tickets: "/it/tickets",
   inventory: "/it/inventory",
   consumables: "/it/consumables",
@@ -751,6 +752,17 @@ export const MENU_BY_ROLE: Record<string, NavSection[]> = {
         //   icon: SuppliesIcon,
         //   href: href("supplyinventory"),
         // },
+      ],
+    },
+    {
+      sectionLabel: "Executive",
+      items: [
+        {
+          key: "execforms",
+          label: "Forms",
+          icon: FormsIcon,
+          href: href("execforms"),
+        },
       ],
     },
     {
