@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import {
   ArrowLeft,
   Download,
+  Pencil,
   Plus,
   Printer,
   RotateCcw,
@@ -212,6 +213,8 @@ type Props = {
   statementNo?: string | null; // set => load that saved statement
   readOnly?: boolean;
   onBack: () => void;
+  onEdit?: (statementNo: string) => void; // switch from View to Edit
+  onView?: (statementNo: string) => void; // switch back to View after saving
 };
 
 export default function StatementFormPage({
@@ -219,6 +222,8 @@ export default function StatementFormPage({
   statementNo,
   readOnly = false,
   onBack,
+  onEdit,
+  onView,
 }: Props) {
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
@@ -521,13 +526,38 @@ export default function StatementFormPage({
     }
   };
 
-  const handleSave = async () => {
-    if (!billName.trim()) return showToast("Bill to name is required.");
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const validateForm = () => {
+    if (!billName.trim()) return showToast("Bill to name is required."), false;
     if (filled.length === 0)
-      return showToast("Add at least one statement line.");
-    if (!customBank && !bankId) return showToast("Pick a bank template.");
+      return showToast("Add at least one statement line."), false;
+    if (!customBank && !bankId) return showToast("Pick a bank template."), false;
     if (rate == null)
-      return showToast("Exchange rate isn't available yet. Try again in a moment.");
+      return (
+        showToast("Exchange rate isn't available yet. Try again in a moment."),
+        false
+      );
+    return true;
+  };
+
+  // Editing a saved statement asks for confirmation first; a new one saves directly.
+  const handleSave = () => {
+    if (loadedNo) {
+      if (!validateForm()) return;
+      setSaveError(null);
+      setSaveOpen(true);
+    } else {
+      doSave();
+    }
+  };
+
+  const doSave = async () => {
+    if (!validateForm()) return;
+    setSaving(true);
+    setSaveError(null);
 
     const payload = {
       date,
@@ -553,7 +583,9 @@ export default function StatementFormPage({
           method: "PUT",
           body: JSON.stringify(payload),
         });
-        showToast("Updated.");
+        setSaveOpen(false);
+        if (onView) onView(loadedNo); // back to viewing the saved statement
+        else showToast("Updated.");
       } else {
         const d = await api("/fpd/statements", {
           method: "POST",
@@ -564,7 +596,10 @@ export default function StatementFormPage({
         showToast(`Saved ${d.statementNo}.`);
       }
     } catch (e: any) {
-      showToast(`Save failed: ${e.message}`);
+      if (loadedNo) setSaveError(e.message);
+      else showToast(`Save failed: ${e.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1471,26 +1506,31 @@ export default function StatementFormPage({
         </View>
         <Btn label="Saved Statements" Icon={ArrowLeft} onPress={onBack} />
         {readOnly ? (
-          <View
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: theme.bgHover,
-              borderWidth: 1,
-              borderColor: theme.navBorder,
-            }}
-          >
-            <Text
+          <>
+            <View
               style={{
-                fontFamily: "Outfit-medium",
-                fontSize: 12,
-                color: theme.textInactive,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: theme.bgHover,
+                borderWidth: 1,
+                borderColor: theme.navBorder,
               }}
             >
-              View only
-            </Text>
-          </View>
+              <Text
+                style={{
+                  fontFamily: "Outfit-medium",
+                  fontSize: 12,
+                  color: theme.textInactive,
+                }}
+              >
+                View only
+              </Text>
+            </View>
+            {loadedNo && onEdit ? (
+              <Btn label="Edit" Icon={Pencil} onPress={() => onEdit(loadedNo)} />
+            ) : null}
+          </>
         ) : (
           <>
             <Btn label="Clear" Icon={RotateCcw} onPress={resetAll} />
@@ -1662,6 +1702,18 @@ export default function StatementFormPage({
           </View>
         </View>
       )}
+
+      <ConfirmModal
+        visible={saveOpen}
+        variant="primary"
+        title="Save changes?"
+        message={`${loadedNo ?? ""} will be updated with your changes.`}
+        confirmLabel="Save changes"
+        busy={saving}
+        error={saveError}
+        onCancel={() => setSaveOpen(false)}
+        onConfirm={doSave}
+      />
 
       <ConfirmModal
         visible={deleteOpen}

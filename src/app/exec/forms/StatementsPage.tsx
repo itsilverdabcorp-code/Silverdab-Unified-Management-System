@@ -132,6 +132,8 @@ export default function StatementsPage({ user, initialView }: Props) {
       statementNo={statementNo}
       readOnly={readOnly}
       onBack={openSaved}
+      onEdit={(no) => openRecord(no, "edit")}
+      onView={(no) => openRecord(no, "view")}
     />
   );
 }

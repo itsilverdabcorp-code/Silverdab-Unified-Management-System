@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react-native";
+import { Save, Trash2 } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../../theme/ThemeContext"; // same path as the other pages
@@ -8,6 +8,7 @@ type Props = {
   title: string;
   message: string;
   confirmLabel?: string;
+  variant?: "danger" | "primary";
   busy?: boolean;
   error?: string | null;
   onCancel: () => void;
@@ -19,6 +20,7 @@ export default function ConfirmModal({
   title,
   message,
   confirmLabel = "Delete",
+  variant = "danger",
   busy = false,
   error,
   onCancel,
@@ -26,6 +28,10 @@ export default function ConfirmModal({
 }: Props) {
   const { theme } = useTheme();
   if (!visible) return null;
+
+  const danger = variant === "danger";
+  const accent = danger ? "#dc2626" : theme.iconActive;
+  const Icon = danger ? Trash2 : Save;
 
   return (
     <View
@@ -58,13 +64,13 @@ export default function ConfirmModal({
             width: 42,
             height: 42,
             borderRadius: 999,
-            backgroundColor: "rgba(220,38,38,0.12)",
+            backgroundColor: danger ? "rgba(220,38,38,0.12)" : theme.bgActive,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 14,
           }}
         >
-          <Trash2 size={20} color="#dc2626" />
+          <Icon size={20} color={accent} />
         </View>
 
         <Text style={{ fontFamily: "Outfit-Bold", fontSize: 18, color: theme.textActive }}>
@@ -119,7 +125,7 @@ export default function ConfirmModal({
               paddingHorizontal: 15,
               paddingVertical: 9,
               borderRadius: 8,
-              backgroundColor: "#dc2626",
+              backgroundColor: accent,
               opacity: busy ? 0.7 : 1,
             }}
           >
