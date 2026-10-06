@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Eye, Pencil, Plus, RefreshCw, Search } from "lucide-react-native";
+import { Pencil, Plus, RefreshCw, Search } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,7 +16,8 @@ import { useTheme } from "../../../theme/ThemeContext"; // adjust to your actual
 
 /* ============================================================================
    Saved Statements of Account (FPD) — list of everything saved via
-   POST /fpd/statements. Pick one to View (read-only) or Edit, or start a New one.
+   POST /fpd/statements. Click a row to View (read-only), or use Edit, or
+   start a New one.
    ============================================================================ */
 
 const API_URL = "https://api.silvergraph.ai";
@@ -290,13 +291,15 @@ export default function SavedStatementsPage({ onBack, onView, onEdit, onNew }: P
                     {h as string}
                   </Text>
                 ))}
-                <View style={{ width: 150 }} />
+                <View style={{ width: 90 }} />
               </View>
             )}
 
             {filtered.map((s, i) => (
-              <View
+              <TouchableOpacity
                 key={s.id}
+                activeOpacity={0.7}
+                onPress={() => onView(s.statementNo)}
                 style={{
                   flexDirection: compact ? "column" : "row",
                   alignItems: compact ? "stretch" : "center",
@@ -305,6 +308,7 @@ export default function SavedStatementsPage({ onBack, onView, onEdit, onNew }: P
                   paddingVertical: 12,
                   borderBottomWidth: i < filtered.length - 1 ? 1 : 0,
                   borderBottomColor: theme.navBorder,
+                  ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
                 }}
               >
                 {compact ? (
@@ -352,17 +356,16 @@ export default function SavedStatementsPage({ onBack, onView, onEdit, onNew }: P
                 )}
                 <View
                   style={{
-                    width: compact ? undefined : 150,
+                    width: compact ? undefined : 90,
                     flexDirection: "row",
                     gap: 6,
                     justifyContent: compact ? "flex-start" : "flex-end",
                     marginTop: compact ? 4 : 0,
                   }}
                 >
-                  <Btn label="View" Icon={Eye} small onPress={() => onView(s.statementNo)} />
                   <Btn label="Edit" Icon={Pencil} small onPress={() => onEdit(s.statementNo)} />
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}

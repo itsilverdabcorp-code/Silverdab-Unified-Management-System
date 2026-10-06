@@ -23,6 +23,7 @@ import {
 } from "react-native";
 import { ADUser } from "../../../../types"; // adjust to your actual path
 import { useTheme } from "../../../theme/ThemeContext"; // adjust to your actual path
+import ConfirmModal from "./ConfirmModal";
 
 /* ============================================================================
    Statement of Account (FPD) — Executive > Forms
@@ -159,12 +160,16 @@ const lineTotal = (r: Line) => {
 };
 const decimalsOf = (cur: string) => (cur === "¥" ? 0 : 2);
 const money = (cur: string, n: number) =>
-  `${cur}${Number(n || 0).toLocaleString("en-US", {
+  `${cur}${cur === "AED" ? " " : ""}${Number(n || 0).toLocaleString("en-US", {
     minimumFractionDigits: decimalsOf(cur),
     maximumFractionDigits: decimalsOf(cur),
   })}`;
-const RATE_CODE: Record<string, "USD" | "JPY"> = { $: "USD", "¥": "JPY" };
-const RATE_REFRESH_MS = 5 * 60 * 1000; // re-check the rate every 5 minutes
+const RATE_CODE: Record<string, "USD" | "JPY" | "AED"> = {
+  $: "USD",
+  "¥": "JPY",
+  AED: "AED",
+};
+const RATE_REFRESH_MS = 60 * 60 * 1000; // BSP posts once a day, so hourly is plenty
 const lineCount = (text: string, cpl: number) =>
   (text || "")
     .split("\n")
@@ -240,8 +245,13 @@ export default function StatementFormPage({
   const [tailH, setTailH] = useState(0);
   const [lastNumInput, setLastNumInput] = useState("");
   const [needsSeed, setNeedsSeed] = useState(false);
-  const [rates, setRates] = useState<{ USD: number; JPY: number } | null>(null);
-  const [ratesAt, setRatesAt] = useState<Date | null>(null);
+  const [rates, setRates] = useState<{
+    USD: number;
+    JPY: number;
+    AED: number;
+  } | null>(null);
+  const [ratesAt, setRatesAt] = useState<string | null>(null); // bulletin date
+  const [rateSource, setRateSource] = useState<string>("");
   const [rateError, setRateError] = useState(false);
   // Rate frozen on a saved statement, so old statements don't change when the market moves.
   const [lockedRate, setLockedRate] = useState<{ cur: string; rate: number } | null>(null);
@@ -346,27 +356,39 @@ export default function StatementFormPage({
     ? date.slice(0, 4)
     : String(new Date().getFullYear());
   useEffect(() => {
-    if (loadedNo) return;
+    // Viewing/editing a saved statement keeps its own number.
+    if (statementNo || loadedNo) return;
+
+    let cancelled = false;
     api(`/fpd/next-number?date=${date}`)
       .then((d) => {
+        if (cancelled) return;
         setStmtNo(d.statementNo);
         setNeedsSeed(!!d.needsSeed);
       })
       .catch(() => {
+        if (cancelled) return;
         setStmtNo(`FPD.${year}.--`);
         setNeedsSeed(true); // can't reach the server, let the user seed manually
       });
-  }, [year, loadedNo]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [year, loadedNo, statementNo]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   // ── Live exchange rate (PHP → USD / JPY) ──
   const fetchRates = async () => {
     try {
-      const res = await fetch("https://open.er-api.com/v6/latest/PHP");
-      const data = await res.json();
-      if (data.result !== "success") throw new Error("Bad response");
-      setRates({ USD: data.rates.USD, JPY: data.rates.JPY });
-      setRatesAt(new Date());
+      const data = await api("/fpd/exchange-rates");
+      setRates({
+        USD: data.rates.USD,
+        JPY: data.rates.JPY,
+        AED: data.rates.AED,
+      });
+      setRatesAt(data.asOf);
+      setRateSource(data.source);
       setRateError(false);
     } catch {
       setRateError(true);
@@ -543,6 +565,33 @@ export default function StatementFormPage({
       }
     } catch (e: any) {
       showToast(`Save failed: ${e.message}`);
+    }
+  };
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = () => {
+    if (!loadedNo) return;
+    setDeleteError(null);
+    setDeleteOpen(true);
+  };
+
+  const runDelete = async () => {
+    if (!loadedNo) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await api(`/fpd/statements/${encodeURIComponent(loadedNo)}`, {
+        method: "DELETE",
+      });
+      setDeleteOpen(false);
+      onBack(); // back to the Saved Statements list, which reloads
+    } catch (e: any) {
+      setDeleteError(e.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -779,11 +828,12 @@ export default function StatementFormPage({
           </View>
         ) : null}
         <Field label="Currency">
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {[
               ["₱", "PHP (₱)"],
               ["$", "USD ($)"],
               ["¥", "JPY (¥)"],
+              ["AED", "AED (د.إ)"],
             ].map(([c, l]) => (
               <Chip
                 key={c}
@@ -813,7 +863,7 @@ export default function StatementFormPage({
                     lockedRate && lockedRate.cur === currency
                       ? " (rate saved with this statement)"
                       : ratesAt
-                        ? ` · updated ${ratesAt.toLocaleTimeString()}`
+                        ? ` · ${rateSource} rate as of ${ratesAt}`
                         : ""
                   }`}
             </Text>
@@ -1445,6 +1495,9 @@ export default function StatementFormPage({
           <>
             <Btn label="Clear" Icon={RotateCcw} onPress={resetAll} />
             <Btn label="Save" onPress={handleSave} />
+            {loadedNo ? (
+              <Btn label="Delete" Icon={Trash2} onPress={handleDelete} danger />
+            ) : null}
           </>
         )}
         <Btn label="Print" Icon={Printer} onPress={handlePrint} />
@@ -1610,6 +1663,16 @@ export default function StatementFormPage({
         </View>
       )}
 
+      <ConfirmModal
+        visible={deleteOpen}
+        title="Delete statement?"
+        message={`${loadedNo ?? ""} will be permanently removed. This can't be undone.`}
+        busy={deleting}
+        error={deleteError}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={runDelete}
+      />
+
       {/* toast */}
       {toast && (
         <View
@@ -1731,6 +1794,7 @@ function Btn({
   primary,
   dashed,
   compact,
+  danger,
 }: {
   label: string;
   onPress: () => void;
@@ -1738,6 +1802,7 @@ function Btn({
   primary?: boolean;
   dashed?: boolean;
   compact?: boolean;
+  danger?: boolean;
 }) {
   const { theme } = useTheme();
   return (
@@ -1753,7 +1818,11 @@ function Btn({
         borderRadius: 8,
         borderWidth: 1,
         borderStyle: dashed ? "dashed" : "solid",
-        borderColor: primary || dashed ? theme.iconActive : theme.navBorder,
+        borderColor: danger
+          ? "#dc2626"
+          : primary || dashed
+            ? theme.iconActive
+            : theme.navBorder,
         backgroundColor: primary ? theme.iconActive : theme.surface,
       }}
     >
@@ -1761,7 +1830,13 @@ function Btn({
         <Icon
           size={15}
           color={
-            primary ? "#fff" : dashed ? theme.iconActive : theme.textActive
+            danger
+              ? "#dc2626"
+              : primary
+                ? "#fff"
+                : dashed
+                  ? theme.iconActive
+                  : theme.textActive
           }
         />
       ) : null}
@@ -1769,11 +1844,13 @@ function Btn({
         style={{
           fontFamily: "Outfit-medium",
           fontSize: compact ? 12.5 : 13.5,
-          color: primary
-            ? "#fff"
-            : dashed
-              ? theme.iconActive
-              : theme.textActive,
+          color: danger
+            ? "#dc2626"
+            : primary
+              ? "#fff"
+              : dashed
+                ? theme.iconActive
+                : theme.textActive,
         }}
       >
         {label}
