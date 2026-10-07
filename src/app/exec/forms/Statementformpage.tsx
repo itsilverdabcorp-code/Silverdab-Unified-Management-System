@@ -3,6 +3,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import {
   ArrowLeft,
+  ArrowLeftRight,
+  ChevronDown,
   Download,
   Pencil,
   Plus,
@@ -46,6 +48,13 @@ const PT10 = 13.33; // 10pt in px
 const PT13 = 17.33; // 13pt in px
 
 const PREPARED_BY = "Arch. Jose Lorenzo D. Afable"; // fixed
+
+const CURRENCIES: { sym: string; code: string; name: string; color: string }[] = [
+  { sym: "₱", code: "PHP", name: "Philippine Peso", color: "#1d4ed8" },
+  { sym: "$", code: "USD", name: "US Dollar", color: "#b91c1c" },
+  { sym: "¥", code: "JPY", name: "Japanese Yen", color: "#be123c" },
+  { sym: "AED", code: "AED", name: "UAE Dirham", color: "#15803d" },
+];
 
 const HDR_NAME = "SILVERDAB CORPORATION";
 const HDR_LINES = [
@@ -259,7 +268,15 @@ export default function StatementFormPage({
   const [rateSource, setRateSource] = useState<string>("");
   const [rateError, setRateError] = useState(false);
   // Rate frozen on a saved statement, so old statements don't change when the market moves.
-  const [lockedRate, setLockedRate] = useState<{ cur: string; rate: number } | null>(null);
+  const [lockedRate, setLockedRate] = useState<{
+    cur: string;
+    from: string;
+    rate: number;
+  } | null>(null);
+
+  const [curOpen, setCurOpen] = useState<"from" | "to" | null>(null);
+  const [sampleAmt, setSampleAmt] = useState("1");
+  const [fromCur, setFromCur] = useState("₱"); // currency the unit prices are typed in
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -301,7 +318,12 @@ export default function StatementFormPage({
         setBillName(s.billToName ?? "");
         setBillAddr(s.billToAddress ?? "");
         setCurrency(s.currency || "₱");
-        setLockedRate({ cur: s.currency || "₱", rate: Number(s.exchangeRate) || 1 });
+        setFromCur(s.fromCurrency || "₱");
+        setLockedRate({
+          cur: s.currency || "₱",
+          from: s.fromCurrency || "₱",
+          rate: Number(s.exchangeRate) || 1,
+        });
         setRows(
           Array.isArray(s.items) && s.items.length > 0
             ? s.items.map((it: any) => ({
@@ -405,13 +427,18 @@ export default function StatementFormPage({
     return () => clearInterval(t);
   }, []);
 
-  const liveRate: number | null = RATE_CODE[currency]
-    ? (rates?.[RATE_CODE[currency]] ?? null)
-    : 1;
+  // rates are "units of X per 1 PHP", so a cross rate is toPer / fromPer
+  const perPhp = (sym: string): number | null =>
+    sym === "₱" ? 1 : (rates?.[RATE_CODE[sym]] ?? null);
+  const liveRate: number | null = (() => {
+    const f = perPhp(fromCur);
+    const t = perPhp(currency);
+    return f && t ? t / f : null;
+  })();
   const rate: number | null =
-    currency === "₱"
+    fromCur === currency
       ? 1
-      : lockedRate && lockedRate.cur === currency
+      : lockedRate && lockedRate.cur === currency && lockedRate.from === fromCur
         ? lockedRate.rate
         : liveRate;
   const fx = rate ?? 1;
@@ -565,6 +592,7 @@ export default function StatementFormPage({
       billToAddress: billAddr,
       currency,
       exchangeRate: rate,
+      fromCurrency: fromCur,
       items: filled.map((r) => ({
         date: r.date || null,
         description: r.desc,
@@ -787,6 +815,27 @@ export default function StatementFormPage({
       padding: 16,
       marginBottom: 14,
     } as const,
+    conv: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      height: 46,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: theme.navBorder,
+      borderRadius: 10,
+      backgroundColor: theme.surface,
+    } as const,
+    convLabel: {
+      position: "absolute",
+      top: -8,
+      left: 10,
+      paddingHorizontal: 4,
+      fontFamily: "Outfit",
+      fontSize: 11,
+      color: theme.textInactive,
+      backgroundColor: theme.surface,
+    } as const,
     input: {
       fontFamily: "Outfit",
       fontSize: 13.5,
@@ -862,62 +911,7 @@ export default function StatementFormPage({
             <Btn label="Set" onPress={setLastNumber} compact dashed />
           </View>
         ) : null}
-        <Field label="Currency">
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            {[
-              ["₱", "PHP (₱)"],
-              ["$", "USD ($)"],
-              ["¥", "JPY (¥)"],
-              ["AED", "AED (د.إ)"],
-            ].map(([c, l]) => (
-              <Chip
-                key={c}
-                active={currency === c}
-                label={l}
-                onPress={() => setCurrency(c)}
-              />
-            ))}
-          </View>
-          {currency !== "₱" && (
-            <Text
-              style={{
-                fontFamily: "Outfit",
-                fontSize: 11.5,
-                color: theme.textInactive,
-                marginTop: 8,
-                lineHeight: 16,
-              }}
-            >
-              {rate == null
-                ? rateError
-                  ? "Couldn't load the exchange rate. Check your connection."
-                  : "Loading exchange rate…"
-                : `Unit prices are entered in ₱ and converted. 1 ₱ = ${rate.toFixed(
-                    currency === "¥" ? 4 : 6,
-                  )} ${RATE_CODE[currency]}${
-                    lockedRate && lockedRate.cur === currency
-                      ? " (rate saved with this statement)"
-                      : ratesAt
-                        ? ` · ${rateSource} rate as of ${ratesAt}`
-                        : ""
-                  }`}
-            </Text>
-          )}
-          {currency !== "₱" &&
-          lockedRate &&
-          lockedRate.cur === currency &&
-          liveRate != null ? (
-            <View style={{ flexDirection: "row", marginTop: 8 }}>
-              <Btn
-                label="Use live rate"
-                Icon={RotateCcw}
-                onPress={() => setLockedRate(null)}
-                compact
-                dashed
-              />
-            </View>
-          ) : null}
-        </Field>
+
         <Field label="Bill to — Name">
           <TextInput
             style={S.input}
@@ -963,6 +957,198 @@ export default function StatementFormPage({
       {/* 2. Lines */}
       <View style={S.card}>
         <SectionTitle n={2} title="Statement lines" />
+
+                {/* currency converter */}
+        <View style={{ marginBottom: 14, zIndex: 30 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {/* FROM */}
+            <View style={[S.conv, { flex: 1 }]}>
+              <Text style={S.convLabel}>From</Text>
+              <TextInput
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontFamily: "Outfit-Bold",
+                  fontSize: 17,
+                  color: theme.textActive,
+                  paddingVertical: 0,
+                  ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+                }}
+                value={`${fromCur}${sampleAmt}`}
+                onChangeText={(t) =>
+                  setSampleAmt(
+                    t.replace(fromCur, "").replace(/[^0-9.]/g, "") || "0",
+                  )
+                }
+                keyboardType="decimal-pad"
+              />
+              <TouchableOpacity
+                onPress={() => setCurOpen((o) => (o === "from" ? null : "from"))}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <CurBadge c={CURRENCIES.find((x) => x.sym === fromCur)!} />
+                <Text style={{ fontFamily: "Outfit-Bold", fontSize: 12.5, color: theme.textActive }}>
+                  {CURRENCIES.find((x) => x.sym === fromCur)?.code}
+                </Text>
+                <ChevronDown size={14} color={theme.textInactive} />
+              </TouchableOpacity>
+            </View>
+
+            {/* SWAP */}
+            <TouchableOpacity
+              onPress={() => {
+                setFromCur(currency);
+                setCurrency(fromCur);
+                setCurOpen(null);
+              }}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                borderWidth: 1,
+                borderColor: theme.navBorder,
+                backgroundColor: theme.surface,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ArrowLeftRight size={14} color={theme.textActive} />
+            </TouchableOpacity>
+
+            {/* TO */}
+            <View style={[S.conv, { flex: 1 }]}>
+              <Text style={S.convLabel}>To</Text>
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontFamily: "Outfit-Bold",
+                  fontSize: 17,
+                  color: theme.textActive,
+                }}
+              >
+                {rate == null
+                  ? "…"
+                  : money(
+                      currency,
+                      Math.round(
+                        (parseFloat(sampleAmt) || 0) * fx *
+                          10 ** decimalsOf(currency),
+                      ) / 10 ** decimalsOf(currency),
+                    )}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setCurOpen((o) => (o === "to" ? null : "to"))}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <CurBadge c={CURRENCIES.find((x) => x.sym === currency)!} />
+                <Text style={{ fontFamily: "Outfit-Bold", fontSize: 12.5, color: theme.textActive }}>
+                  {CURRENCIES.find((x) => x.sym === currency)?.code}
+                </Text>
+                <ChevronDown size={14} color={theme.textInactive} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* dropdown (shared by From and To) */}
+          {curOpen && (
+            <View
+              style={{
+                position: "absolute",
+                top: 52,
+                ...(curOpen === "from" ? { left: 0 } : { right: 0 }),
+                width: "55%",
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.navBorder,
+                borderRadius: 10,
+                paddingVertical: 4,
+                zIndex: 40,
+                ...(Platform.OS === "web"
+                  ? ({ boxShadow: "0 8px 24px rgba(0,0,0,.25)" } as any)
+                  : { elevation: 6 }),
+              }}
+            >
+              {CURRENCIES.map((c) => {
+                const selected = c.sym === (curOpen === "from" ? fromCur : currency);
+                return (
+                  <TouchableOpacity
+                    key={c.code}
+                    onPress={() => {
+                      if (curOpen === "from") setFromCur(c.sym);
+                      else setCurrency(c.sym);
+                      setCurOpen(null);
+                    }}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 9,
+                      backgroundColor: selected ? theme.bgActive : "transparent",
+                    }}
+                  >
+                    <CurBadge c={c} />
+                    <Text style={{ fontFamily: "Outfit-Bold", fontSize: 12.5, color: theme.textActive }}>
+                      {c.code}
+                    </Text>
+                    <Text style={{ fontFamily: "Outfit", fontSize: 12.5, color: theme.textInactive }}>
+                      - {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* rate info */}
+          {fromCur !== currency && (
+            <Text
+              style={{
+                fontFamily: "Outfit",
+                fontSize: 11.5,
+                color: theme.textInactive,
+                marginTop: 8,
+                lineHeight: 16,
+              }}
+            >
+              {rate == null
+                ? rateError
+                  ? "Couldn't load the exchange rate. Check your connection."
+                  : "Loading exchange rate…"
+                : `Unit prices are entered in ${fromCur} and converted. 1 ${
+                    CURRENCIES.find((x) => x.sym === fromCur)?.code
+                  } = ${rate.toFixed(rate < 1 ? 6 : 4)} ${
+                    CURRENCIES.find((x) => x.sym === currency)?.code
+                  }${
+                    lockedRate &&
+                    lockedRate.cur === currency &&
+                    lockedRate.from === fromCur
+                      ? " (rate saved with this statement)"
+                      : ratesAt
+                        ? ` · ${rateSource} rate as of ${ratesAt}`
+                        : ""
+                  }`}
+            </Text>
+          )}
+          {fromCur !== currency &&
+          lockedRate &&
+          lockedRate.cur === currency &&
+          lockedRate.from === fromCur &&
+          liveRate != null ? (
+            <View style={{ flexDirection: "row", marginTop: 8 }}>
+              <Btn
+                label="Use live rate"
+                Icon={RotateCcw}
+                onPress={() => setLockedRate(null)}
+                compact
+                dashed
+              />
+            </View>
+          ) : null}
+        </View>
+
         {rows.map((r, i) => (
           <View
             key={r.id}
@@ -1009,7 +1195,7 @@ export default function StatementFormPage({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={mini}>UNIT PRICE (₱)</Text>
+                <Text style={mini}>{`UNIT PRICE (${fromCur})`}</Text>
                 <TextInput
                   style={[S.input, small]}
                   value={r.price}
@@ -1776,6 +1962,25 @@ const P = {
     minHeight: 31,
   } as const,
 };
+
+function CurBadge({ c }: { c: { sym: string; color: string } }) {
+  return (
+    <View
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: c.color,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontFamily: "Outfit-Bold", fontSize: c.sym.length > 1 ? 7 : 11, color: "#fff" }}>
+        {c.sym}
+      </Text>
+    </View>
+  );
+}
 
 function SectionTitle({
   n,
