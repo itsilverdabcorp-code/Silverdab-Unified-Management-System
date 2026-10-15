@@ -119,6 +119,30 @@ function getInitials(name: string): string {
   ).toUpperCase();
 }
 
+// Exact address (unit / floor / building / landmark) goes first, then the
+// map address underneath.
+function withExact(
+  exact: string | null | undefined,
+  base: string,
+): React.ReactNode {
+  if (!exact?.trim()) return base;
+  return (
+    <>
+      <Text style={{ fontFamily: "Outfit-Bold" }}>{exact.trim()}</Text>
+      {"\n"}
+      <Text
+        style={{
+          fontFamily: "Outfit",
+          fontSize: 12.5,
+          color: "#8FA3B8",
+        }}
+      >
+        {base}
+      </Text>
+    </>
+  );
+}
+
 function formatSchedule(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -918,7 +942,7 @@ function TripCard({
               lineHeight: 21,
             }}
           >
-            {trip.pickupLabel}
+            {withExact(trip.pickupExactAddress, trip.pickupLabel)}
           </Text>
           <Text
             style={{
@@ -933,7 +957,10 @@ function TripCard({
         </View>
       </View>
 
-      {[trip.dropoffLabel, ...(trip.additionalDropoffs ?? []).map((s) => s.locationText)].map(
+      {[
+        withExact(trip.dropoffExactAddress, trip.dropoffLabel),
+        ...(trip.additionalDropoffs ?? []).map((s) => withExact(s.exactAddress, s.locationText)),
+      ].map(
         (label, i, arr) => (
           <View
             key={i}
@@ -1627,7 +1654,7 @@ export default function DriverPortalPage({ user }: Props) {
                         flexWrap: "wrap",
                       }}
                     >
-                      {confirmingTrip.pickupLabel}
+                      {withExact(confirmingTrip.pickupExactAddress, confirmingTrip.pickupLabel)}
                     </Text>
                   </View>
                   <View
@@ -1640,8 +1667,8 @@ export default function DriverPortalPage({ user }: Props) {
                     }}
                   />
                   {[
-                    confirmingTrip.dropoffLabel,
-                    ...(confirmingTrip.additionalDropoffs ?? []).map((s) => s.locationText),
+                    withExact(confirmingTrip.dropoffExactAddress, confirmingTrip.dropoffLabel),
+                    ...(confirmingTrip.additionalDropoffs ?? []).map((s) => withExact(s.exactAddress, s.locationText)),
                   ].map((label, i, arr) => (
                     <View
                       key={i}
@@ -1887,7 +1914,7 @@ export default function DriverPortalPage({ user }: Props) {
                             lineHeight: 21,
                           }}
                         >
-                          {viewingTrip.pickupLabel}
+                          {withExact(viewingTrip.pickupExactAddress, viewingTrip.pickupLabel)}
                         </Text>
                         <Text
                           style={{
@@ -1902,7 +1929,10 @@ export default function DriverPortalPage({ user }: Props) {
                       </View>
                     </View>
 
-                    {[viewingTrip.dropoffLabel, ...(viewingTrip.additionalDropoffs ?? []).map((s) => s.locationText)].map(
+                    {[
+                      withExact(viewingTrip.dropoffExactAddress, viewingTrip.dropoffLabel),
+                      ...(viewingTrip.additionalDropoffs ?? []).map((s) => withExact(s.exactAddress, s.locationText)),
+                    ].map(
                       (label, i, arr) => (
                         <View
                           key={i}

@@ -14,12 +14,33 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
-import { X, Car, Plus, MapPin, Calendar as CalendarIcon, Clock as ClockIcon, CheckCircle, LocateFixed, ArrowRight, ArrowLeft, Star } from "lucide-react-native";
+import {
+  X,
+  Car,
+  Plus,
+  MapPin,
+  Calendar as CalendarIcon,
+  Clock as ClockIcon,
+  CheckCircle,
+  LocateFixed,
+  ArrowRight,
+  ArrowLeft,
+  Star,
+} from "lucide-react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
 import { ADUser, displayDepartment } from "../../../../../types";
-import { submitTripRequest, getAllFleetLocations, rescheduleFleetTrip, updateFleetTripDropoffs } from "../../../../services/fleetOps";
+import {
+  submitTripRequest,
+  getAllFleetLocations,
+  rescheduleFleetTrip,
+  updateFleetTripDropoffs,
+} from "../../../../services/fleetOps";
 import { FleetLocation, FleetTrip } from "../../../../../types";
-import FleetLocationPickerMap, { searchAddress, reverseGeocode, PlaceResult } from "../../tripbooking/FleetLocationPickerMap";
+import FleetLocationPickerMap, {
+  searchAddress,
+  reverseGeocode,
+  PlaceResult,
+} from "../../tripbooking/FleetLocationPickerMap";
 
 type TripType = "oneway" | "roundtrip";
 
@@ -42,7 +63,10 @@ function loadFavoritePlaces(): PlaceResult[] {
 function saveFavoritePlaces(places: PlaceResult[]) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(FAVORITE_PLACES_STORAGE_KEY, JSON.stringify(places));
+    window.localStorage.setItem(
+      FAVORITE_PLACES_STORAGE_KEY,
+      JSON.stringify(places),
+    );
   } catch {}
 }
 
@@ -115,7 +139,9 @@ function LocationSelect({
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const filtered = text.trim()
-    ? locations.filter((l) => l.name.toLowerCase().includes(text.trim().toLowerCase()))
+    ? locations.filter((l) =>
+        l.name.toLowerCase().includes(text.trim().toLowerCase()),
+      )
     : locations;
 
   useEffect(() => {
@@ -159,7 +185,14 @@ function LocationSelect({
         >
           <div style={{ maxHeight: 176, overflowY: "auto" }}>
             {loading ? (
-              <div style={{ padding: 12, fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>
+              <div
+                style={{
+                  padding: 12,
+                  fontFamily: "Outfit",
+                  fontSize: 12,
+                  color: theme.subtext,
+                }}
+              >
                 Loading…
               </div>
             ) : (
@@ -176,11 +209,19 @@ function LocationSelect({
                     cursor: "pointer",
                     fontFamily: "Outfit",
                     fontSize: 12,
-                    color: text === loc.name ? (theme.primary ?? "#4169E1") : (theme.textActive ?? theme.text),
+                    color:
+                      text === loc.name
+                        ? (theme.primary ?? "#4169E1")
+                        : (theme.textActive ?? theme.text),
                     fontWeight: text === loc.name ? 600 : 400,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      theme.bgHover ?? theme.background)
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
                 >
                   {loc.name}
                 </div>
@@ -193,7 +234,13 @@ function LocationSelect({
   );
 }
 
-export default function TripBookingModal({ visible, onClose, user, onSuccess, editTrip }: Props) {
+export default function TripBookingModal({
+  visible,
+  onClose,
+  user,
+  onSuccess,
+  editTrip,
+}: Props) {
   // Native (iOS/Android) now has a full FleetLocationPickerMap.native.tsx
   // counterpart (react-native-maps + expo-location), so trip booking no
   // longer needs to be blocked here — it only used to be blocked because
@@ -322,12 +369,17 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   }
 
   const [pickupPoint, setPickupPoint] = useState<PickedPoint | null>(null);
-  const [dropoffStops, setDropoffStops] = useState<DropoffStop[]>([makeEmptyStop()]);
+  const [dropoffStops, setDropoffStops] = useState<DropoffStop[]>([
+    makeEmptyStop(),
+  ]);
   const [activeMapField, setActiveMapField] = useState<string>("pickup");
   // True once the requestor has typed their own custom label for pickup —
   // once set, dropping a new pin no longer overwrites it with the
   // reverse-geocoded address, since a person's own wording wins.
   const [pickupLabelEdited, setPickupLabelEdited] = useState(false);
+  // Which stops ("pickup" or a stop id) have their exact-address field
+  // expanded. A stop with a saved value always shows it regardless.
+  const [exactOpen, setExactOpen] = useState<Record<string, boolean>>({});
 
   function updateStop(stopId: string, patch: Partial<DropoffStop>) {
     setDropoffStops((prev) =>
@@ -339,9 +391,13 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   // (pickup or any drop-off) and get the same Photon address suggestions
   // the map's bottom search bar shows, without needing to switch tabs
   // first. `inlineSearchOpenFor` holds "pickup" or a drop-off stop's id.
-  const [inlineSearchResults, setInlineSearchResults] = useState<PlaceResult[]>([]);
+  const [inlineSearchResults, setInlineSearchResults] = useState<PlaceResult[]>(
+    [],
+  );
   const [inlineSearchLoading, setInlineSearchLoading] = useState(false);
-  const [inlineSearchOpenFor, setInlineSearchOpenFor] = useState<string | null>(null);
+  const [inlineSearchOpenFor, setInlineSearchOpenFor] = useState<string | null>(
+    null,
+  );
   const [favoritePlaces, setFavoritePlaces] = useState<PlaceResult[]>([]);
 
   useEffect(() => {
@@ -352,7 +408,9 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setFavoritePlaces((prev) => {
       const key = placeKey(place);
       const exists = prev.some((p) => placeKey(p) === key);
-      const next = exists ? prev.filter((p) => placeKey(p) !== key) : [...prev, place];
+      const next = exists
+        ? prev.filter((p) => placeKey(p) !== key)
+        : [...prev, place];
       saveFavoritePlaces(next);
       return next;
     });
@@ -370,8 +428,14 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     }
     if (inlineSearchResults.length > 0) openInlineDropdown(fieldKey);
   }
-  const [inlineSearchRect, setInlineSearchRect] = useState<{ top: number; left: number; width: number } | null>(null);
-  const inlineSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [inlineSearchRect, setInlineSearchRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const inlineSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const inlineFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Positions the dropdown as a fixed-position overlay anchored to the
@@ -381,7 +445,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     const el = inlineFieldRefs.current[fieldKey];
     if (el) {
       const rect = el.getBoundingClientRect();
-      setInlineSearchRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      setInlineSearchRect({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
     }
     setInlineSearchOpenFor(fieldKey);
   }
@@ -413,7 +481,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   }, [inlineSearchOpenFor]);
 
   function triggerInlineSearch(fieldKey: string, query: string) {
-    if (inlineSearchDebounceRef.current) clearTimeout(inlineSearchDebounceRef.current);
+    if (inlineSearchDebounceRef.current)
+      clearTimeout(inlineSearchDebounceRef.current);
     const trimmed = query.trim();
     if (trimmed.length === 0) {
       if (favoritePlaces.length > 0) {
@@ -491,7 +560,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   }
 
   function handleInlineSelect(fieldKey: string, result: PlaceResult) {
-    const point = { latitude: result.lat, longitude: result.lon, address: result.displayName };
+    const point = {
+      latitude: result.lat,
+      longitude: result.lon,
+      address: result.displayName,
+    };
     if (fieldKey === "pickup") {
       setPickupPoint(point);
       setPickupLocationId(null);
@@ -519,14 +592,18 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   // Drag-to-reorder for the drop-off stop list — native HTML5 drag/drop,
   // consistent with the other raw-DOM pieces of this modal (web-only).
   const [draggedStopIndex, setDraggedStopIndex] = useState<number | null>(null);
-  const [dragOverStopIndex, setDragOverStopIndex] = useState<number | null>(null);
+  const [dragOverStopIndex, setDragOverStopIndex] = useState<number | null>(
+    null,
+  );
   // Tracks which stop's drag handle (the dots icon) was last pressed —
   // the row itself is only made draggable while this matches its id, so
   // selecting text inside the input (which also fires a native browser
   // drag) never triggers a reorder drag. This must be state (not a ref):
   // the draggable attribute is only re-applied to the DOM on a re-render,
   // so a ref update alone would arm dragging one render too late.
-  const [dragHandleActiveId, setDragHandleActiveId] = useState<string | null>(null);
+  const [dragHandleActiveId, setDragHandleActiveId] = useState<string | null>(
+    null,
+  );
 
   function reorderDropoffStops(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return;
@@ -572,28 +649,47 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setPickupLocationId(editTrip.pickupLocationId ?? null);
     setPickupPoint(
       editTrip.pickupLatitude != null && editTrip.pickupLongitude != null
-        ? { latitude: editTrip.pickupLatitude, longitude: editTrip.pickupLongitude, address: editTrip.pickupLabel }
+        ? {
+            latitude: editTrip.pickupLatitude,
+            longitude: editTrip.pickupLongitude,
+            address: editTrip.pickupLabel,
+          }
         : null,
     );
     setPickupLabelEdited(true);
+    setPickupLabel(editTrip.pickupExactAddress ?? "");
 
     const primaryStop: DropoffStop = {
       ...makeEmptyStop(),
       point:
         editTrip.dropoffLatitude != null && editTrip.dropoffLongitude != null
-          ? { latitude: editTrip.dropoffLatitude, longitude: editTrip.dropoffLongitude, address: editTrip.dropoffLabel }
+          ? {
+              latitude: editTrip.dropoffLatitude,
+              longitude: editTrip.dropoffLongitude,
+              address: editTrip.dropoffLabel,
+            }
           : null,
       text: editTrip.dropoffLabel ?? "",
       locationId: editTrip.dropoffLocationId ?? null,
+      label: editTrip.dropoffExactAddress ?? "",
       labelEdited: true,
     };
-    const extraStops: DropoffStop[] = (editTrip.additionalDropoffs ?? []).map((s) => ({
-      ...makeEmptyStop(),
-      point: s.latitude != null && s.longitude != null ? { latitude: s.latitude, longitude: s.longitude, address: s.locationText } : null,
-      text: s.locationText ?? "",
-      locationId: s.locationId ?? null,
-      labelEdited: true,
-    }));
+    const extraStops: DropoffStop[] = (editTrip.additionalDropoffs ?? []).map(
+      (s) => ({
+        ...makeEmptyStop(),
+        point:
+          s.latitude != null && s.longitude != null
+            ? {
+                latitude: s.latitude,
+                longitude: s.longitude,
+                address: s.locationText,
+              }
+            : null,
+        text: s.locationText ?? "",
+        locationId: s.locationId ?? null,
+        labelEdited: true,
+      }),
+    );
     setDropoffStops([primaryStop, ...extraStops]);
     setActiveMapField("pickup");
 
@@ -610,7 +706,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setStep("form");
   }, [visible, editTrip]);
 
-    const [departureDate, setDepartureDate] = useState("");
+  const [departureDate, setDepartureDate] = useState("");
   const [departureTime, setDepartureTime] = useState("");
   const [purpose, setPurpose] = useState("");
 
@@ -687,6 +783,7 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setDropoffStops([makeEmptyStop()]);
     setActiveMapField("pickup");
     setPickupLabelEdited(false);
+    setExactOpen({});
     setDepartureDate("");
     setDepartureTime("");
     setPurpose("");
@@ -718,7 +815,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setError("");
 
     const modifiableStatuses = ["pending", "approved", "arrived"];
-    if (isEditMode && editTrip && !modifiableStatuses.includes(editTrip.status)) {
+    if (
+      isEditMode &&
+      editTrip &&
+      !modifiableStatuses.includes(editTrip.status)
+    ) {
       setError("This trip can no longer be modified.");
       return;
     }
@@ -738,7 +839,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setError("");
 
     const modifiableStatuses = ["pending", "approved", "arrived"];
-    if (isEditMode && editTrip && !modifiableStatuses.includes(editTrip.status)) {
+    if (
+      isEditMode &&
+      editTrip &&
+      !modifiableStatuses.includes(editTrip.status)
+    ) {
       setError("This trip can no longer be modified.");
       return;
     }
@@ -770,13 +875,28 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setStep("confirm");
   }
 
-  function formatStopText(stop: { point: PickedPoint | null; text: string; label: string }) {
+  function formatStopText(stop: {
+    point: PickedPoint | null;
+    text: string;
+    label: string;
+  }) {
     if (!stop.point) return "";
     return (
       (stop.text.trim() ||
         stop.point.address ||
         `${stop.point.latitude.toFixed(5)}, ${stop.point.longitude.toFixed(5)}`) +
       (stop.label.trim() ? ` (${stop.label.trim()})` : "")
+    );
+  }
+
+  // Address text WITHOUT the exact-address label — that's now saved in its
+  // own DB column instead of being appended in parentheses.
+  function baseStopText(stop: { point: PickedPoint | null; text: string }) {
+    if (!stop.point) return "";
+    return (
+      stop.text.trim() ||
+      stop.point.address ||
+      `${stop.point.latitude.toFixed(5)}, ${stop.point.longitude.toFixed(5)}`
     );
   }
 
@@ -790,11 +910,11 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
     setError("");
     setSubmitting(true);
     try {
-       // Build the departure datetime as an explicit Philippine-time (+08:00)
-       // ISO string. This guards against the *browser's* local timezone ever
-       // differing from PH time (e.g. testing from a different machine) —
-       // the backend still receives a fully explicit, unambiguous instant.
-       const departureDatetime = `${departureDate}T${departureTime}:00+08:00`;
+      // Build the departure datetime as an explicit Philippine-time (+08:00)
+      // ISO string. This guards against the *browser's* local timezone ever
+      // differing from PH time (e.g. testing from a different machine) —
+      // the backend still receives a fully explicit, unambiguous instant.
+      const departureDatetime = `${departureDate}T${departureTime}:00+08:00`;
 
       const primaryStop = dropoffStops[0];
       const extraStops = dropoffStops.slice(1);
@@ -806,9 +926,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
         // browser's local timezone differing from the +08:00 offset used
         // when building departureDatetime below.
         const originalDate = new Date(editTrip.departureDatetime);
-        const originalDateStr = !isNaN(originalDate.getTime()) ? originalDate.toISOString().slice(0, 10) : "";
-        const originalTimeStr = !isNaN(originalDate.getTime()) ? originalDate.toTimeString().slice(0, 5) : "";
-        const scheduleChanged = departureDate !== originalDateStr || departureTime !== originalTimeStr;
+        const originalDateStr = !isNaN(originalDate.getTime())
+          ? originalDate.toISOString().slice(0, 10)
+          : "";
+        const originalTimeStr = !isNaN(originalDate.getTime())
+          ? originalDate.toTimeString().slice(0, 5)
+          : "";
+        const scheduleChanged =
+          departureDate !== originalDateStr ||
+          departureTime !== originalTimeStr;
 
         if (scheduleChanged) {
           await rescheduleFleetTrip(editTrip.id, departureDatetime);
@@ -820,12 +946,14 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
         // up as a drop-off change in status history.
         const newDropoffPayload = {
           dropoffLocationId: primaryStop.locationId,
-          dropoffLabel: formatStopText(primaryStop),
+          dropoffLabel: baseStopText(primaryStop),
+          dropoffExactAddress: primaryStop.label.trim() || null,
           dropoffLatitude: primaryStop.point!.latitude,
           dropoffLongitude: primaryStop.point!.longitude,
           additionalDropoffs: extraStops.map((s) => ({
             locationId: s.locationId,
-            locationText: formatStopText(s),
+            locationText: baseStopText(s),
+            exactAddress: s.label.trim() || null,
             latitude: s.point!.latitude,
             longitude: s.point!.longitude,
           })),
@@ -834,14 +962,17 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
         const originalAdditional = editTrip.additionalDropoffs ?? [];
         const dropoffsChanged =
           newDropoffPayload.dropoffLabel !== editTrip.dropoffLabel ||
+          (newDropoffPayload.dropoffExactAddress ?? "") !== (editTrip.dropoffExactAddress ?? "") ||
           newDropoffPayload.dropoffLatitude !== editTrip.dropoffLatitude ||
           newDropoffPayload.dropoffLongitude !== editTrip.dropoffLongitude ||
-          newDropoffPayload.additionalDropoffs.length !== originalAdditional.length ||
+          newDropoffPayload.additionalDropoffs.length !==
+            originalAdditional.length ||
           newDropoffPayload.additionalDropoffs.some((s, i) => {
             const orig = originalAdditional[i];
             return (
               !orig ||
               s.locationText !== orig.locationText ||
+              (s.exactAddress ?? "") !== (orig.exactAddress ?? "") ||
               s.latitude !== orig.latitude ||
               s.longitude !== orig.longitude
             );
@@ -859,21 +990,23 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
       const tripRef = await submitTripRequest({
         pickupLocationId: pickupLocationId ?? undefined,
         pickupLocationText:
-          (pickupText.trim() ||
-            pickupPoint.address ||
-            `${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`) +
-          (pickupLabel.trim() ? ` (${pickupLabel.trim()})` : ""),
+          pickupText.trim() ||
+          pickupPoint.address ||
+          `${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`,
+        pickupExactAddress: pickupLabel.trim() || undefined,
+        dropoffExactAddress: primaryStop.label.trim() || undefined,
         pickupLatitude: pickupPoint.latitude,
         pickupLongitude: pickupPoint.longitude,
         dropoffLocationId: primaryStop.locationId ?? undefined,
-        dropoffLocationText: formatStopText(primaryStop),
+        dropoffLocationText: baseStopText(primaryStop),
         dropoffLatitude: primaryStop.point!.latitude,
         dropoffLongitude: primaryStop.point!.longitude,
         // Additional stops beyond the first, in visit order — backend/service
         // layer appends these to the trip record for multi-stop trips.
         additionalDropoffs: extraStops.map((s) => ({
           locationId: s.locationId ?? undefined,
-          locationText: formatStopText(s),
+          locationText: baseStopText(s),
+          exactAddress: s.label.trim() || undefined,
           latitude: s.point!.latitude,
           longitude: s.point!.longitude,
         })),
@@ -897,12 +1030,15 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
   // before on the confirm step and on mobile (single column either way).
   const MODAL_W = isMobile
     ? winW - 24
-          : step === "form"
-        ? Math.min(winW * 0.98, 1280)
-        : Math.min(winW * 0.9, 560);
+    : step === "form"
+      ? Math.min(winW * 0.98, 1280)
+      : Math.min(winW * 0.9, 560);
 
   const inlineDropdown =
-    inlineSearchOpenFor && inlineSearchRect && (inlineSearchLoading || inlineSearchResults.length > 0) && typeof document !== "undefined"
+    inlineSearchOpenFor &&
+    inlineSearchRect &&
+    (inlineSearchLoading || inlineSearchResults.length > 0) &&
+    typeof document !== "undefined"
       ? createPortal(
           <div
             ref={inlineDropdownElRef}
@@ -924,12 +1060,21 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
             }}
           >
             {inlineSearchLoading ? (
-              <div style={{ padding: 10, fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>
+              <div
+                style={{
+                  padding: 10,
+                  fontFamily: "Outfit",
+                  fontSize: 12,
+                  color: theme.subtext,
+                }}
+              >
                 Searching…
               </div>
             ) : (
               inlineSearchResults.map((r, idx) => {
-                const isFavorite = favoritePlaces.some((p) => placeKey(p) === placeKey(r));
+                const isFavorite = favoritePlaces.some(
+                  (p) => placeKey(p) === placeKey(r),
+                );
                 return (
                   <div
                     key={`${r.lat}-${r.lon}-${idx}`}
@@ -944,10 +1089,18 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 8,
-                      borderBottom: idx !== inlineSearchResults.length - 1 ? `1px solid ${theme.border}` : "none",
+                      borderBottom:
+                        idx !== inlineSearchResults.length - 1
+                          ? `1px solid ${theme.border}`
+                          : "none",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.bgHover ?? theme.background)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        theme.bgHover ?? theme.background)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
                     <span
                       style={{
@@ -1015,6 +1168,8 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
         locations={locations}
         pickupText={pickupText}
         setPickupText={setPickupText}
+        pickupLabel={pickupLabel}
+        setPickupLabel={setPickupLabel}
         pickupPoint={pickupPoint}
         setPickupPoint={setPickupPoint}
         setPickupLocationId={setPickupLocationId}
@@ -1045,943 +1200,1542 @@ export default function TripBookingModal({ visible, onClose, user, onSuccess, ed
 
   return (
     <>
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+      <Modal
+        visible={visible}
+        animationType="fade"
+        transparent
+        onRequestClose={onClose}
       >
-        <TouchableOpacity
-          activeOpacity={1}
+        <View
           style={{
-            width: MODAL_W,
-            maxHeight: winH * 0.88,
-            backgroundColor: theme.surface,
-            borderRadius: isMobile ? 16 : 20,
-            overflow: "hidden",
-            alignSelf: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 24,
-            elevation: 20,
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          {/* Header */}
-          <View
+          <TouchableOpacity
+            activeOpacity={1}
             style={{
-              flexDirection: "row",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              paddingHorizontal: isMobile ? 16 : 20,
-              paddingTop: 18,
-              paddingBottom: 14,
-              borderBottomWidth: 1,
-              borderBottomColor: theme.border,
+              width: MODAL_W,
+              maxHeight: winH * 0.88,
+              backgroundColor: theme.surface,
+              borderRadius: isMobile ? 16 : 20,
+              overflow: "hidden",
+              alignSelf: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 24,
+              elevation: 20,
             }}
           >
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text
-                style={{
-                  fontFamily: "Outfit",
-                  fontSize: 10,
-                  letterSpacing: 0.5,
-                  textTransform: "uppercase",
-                  color: theme.subtext,
-                  marginBottom: 3,
-                }}
-              >
-                New request
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                {isMobile && step !== "form" ? (
-                  <TouchableOpacity
-                    onPress={() => setStep(step === "confirm" ? "route" : "form")}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Go back"
-                  >
-                    <ArrowLeft size={17} color={theme.subtext} />
-                  </TouchableOpacity>
-                ) : (
-                  <Car size={16} color={primary} />
-                )}
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                paddingHorizontal: isMobile ? 16 : 20,
+                paddingTop: 18,
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
                 <Text
                   style={{
-                    fontFamily: "Outfit-medium",
-                    fontSize: 17,
-                    color: theme.textActive ?? theme.text,
+                    fontFamily: "Outfit",
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                    color: theme.subtext,
+                    marginBottom: 3,
                   }}
                 >
-                  {isEditMode ? "Modify Trip" : "Book a Company Vehicle"}
+                  New request
                 </Text>
-              </View>
-              <Text
-                style={{
-                  fontFamily: "Outfit",
-                  fontSize: 12,
-                  color: theme.subtext,
-                  marginTop: 4,
-                  lineHeight: 17,
-                }}
-              >
-                {isMobile
-                  ? step === "route"
-                    ? "Step 2 of 2 — set your pickup and drop-off pins."
-                    : step === "confirm"
-                      ? "Review your request before submitting."
-                      : "Step 1 of 2 — trip details."
-                  : "Fill in your trip details. Dispatch will assign a vehicle and driver once approved."}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              activeOpacity={0.7}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: theme.background,
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: 4,
-              }}
-            >
-              <X size={15} color={theme.subtext} />
-            </TouchableOpacity>
-          </View>
-
-          {isMobile && (
-            <View style={{ height: 3, backgroundColor: theme.border }}>
-              <View
-                style={{
-                  height: 3,
-                  width: step === "form" ? "50%" : "100%",
-                  backgroundColor: primary,
-                }}
-              />
-            </View>
-          )}
-
-          <ScrollView
-            // @ts-ignore — react-native-web forwards className to the underlying div
-            className={SCROLL_THEME_CLASS}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ padding: isMobile ? 16 : 20, paddingBottom: 30 }}
-          >
-            {(step === "form" || step === "route") && (
-            <>
-            <View style={isMobile ? { flexDirection: "column" } : { flexDirection: "row", gap: 24 }}>
-            <View style={isMobile ? (step === "form" ? {} : { display: "none" }) : { flex: 1, minWidth: 0 }}>
-
-            {/* ── Card: Trip details ── */}
-            <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, marginBottom: 10 }}>
-                Trip details
-              </Text>
-
-            {/* Requestor — now its own full-width row */}
-            <Field label="Requestor" theme={theme}>
-              <View style={[inputStyle, { opacity: 0.7 }]}>
-                <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.textActive ?? theme.text }}>
-                  {user.displayName} {user.department ? `— ${displayDepartment(user.department)}` : ""}
-                </Text>
-              </View>
-            </Field>
-
-            {/* Passengers — same row/list pattern as the drop-off stops:
-                numbered circle + name + remove X, capped-height scroll,
-                dashed "Add another passenger" trigger underneath. */}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text }}>
-                Passengers
-              </Text>
-              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
-                {passengers.length + 1} total
-              </Text>
-            </View>
-
-            <View style={{ marginBottom: 14 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  borderRadius: 8,
-                  backgroundColor: theme.background,
-                  borderWidth: 1.5,
-                  borderColor: theme.border,
-                  marginBottom: 6,
-                }}
-              >
-                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>Y</Text>
-                </View>
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }} numberOfLines={1}>
-                  {user.displayName} (you)
-                </Text>
-              </View>
-
-              {passengers.length > 0 && (
-                <ScrollView
-                  // @ts-ignore — react-native-web forwards className to the underlying div
-                  className={SCROLL_THEME_CLASS}
-                  style={{ maxHeight: 168 }}
-                  showsVerticalScrollIndicator
-                  nestedScrollEnabled
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
                 >
-                  <View style={{ gap: 6 }}>
-                    {passengers.map((name, i) => (
-                      <View
-                        key={`${name}-${i}`}
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
-                          paddingVertical: 8,
-                          paddingHorizontal: 10,
-                          borderRadius: 8,
-                          backgroundColor: theme.background,
-                          borderWidth: 1.5,
-                          borderColor: theme.border,
-                        }}
-                      >
-                        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>{i + 1}</Text>
-                        </View>
-                        <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flex: 1 }} numberOfLines={1}>
-                          {name}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => handleRemovePassenger(i)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          style={{ width: 22, height: 22, borderRadius: 6, alignItems: "center", justifyContent: "center" }}
-                        >
-                          <X size={12} color={theme.subtext} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              )}
-
-              {addingPassenger ? (
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-                  <TextInput
-                    ref={passengerInputRef}
-                    style={[inputStyle, { flex: 1 }]}
-                    placeholder="e.g. Juan Dela Cruz"
-                    placeholderTextColor={theme.subtext}
-                    value={passengerInput}
-                    onChangeText={setPassengerInput}
-                    onSubmitEditing={handleAddPassenger}
-                    blurOnSubmit={false}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    onPress={handleAddPassenger}
-                    activeOpacity={0.8}
+                  {isMobile && step !== "form" ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setStep(step === "confirm" ? "route" : "form")
+                      }
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Go back"
+                    >
+                      <ArrowLeft size={17} color={theme.subtext} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Car size={16} color={primary} />
+                  )}
+                  <Text
                     style={{
-                      backgroundColor: primary,
-                      borderRadius: 8,
-                      paddingHorizontal: 14,
-                      alignItems: "center",
-                      justifyContent: "center",
+                      fontFamily: "Outfit-medium",
+                      fontSize: 17,
+                      color: theme.textActive ?? theme.text,
                     }}
                   >
-                    <Plus size={14} color="#fff" />
-                  </TouchableOpacity>
+                    {isEditMode ? "Modify Trip" : "Book a Company Vehicle"}
+                  </Text>
                 </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setAddingPassenger(true)}
-                  activeOpacity={0.8}
+                <Text
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    paddingVertical: 9,
-                    borderRadius: 8,
-                    borderWidth: 1.5,
-                    borderColor: theme.border,
-                    borderStyle: "dashed",
-                    marginTop: 6,
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    color: theme.subtext,
+                    marginTop: 4,
+                    lineHeight: 17,
                   }}
                 >
-                  <Plus size={13} color={theme.subtext} />
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>
-                    Add another passenger
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            </View>
-
-            {/* ── Card: Schedule ── */}
-            <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, marginBottom: 10 }}>
-                Schedule
-              </Text>
-            <View style={{ flexDirection: "row", gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Field label="Departure date" required theme={theme}>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      ref={departureDateRef as any}
-                      type="date"
-                      className={DATE_INPUT_CLASS}
-                      value={departureDate}
-                      onChange={(e: any) => setDepartureDate(e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                      style={webInputStyle}
-                    />
-                    <button
-                      type="button"
-                      style={pickerIconBtnStyle}
-                      onClick={() => departureDateRef.current?.showPicker?.()}
-                    >
-                      <CalendarIcon size={14} color={theme.subtext} />
-                    </button>
-                  </div>
-                </Field>
+                  {isMobile
+                    ? step === "route"
+                      ? "Step 2 of 2 — set your pickup and drop-off pins."
+                      : step === "confirm"
+                        ? "Review your request before submitting."
+                        : "Step 1 of 2 — trip details."
+                    : "Fill in your trip details. Dispatch will assign a vehicle and driver once approved."}
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Field label="Departure time" required theme={theme}>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      ref={departureTimeRef as any}
-                      type="time"
-                      step={1800}
-                      className={DATE_INPUT_CLASS}
-                      value={departureTime}
-                      onChange={(e: any) => setDepartureTime(snapToHalfHour(e.target.value))}
-                      style={webInputStyle}
-                    />
-                    <button
-                      type="button"
-                      style={pickerIconBtnStyle}
-                      onClick={() => departureTimeRef.current?.showPicker?.()}
-                    >
-                      <ClockIcon size={14} color={theme.subtext} />
-                    </button>
-                  </div>
-                </Field>
+              <TouchableOpacity
+                onPress={onClose}
+                activeOpacity={0.7}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: theme.background,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: 4,
+                }}
+              >
+                <X size={15} color={theme.subtext} />
+              </TouchableOpacity>
+            </View>
+
+            {isMobile && (
+              <View style={{ height: 3, backgroundColor: theme.border }}>
+                <View
+                  style={{
+                    height: 3,
+                    width: step === "form" ? "50%" : "100%",
+                    backgroundColor: primary,
+                  }}
+                />
               </View>
-            </View>
+            )}
 
-            </View>
-
-            {/* ── Card: Purpose ── */}
-            <View style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-            <Field label="Purpose / remarks" required theme={theme}>
-              <TextInput
-                style={[inputStyle, { height: 70, textAlignVertical: "top" }]}
-                placeholder="e.g. Client visit — pick up 2 delegates from airport arrival"
-                placeholderTextColor={theme.subtext}
-                multiline
-                value={purpose}
-                onChangeText={setPurpose}
-              />
-            </Field>
-            </View>
-
-            {error ? (
-              <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>
-                {error}
-              </Text>
-            ) : null}
-
-            <TouchableOpacity
-              onPress={isMobile ? handleNextToRoute : handleReview}
-              activeOpacity={0.8}
-              style={{
-                backgroundColor: primary,
-                borderRadius: 8,
-                paddingVertical: 13,
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "row",
-                gap: 8,
-                marginTop: 4,
+            <ScrollView
+              // @ts-ignore — react-native-web forwards className to the underlying div
+              className={SCROLL_THEME_CLASS}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                padding: isMobile ? 16 : 20,
+                paddingBottom: 30,
               }}
             >
-              {isMobile ? <ArrowRight size={14} color="#fff" /> : <Car size={14} color="#fff" />}
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                {isMobile
-                  ? "Next: set route"
-                  : isEditMode
-                    ? "Review Changes"
-                    : "Review Booking Request"}
-              </Text>
-            </TouchableOpacity>
-            </View>
+              {(step === "form" || step === "route") && (
+                <>
+                  <View
+                    style={
+                      isMobile
+                        ? { flexDirection: "column" }
+                        : { flexDirection: "row", gap: 24 }
+                    }
+                  >
+                    <View
+                      style={
+                        isMobile
+                          ? step === "form"
+                            ? {}
+                            : { display: "none" }
+                          : { flex: 1, minWidth: 0 }
+                      }
+                    >
+                      {/* ── Card: Trip details ── */}
+                      <View
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderWidth: 1,
+                          borderColor: theme.border,
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 14,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: theme.textActive ?? theme.text,
+                            marginBottom: 10,
+                          }}
+                        >
+                          Trip details
+                        </Text>
 
-            {/* ── Right column: Route (map) + labels — given the extra
+                        {/* Requestor — now its own full-width row */}
+                        <Field label="Requestor" theme={theme}>
+                          <View style={[inputStyle, { opacity: 0.7 }]}>
+                            <Text
+                              style={{
+                                fontFamily: "Outfit",
+                                fontSize: 13,
+                                color: theme.textActive ?? theme.text,
+                              }}
+                            >
+                              {user.displayName}{" "}
+                              {user.department
+                                ? `— ${displayDepartment(user.department)}`
+                                : ""}
+                            </Text>
+                          </View>
+                        </Field>
+
+                        {/* Passengers — same row/list pattern as the drop-off stops:
+                numbered circle + name + remove X, capped-height scroll,
+                dashed "Add another passenger" trigger underneath. */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: "Outfit-medium",
+                              fontSize: 12,
+                              color: theme.textActive ?? theme.text,
+                            }}
+                          >
+                            Passengers
+                          </Text>
+                          <Text
+                            style={{
+                              fontFamily: "Outfit",
+                              fontSize: 11,
+                              color: theme.subtext,
+                            }}
+                          >
+                            {passengers.length + 1} total
+                          </Text>
+                        </View>
+
+                        <View style={{ marginBottom: 14 }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingVertical: 8,
+                              paddingHorizontal: 10,
+                              borderRadius: 8,
+                              backgroundColor: theme.background,
+                              borderWidth: 1.5,
+                              borderColor: theme.border,
+                              marginBottom: 6,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 10,
+                                backgroundColor: "#22c55e",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 10.5,
+                                  color: "#fff",
+                                }}
+                              >
+                                Y
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                fontFamily: "Outfit-medium",
+                                fontSize: 13,
+                                color: theme.textActive ?? theme.text,
+                                flex: 1,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {user.displayName} (you)
+                            </Text>
+                          </View>
+
+                          {passengers.length > 0 && (
+                            <ScrollView
+                              // @ts-ignore — react-native-web forwards className to the underlying div
+                              className={SCROLL_THEME_CLASS}
+                              style={{ maxHeight: 168 }}
+                              showsVerticalScrollIndicator
+                              nestedScrollEnabled
+                            >
+                              <View style={{ gap: 6 }}>
+                                {passengers.map((name, i) => (
+                                  <View
+                                    key={`${name}-${i}`}
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 10,
+                                      borderRadius: 8,
+                                      backgroundColor: theme.background,
+                                      borderWidth: 1.5,
+                                      borderColor: theme.border,
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        backgroundColor: "#ef4444",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          fontFamily: "Outfit-medium",
+                                          fontSize: 10.5,
+                                          color: "#fff",
+                                        }}
+                                      >
+                                        {i + 1}
+                                      </Text>
+                                    </View>
+                                    <Text
+                                      style={{
+                                        fontFamily: "Outfit-medium",
+                                        fontSize: 13,
+                                        color: theme.textActive ?? theme.text,
+                                        flex: 1,
+                                      }}
+                                      numberOfLines={1}
+                                    >
+                                      {name}
+                                    </Text>
+                                    <TouchableOpacity
+                                      onPress={() => handleRemovePassenger(i)}
+                                      hitSlop={{
+                                        top: 6,
+                                        bottom: 6,
+                                        left: 6,
+                                        right: 6,
+                                      }}
+                                      style={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: 6,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <X size={12} color={theme.subtext} />
+                                    </TouchableOpacity>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          )}
+
+                          {addingPassenger ? (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                gap: 8,
+                                marginTop: 6,
+                              }}
+                            >
+                              <TextInput
+                                ref={passengerInputRef}
+                                style={[inputStyle, { flex: 1 }]}
+                                placeholder="e.g. Juan Dela Cruz"
+                                placeholderTextColor={theme.subtext}
+                                value={passengerInput}
+                                onChangeText={setPassengerInput}
+                                onSubmitEditing={handleAddPassenger}
+                                blurOnSubmit={false}
+                                autoFocus
+                              />
+                              <TouchableOpacity
+                                onPress={handleAddPassenger}
+                                activeOpacity={0.8}
+                                style={{
+                                  backgroundColor: primary,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 14,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Plus size={14} color="#fff" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => setAddingPassenger(true)}
+                              activeOpacity={0.8}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 6,
+                                paddingVertical: 9,
+                                borderRadius: 8,
+                                borderWidth: 1.5,
+                                borderColor: theme.border,
+                                borderStyle: "dashed",
+                                marginTop: 6,
+                              }}
+                            >
+                              <Plus size={13} color={theme.subtext} />
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 12,
+                                  color: theme.subtext,
+                                }}
+                              >
+                                Add another passenger
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* ── Card: Schedule ── */}
+                      <View
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderWidth: 1,
+                          borderColor: theme.border,
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 14,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: theme.textActive ?? theme.text,
+                            marginBottom: 10,
+                          }}
+                        >
+                          Schedule
+                        </Text>
+                        <View style={{ flexDirection: "row", gap: 12 }}>
+                          <View style={{ flex: 1 }}>
+                            <Field
+                              label="Departure date"
+                              required
+                              theme={theme}
+                            >
+                              <div style={{ position: "relative" }}>
+                                <input
+                                  ref={departureDateRef as any}
+                                  type="date"
+                                  className={DATE_INPUT_CLASS}
+                                  value={departureDate}
+                                  onChange={(e: any) =>
+                                    setDepartureDate(e.target.value)
+                                  }
+                                  min={new Date().toISOString().slice(0, 10)}
+                                  style={webInputStyle}
+                                />
+                                <button
+                                  type="button"
+                                  style={pickerIconBtnStyle}
+                                  onClick={() =>
+                                    departureDateRef.current?.showPicker?.()
+                                  }
+                                >
+                                  <CalendarIcon
+                                    size={14}
+                                    color={theme.subtext}
+                                  />
+                                </button>
+                              </div>
+                            </Field>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Field
+                              label="Departure time"
+                              required
+                              theme={theme}
+                            >
+                              <div style={{ position: "relative" }}>
+                                <input
+                                  ref={departureTimeRef as any}
+                                  type="time"
+                                  step={1800}
+                                  className={DATE_INPUT_CLASS}
+                                  value={departureTime}
+                                  onChange={(e: any) =>
+                                    setDepartureTime(
+                                      snapToHalfHour(e.target.value),
+                                    )
+                                  }
+                                  style={webInputStyle}
+                                />
+                                <button
+                                  type="button"
+                                  style={pickerIconBtnStyle}
+                                  onClick={() =>
+                                    departureTimeRef.current?.showPicker?.()
+                                  }
+                                >
+                                  <ClockIcon size={14} color={theme.subtext} />
+                                </button>
+                              </div>
+                            </Field>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* ── Card: Purpose ── */}
+                      <View
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderWidth: 1,
+                          borderColor: theme.border,
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 14,
+                        }}
+                      >
+                        <Field label="Purpose / remarks" required theme={theme}>
+                          <TextInput
+                            style={[
+                              inputStyle,
+                              { height: 70, textAlignVertical: "top" },
+                            ]}
+                            placeholder="e.g. Client visit — pick up 2 delegates from airport arrival"
+                            placeholderTextColor={theme.subtext}
+                            multiline
+                            value={purpose}
+                            onChangeText={setPurpose}
+                          />
+                        </Field>
+                      </View>
+
+                      {error ? (
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 12,
+                            color: "#EF4444",
+                            marginBottom: 10,
+                          }}
+                        >
+                          {error}
+                        </Text>
+                      ) : null}
+
+                      <TouchableOpacity
+                        onPress={isMobile ? handleNextToRoute : handleReview}
+                        activeOpacity={0.8}
+                        style={{
+                          backgroundColor: primary,
+                          borderRadius: 8,
+                          paddingVertical: 13,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexDirection: "row",
+                          gap: 8,
+                          marginTop: 4,
+                        }}
+                      >
+                        {isMobile ? (
+                          <ArrowRight size={14} color="#fff" />
+                        ) : (
+                          <Car size={14} color="#fff" />
+                        )}
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: "#fff",
+                          }}
+                        >
+                          {isMobile
+                            ? "Next: set route"
+                            : isEditMode
+                              ? "Review Changes"
+                              : "Review Booking Request"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* ── Right column: Route (map) + labels — given the extra
                 width so the map itself can render bigger. ── */}
-            <View style={isMobile ? (step === "route" ? { marginTop: 4 } : { display: "none" }) : { flex: 2, minWidth: 0 }}>
-
-            {/* Pickup / Drop-off pin map — the actual source of truth for
+                    <View
+                      style={
+                        isMobile
+                          ? step === "route"
+                            ? { marginTop: 4 }
+                            : { display: "none" }
+                          : { flex: 2, minWidth: 0 }
+                      }
+                    >
+                      {/* Pickup / Drop-off pin map — the actual source of truth for
                 where the trip starts and ends. Tap the map, search an
                 address, or pick an existing preset (grey dots). The tab
                 strip switches which stop's pin the shared map below is
                 currently showing/editing. Layout is vertical (pickup, then
                 each drop-off stacked underneath) rather than a 2-column
                 pickup/drop-off split, since there can now be several stops. */}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.textActive ?? theme.text }}>
-                Route<Text style={{ color: "#EF4444" }}> *</Text>
-              </Text>
-              <Text style={{ fontFamily: "Outfit", fontSize: 11, color: theme.subtext }}>
-                {1 + dropoffStops.length} stop{1 + dropoffStops.length !== 1 ? "s" : ""}
-              </Text>
-            </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 12,
+                            color: theme.textActive ?? theme.text,
+                          }}
+                        >
+                          Route<Text style={{ color: "#EF4444" }}> *</Text>
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 11,
+                            color: theme.subtext,
+                          }}
+                        >
+                          {1 + dropoffStops.length} stop
+                          {1 + dropoffStops.length !== 1 ? "s" : ""}
+                        </Text>
+                      </View>
 
-            {/* Numbered stop list — same items the old tab row used to
+                      {/* Numbered stop list — same items the old tab row used to
                 switch, now shown as rows: green "P" circle for pickup, red
                 numbered circles for each drop-off, in visit order. Tapping
                 a row still sets which stop the map below is editing. */}
-            <View style={{ marginBottom: 10 }}>
-              <div
-                ref={(el) => { inlineFieldRefs.current["pickup"] = el; }}
-                style={{ position: "relative", marginBottom: 6 }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    paddingVertical: 8,
-                    paddingHorizontal: 10,
-                    borderRadius: 8,
-                    backgroundColor: theme.background,
-                    borderWidth: 1.5,
-                    borderColor: activeMapField === "pickup" ? primary : theme.border,
-                  }}
-                >
-                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>P</Text>
-                  </View>
-                  <TextInput
-                    value={pickupText}
-                    onFocus={() => {
-                      setActiveMapField("pickup");
-                      showFavoritesForField("pickup", pickupText);
-                    }}
-                    onChangeText={(text) => {
-                      setPickupText(text);
-                      setPickupLabelEdited(true);
-                      if (pickupLocationId) setPickupLocationId(null);
-                      triggerInlineSearch("pickup", text);
-                    }}
-                    placeholder="Pickup"
-                    placeholderTextColor={theme.subtext}
-                    style={{
-                      flex: 1,
-                      fontFamily: "Outfit-medium",
-                      fontSize: 13,
-                      color: theme.textActive ?? theme.text,
-                      padding: 0,
-                    }}
-                  />
-                  {activeMapField === "pickup" && (
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
-                  )}
-                  <TouchableOpacity
-                    onPress={handleUseCurrentLocation}
-                    disabled={locatingPickup}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    accessibilityLabel="Use my current location"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 6,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: locatingPickup ? 0.5 : 1,
-                    }}
-                  >
-                    <LocateFixed size={14} color={locatingPickup ? theme.subtext : primary} />
-                  </TouchableOpacity>
-                </View>
-                {locatePickupError ? (
-                  <Text style={{ fontFamily: "Outfit", fontSize: 10.5, color: "#EF4444", marginTop: 3 }}>
-                    {locatePickupError}
-                  </Text>
-                ) : null}
-              </div>
+                      <View style={{ marginBottom: 10 }}>
+                        <div
+                          ref={(el) => {
+                            inlineFieldRefs.current["pickup"] = el;
+                          }}
+                          style={{ position: "relative", marginBottom: 6 }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingVertical: 8,
+                              paddingHorizontal: 10,
+                              borderRadius: 8,
+                              backgroundColor: theme.background,
+                              borderWidth: 1.5,
+                              borderColor:
+                                activeMapField === "pickup"
+                                  ? primary
+                                  : theme.border,
+                              borderBottomLeftRadius: pickupPoint ? 0 : 8,
+                              borderBottomRightRadius: pickupPoint ? 0 : 8,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 10,
+                                backgroundColor: "#22c55e",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 10.5,
+                                  color: "#fff",
+                                }}
+                              >
+                                P
+                              </Text>
+                            </View>
+                            <TextInput
+                              value={pickupText}
+                              onFocus={() => {
+                                setActiveMapField("pickup");
+                                showFavoritesForField("pickup", pickupText);
+                              }}
+                              onChangeText={(text) => {
+                                setPickupText(text);
+                                setPickupLabelEdited(true);
+                                if (pickupLocationId) setPickupLocationId(null);
+                                triggerInlineSearch("pickup", text);
+                              }}
+                              placeholder="Pickup"
+                              placeholderTextColor={theme.subtext}
+                              style={{
+                                flex: 1,
+                                fontFamily: "Outfit-medium",
+                                fontSize: 13,
+                                color: theme.textActive ?? theme.text,
+                                padding: 0,
+                              }}
+                            />
+                            {activeMapField === "pickup" && (
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 10.5,
+                                  color: primary,
+                                }}
+                              >
+                                Editing
+                              </Text>
+                            )}
+                            <TouchableOpacity
+                              onPress={handleUseCurrentLocation}
+                              disabled={locatingPickup}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                              accessibilityLabel="Use my current location"
+                              style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: 6,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: locatingPickup ? 0.5 : 1,
+                              }}
+                            >
+                              <LocateFixed
+                                size={14}
+                                color={locatingPickup ? theme.subtext : primary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                          {locatePickupError ? (
+                            <Text
+                              style={{
+                                fontFamily: "Outfit",
+                                fontSize: 10.5,
+                                color: "#EF4444",
+                                marginTop: 3,
+                              }}
+                            >
+                              {locatePickupError}
+                            </Text>
+                          ) : null}
+                          {pickupPoint &&
+                            !(exactOpen.pickup || pickupLabel.trim()) && (
+                              <TouchableOpacity
+                                onPress={() =>
+                                  setExactOpen((p) => ({ ...p, pickup: true }))
+                                }
+                                activeOpacity={0.8}
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  paddingVertical: 7,
+                                  paddingHorizontal: 12,
+                                  marginTop: -1.5,
+                                  borderWidth: 1.5,
+                                  borderColor:
+                                    activeMapField === "pickup"
+                                      ? primary
+                                      : theme.border,
+                                  borderTopLeftRadius: 0,
+                                  borderTopRightRadius: 0,
+                                  borderBottomLeftRadius: 8,
+                                  borderBottomRightRadius: 8,
+                                  backgroundColor: theme.background,
+                                }}
+                              >
+                                <Plus size={12} color={theme.subtext} />
+                                <Text
+                                  style={{
+                                    fontFamily: "Outfit",
+                                    fontSize: 12,
+                                    color: theme.subtext,
+                                  }}
+                                >
+                                  Add exact address (optional)
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                          {pickupPoint && (exactOpen.pickup || pickupLabel.trim()) && (
+                            <TextInput
+                              value={pickupLabel}
+                              onChangeText={setPickupLabel}
+                              placeholder="Exact address (unit / floor / building / landmark)"
+                              placeholderTextColor={theme.subtext}
+                              maxLength={100}
+                              style={[
+                                inputStyle,
+                                {
+                                  marginTop: -1.5,
+                                  paddingVertical: 7,
+                                  fontSize: 12,
+                                  borderTopLeftRadius: 0,
+                                  borderTopRightRadius: 0,
+                                  width: "100%",
+                                  borderColor:
+                                    activeMapField === "pickup"
+                                      ? primary
+                                      : theme.border,
+                                },
+                              ]}
+                            />
+                          )}
+                        </div>
 
-              {/* Drop-off list — capped height with its own scroll so a
+                        {/* Drop-off list — capped height with its own scroll so a
                   trip with many stops doesn't keep growing the whole
                   modal/form vertically. Pickup row and "Add another
                   drop-off" stay outside the scroll, always visible. */}
-              <ScrollView
-                // @ts-ignore — react-native-web forwards className to the underlying div
-                className={SCROLL_THEME_CLASS}
-                style={{ maxHeight: 168 }}
-                showsVerticalScrollIndicator
-                nestedScrollEnabled
-              >
-                <View style={{ gap: 6 }}>
-                  {dropoffStops.map((stop, i) => (
-                    <div
-                      key={stop.id}
-                      draggable={dragHandleActiveId === stop.id}
-                      onDragStart={(e: React.DragEvent) => {
-                        if (dragHandleActiveId !== stop.id) {
-                          e.preventDefault();
-                          return;
-                        }
-                        setDraggedStopIndex(i);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={(e: React.DragEvent) => {
-                        e.preventDefault();
-                        if (draggedStopIndex !== null && draggedStopIndex !== i) {
-                          setDragOverStopIndex(i);
-                        }
-                      }}
-                      onDrop={(e: React.DragEvent) => {
-                        e.preventDefault();
-                        if (draggedStopIndex !== null) {
-                          reorderDropoffStops(draggedStopIndex, i);
-                        }
-                        setDraggedStopIndex(null);
-                        setDragOverStopIndex(null);
-                        setDragHandleActiveId(null);
-                      }}
-                      onDragEnd={() => {
-                        setDraggedStopIndex(null);
-                        setDragOverStopIndex(null);
-                        setDragHandleActiveId(null);
-                      }}
-                      style={{
-                        opacity: draggedStopIndex === i ? 0.4 : 1,
-                      }}
-                    >
-                      <div
-                        ref={(el) => { inlineFieldRefs.current[stop.id] = el; }}
-                        style={{ position: "relative" }}
-                      >
-                        <View
+                        <ScrollView
+                          // @ts-ignore — react-native-web forwards className to the underlying div
+                          className={SCROLL_THEME_CLASS}
+                          style={{ maxHeight: 168 }}
+                          showsVerticalScrollIndicator
+                          nestedScrollEnabled
+                        >
+                          <View style={{ gap: 6 }}>
+                            {dropoffStops.map((stop, i) => (
+                              <div
+                                key={stop.id}
+                                draggable={dragHandleActiveId === stop.id}
+                                onDragStart={(e: React.DragEvent) => {
+                                  if (dragHandleActiveId !== stop.id) {
+                                    e.preventDefault();
+                                    return;
+                                  }
+                                  setDraggedStopIndex(i);
+                                  e.dataTransfer.effectAllowed = "move";
+                                }}
+                                onDragOver={(e: React.DragEvent) => {
+                                  e.preventDefault();
+                                  if (
+                                    draggedStopIndex !== null &&
+                                    draggedStopIndex !== i
+                                  ) {
+                                    setDragOverStopIndex(i);
+                                  }
+                                }}
+                                onDrop={(e: React.DragEvent) => {
+                                  e.preventDefault();
+                                  if (draggedStopIndex !== null) {
+                                    reorderDropoffStops(draggedStopIndex, i);
+                                  }
+                                  setDraggedStopIndex(null);
+                                  setDragOverStopIndex(null);
+                                  setDragHandleActiveId(null);
+                                }}
+                                onDragEnd={() => {
+                                  setDraggedStopIndex(null);
+                                  setDragOverStopIndex(null);
+                                  setDragHandleActiveId(null);
+                                }}
+                                style={{
+                                  opacity: draggedStopIndex === i ? 0.4 : 1,
+                                }}
+                              >
+                                <div
+                                  ref={(el) => {
+                                    inlineFieldRefs.current[stop.id] = el;
+                                  }}
+                                  style={{ position: "relative" }}
+                                >
+                                  <View
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 10,
+                                      borderRadius: 8,
+                                      backgroundColor: theme.background,
+                                      borderWidth: 1.5,
+                                      borderColor:
+                                        dragOverStopIndex === i
+                                          ? primary
+                                          : activeMapField === stop.id
+                                            ? primary
+                                            : theme.border,
+                                      borderStyle:
+                                        dragOverStopIndex === i
+                                          ? "dashed"
+                                          : "solid",
+                                      borderBottomLeftRadius: stop.point
+                                        ? 0
+                                        : 8,
+                                      borderBottomRightRadius: stop.point
+                                        ? 0
+                                        : 8,
+                                    }}
+                                  >
+                                    <div
+                                      onMouseDown={() => {
+                                        setDragHandleActiveId(stop.id);
+                                      }}
+                                      onMouseUp={() => {
+                                        setDragHandleActiveId(null);
+                                      }}
+                                      style={{
+                                        opacity: 0.5,
+                                        cursor: "grab",
+                                        display: "flex",
+                                      }}
+                                    >
+                                      <svg
+                                        width="10"
+                                        height="14"
+                                        viewBox="0 0 10 14"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          cx="2"
+                                          cy="2"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                        <circle
+                                          cx="8"
+                                          cy="2"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                        <circle
+                                          cx="2"
+                                          cy="7"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                        <circle
+                                          cx="8"
+                                          cy="7"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                        <circle
+                                          cx="2"
+                                          cy="12"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                        <circle
+                                          cx="8"
+                                          cy="12"
+                                          r="1.3"
+                                          fill={theme.subtext}
+                                        />
+                                      </svg>
+                                    </div>
+                                    <View
+                                      style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        backgroundColor: "#ef4444",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          fontFamily: "Outfit-medium",
+                                          fontSize: 10.5,
+                                          color: "#fff",
+                                        }}
+                                      >
+                                        {i + 1}
+                                      </Text>
+                                    </View>
+                                    <TextInput
+                                      value={stop.text}
+                                      onFocus={() => {
+                                        setActiveMapField(stop.id);
+                                        showFavoritesForField(
+                                          stop.id,
+                                          stop.text,
+                                        );
+                                      }}
+                                      onChangeText={(text) => {
+                                        updateStop(stop.id, {
+                                          text,
+                                          labelEdited: true,
+                                          locationId: stop.locationId
+                                            ? null
+                                            : stop.locationId,
+                                        });
+                                        triggerInlineSearch(stop.id, text);
+                                      }}
+                                      placeholder={`Drop-off ${i + 1}`}
+                                      placeholderTextColor={theme.subtext}
+                                      style={{
+                                        flex: 1,
+                                        fontFamily: "Outfit-medium",
+                                        fontSize: 13,
+                                        color: theme.textActive ?? theme.text,
+                                        padding: 0,
+                                      }}
+                                    />
+                                    {activeMapField === stop.id && (
+                                      <Text
+                                        style={{
+                                          fontFamily: "Outfit-medium",
+                                          fontSize: 10.5,
+                                          color: primary,
+                                        }}
+                                      >
+                                        Editing
+                                      </Text>
+                                    )}
+                                    {dropoffStops.length > 1 && (
+                                      <TouchableOpacity
+                                        onPress={() =>
+                                          handleRemoveStop(stop.id)
+                                        }
+                                        hitSlop={{
+                                          top: 6,
+                                          bottom: 6,
+                                          left: 6,
+                                          right: 6,
+                                        }}
+                                        style={{
+                                          width: 22,
+                                          height: 22,
+                                          borderRadius: 6,
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                        }}
+                                      >
+                                        <X size={12} color={theme.subtext} />
+                                      </TouchableOpacity>
+                                    )}
+                                  </View>
+
+                                  {stop.point &&
+                                    !(exactOpen[stop.id] || stop.label.trim()) && (
+                                      <TouchableOpacity
+                                        onPress={() =>
+                                          setExactOpen((p) => ({
+                                            ...p,
+                                            [stop.id]: true,
+                                          }))
+                                        }
+                                        activeOpacity={0.8}
+                                        style={{
+                                          flexDirection: "row",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          paddingVertical: 7,
+                                          paddingHorizontal: 12,
+                                          marginTop: -1.5,
+                                          borderWidth: 1.5,
+                                          borderColor:
+                                            activeMapField === stop.id
+                                              ? primary
+                                              : theme.border,
+                                          borderTopLeftRadius: 0,
+                                          borderTopRightRadius: 0,
+                                          borderBottomLeftRadius: 8,
+                                          borderBottomRightRadius: 8,
+                                          backgroundColor: theme.background,
+                                        }}
+                                      >
+                                        <Plus size={12} color={theme.subtext} />
+                                        <Text
+                                          style={{
+                                            fontFamily: "Outfit",
+                                            fontSize: 12,
+                                            color: theme.subtext,
+                                          }}
+                                        >
+                                          Add exact address (optional)
+                                        </Text>
+                                      </TouchableOpacity>
+                                    )}
+                                  {stop.point && (exactOpen[stop.id] || stop.label.trim()) && (
+                                    <TextInput
+                                      value={stop.label}
+                                      onChangeText={(text) =>
+                                        updateStop(stop.id, { label: text })
+                                      }
+                                      placeholder="Exact address, optional (unit / floor / building / landmark)"
+                                      placeholderTextColor={theme.subtext}
+                                      maxLength={100}
+                                      style={[
+                                        inputStyle,
+                                        {
+                                          marginTop: -1.5,
+                                          paddingVertical: 7,
+                                          fontSize: 12,
+                                          borderTopLeftRadius: 0,
+                                          borderTopRightRadius: 0,
+                                          width: "100%",
+                                          borderColor:
+                                            activeMapField === stop.id
+                                              ? primary
+                                              : theme.border,
+                                        },
+                                      ]}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </View>
+                        </ScrollView>
+
+                        <TouchableOpacity
+                          onPress={handleAddStop}
+                          activeOpacity={0.8}
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 8,
-                            paddingVertical: 8,
-                            paddingHorizontal: 10,
+                            justifyContent: "center",
+                            gap: 6,
+                            paddingVertical: 9,
                             borderRadius: 8,
-                            backgroundColor: theme.background,
                             borderWidth: 1.5,
-                            borderColor:
-                              dragOverStopIndex === i
-                                ? primary
-                                : activeMapField === stop.id
-                                  ? primary
-                                  : theme.border,
-                            borderStyle: dragOverStopIndex === i ? "dashed" : "solid",
+                            borderColor: theme.border,
+                            borderStyle: "dashed",
+                            marginTop: 6,
                           }}
                         >
-                          <div
-                            onMouseDown={() => {
-                              setDragHandleActiveId(stop.id);
+                          <Plus size={13} color={theme.subtext} />
+                          <Text
+                            style={{
+                              fontFamily: "Outfit-medium",
+                              fontSize: 12,
+                              color: theme.subtext,
                             }}
-                            onMouseUp={() => {
-                              setDragHandleActiveId(null);
-                            }}
-                            style={{ opacity: 0.5, cursor: "grab", display: "flex" }}
                           >
-                            <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-                              <circle cx="2" cy="2" r="1.3" fill={theme.subtext} />
-                              <circle cx="8" cy="2" r="1.3" fill={theme.subtext} />
-                              <circle cx="2" cy="7" r="1.3" fill={theme.subtext} />
-                              <circle cx="8" cy="7" r="1.3" fill={theme.subtext} />
-                              <circle cx="2" cy="12" r="1.3" fill={theme.subtext} />
-                              <circle cx="8" cy="12" r="1.3" fill={theme.subtext} />
-                            </svg>
-                          </div>
-                          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center" }}>
-                            <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: "#fff" }}>{i + 1}</Text>
-                          </View>
-                          <TextInput
-                            value={stop.text}
-                            onFocus={() => {
-                              setActiveMapField(stop.id);
-                              showFavoritesForField(stop.id, stop.text);
-                            }}
-                            onChangeText={(text) => {
+                            Add another drop-off
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Field label="" theme={theme}>
+                        <FleetLocationPickerMap
+                          presets={locations}
+                          hideSearch
+                          allStops={[
+                            {
+                              key: "pickup",
+                              label:
+                                pickupText || pickupPoint?.address || "Pickup",
+                              point: pickupPoint,
+                            },
+                            ...dropoffStops.map((stop, i) => ({
+                              key: stop.id,
+                              label: `Drop-off ${i + 1}: ${stop.text || stop.point?.address || "—"}`,
+                              point: stop.point,
+                            })),
+                          ]}
+                          activeKey={activeMapField}
+                          value={
+                            activeMapField === "pickup"
+                              ? pickupPoint
+                              : (dropoffStops.find(
+                                  (s) => s.id === activeMapField,
+                                )?.point ?? null)
+                          }
+                          onPick={(pt: PickedPoint) => {
+                            if (activeMapField === "pickup") {
+                              setPickupPoint(pt);
+                              setPickupLocationId(null);
+                              // Prefill the optional label with the map's own
+                              // address as soon as it's picked — only while the
+                              // requestor hasn't already typed their own wording.
+                              if (pt.address) setPickupText(pt.address);
+                            } else {
+                              const stop = dropoffStops.find(
+                                (s) => s.id === activeMapField,
+                              );
+                              if (!stop) return;
+                              updateStop(stop.id, {
+                                point: pt,
+                                locationId: null,
+                                text: pt.address ?? stop.text,
+                              });
+                            }
+                          }}
+                          searchValue={
+                            activeMapField === "pickup"
+                              ? pickupText
+                              : (dropoffStops.find(
+                                  (s) => s.id === activeMapField,
+                                )?.text ?? "")
+                          }
+                          onSearchChange={(text) => {
+                            if (activeMapField === "pickup") {
+                              setPickupText(text);
+                              setPickupLabelEdited(true);
+                              if (pickupLocationId) setPickupLocationId(null);
+                            } else {
+                              const stop = dropoffStops.find(
+                                (s) => s.id === activeMapField,
+                              );
+                              if (!stop) return;
                               updateStop(stop.id, {
                                 text,
                                 labelEdited: true,
-                                locationId: stop.locationId ? null : stop.locationId,
+                                locationId: stop.locationId
+                                  ? null
+                                  : stop.locationId,
                               });
-                              triggerInlineSearch(stop.id, text);
-                            }}
-                            placeholder={`Drop-off ${i + 1}`}
-                            placeholderTextColor={theme.subtext}
+                            }
+                          }}
+                          theme={theme}
+                          height={
+                            isMobile
+                              ? Math.max(300, Math.round(winH * 0.42))
+                              : 480
+                          }
+                        />
+
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginTop: 6,
+                          }}
+                        >
+                          <Text
                             style={{
+                              fontFamily: "Outfit",
+                              fontSize: 11,
+                              color: theme.subtext,
                               flex: 1,
-                              fontFamily: "Outfit-medium",
-                              fontSize: 13,
-                              color: theme.textActive ?? theme.text,
-                              padding: 0,
+                              marginRight: 8,
                             }}
-                          />
-                          {activeMapField === stop.id && (
-                            <Text style={{ fontFamily: "Outfit-medium", fontSize: 10.5, color: primary }}>Editing</Text>
-                          )}
-                          {dropoffStops.length > 1 && (
-                            <TouchableOpacity
-                              onPress={() => handleRemoveStop(stop.id)}
-                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                              style={{ width: 22, height: 22, borderRadius: 6, alignItems: "center", justifyContent: "center" }}
-                            >
-                              <X size={12} color={theme.subtext} />
-                            </TouchableOpacity>
-                          )}
+                          >
+                            {(() => {
+                              if (activeMapField === "pickup") {
+                                return pickupPoint
+                                  ? (pickupPoint.address ??
+                                      `Pickup pin: ${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`)
+                                  : "Tap the map, search an address, or pick a preset to set the pickup pin.";
+                              }
+                              const stop = dropoffStops.find(
+                                (s) => s.id === activeMapField,
+                              );
+                              return stop?.point
+                                ? (stop.point.address ??
+                                    `Drop-off pin: ${stop.point.latitude.toFixed(5)}, ${stop.point.longitude.toFixed(5)}`)
+                                : "Tap the map, search an address, or pick a preset to set this drop-off pin.";
+                            })()}
+                          </Text>
+                          {(() => {
+                            const hasPin =
+                              activeMapField === "pickup"
+                                ? !!pickupPoint
+                                : !!dropoffStops.find(
+                                    (s) => s.id === activeMapField,
+                                  )?.point;
+                            if (!hasPin) return null;
+                            return (
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (activeMapField === "pickup") {
+                                    setPickupPoint(null);
+                                  } else {
+                                    updateStop(activeMapField, { point: null });
+                                  }
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontFamily: "Outfit-medium",
+                                    fontSize: 11,
+                                    color: theme.subtext,
+                                    textDecorationLine: "underline",
+                                  }}
+                                >
+                                  Clear pin
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })()}
                         </View>
+                      </Field>
 
-                      </div>
-                    </div>
-                  ))}
-                </View>
-              </ScrollView>
-
-              <TouchableOpacity
-                onPress={handleAddStop}
-                activeOpacity={0.8}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  paddingVertical: 9,
-                  borderRadius: 8,
-                  borderWidth: 1.5,
-                  borderColor: theme.border,
-                  borderStyle: "dashed",
-                  marginTop: 6,
-                }}
-              >
-                <Plus size={13} color={theme.subtext} />
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>
-                  Add another drop-off
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Field label="" theme={theme}>
-
-              <FleetLocationPickerMap
-                presets={locations}
-                hideSearch
-                allStops={[
-                  {
-                    key: "pickup",
-                    label: pickupText || pickupPoint?.address || "Pickup",
-                    point: pickupPoint,
-                  },
-                  ...dropoffStops.map((stop, i) => ({
-                    key: stop.id,
-                    label: `Drop-off ${i + 1}: ${stop.text || stop.point?.address || "—"}`,
-                    point: stop.point,
-                  })),
-                ]}
-                activeKey={activeMapField}
-                value={
-                  activeMapField === "pickup"
-                    ? pickupPoint
-                    : dropoffStops.find((s) => s.id === activeMapField)?.point ?? null
-                }
-                onPick={(pt: PickedPoint) => {
-                  if (activeMapField === "pickup") {
-                    setPickupPoint(pt);
-                    setPickupLocationId(null);
-                    // Prefill the optional label with the map's own
-                    // address as soon as it's picked — only while the
-                    // requestor hasn't already typed their own wording.
-                    if (!pickupLabelEdited && pt.address) setPickupText(pt.address);
-                  } else {
-                    const stop = dropoffStops.find((s) => s.id === activeMapField);
-                    if (!stop) return;
-                    updateStop(stop.id, {
-                      point: pt,
-                      locationId: null,
-                      text: !stop.labelEdited && pt.address ? pt.address : stop.text,
-                    });
-                  }
-                }}
-                searchValue={
-                  activeMapField === "pickup"
-                    ? pickupText
-                    : dropoffStops.find((s) => s.id === activeMapField)?.text ?? ""
-                }
-                onSearchChange={(text) => {
-                  if (activeMapField === "pickup") {
-                    setPickupText(text);
-                    setPickupLabelEdited(true);
-                    if (pickupLocationId) setPickupLocationId(null);
-                  } else {
-                    const stop = dropoffStops.find((s) => s.id === activeMapField);
-                    if (!stop) return;
-                    updateStop(stop.id, {
-                      text,
-                      labelEdited: true,
-                      locationId: stop.locationId ? null : stop.locationId,
-                    });
-                  }
-                }}
-                theme={theme}
-                height={isMobile ? Math.max(300, Math.round(winH * 0.42)) : 480}
-              />
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginTop: 6,
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Outfit",
-                    fontSize: 11,
-                    color: theme.subtext,
-                    flex: 1,
-                    marginRight: 8,
-                  }}
-                >
-                  {(() => {
-                    if (activeMapField === "pickup") {
-                      return pickupPoint
-                        ? (pickupPoint.address ?? `Pickup pin: ${pickupPoint.latitude.toFixed(5)}, ${pickupPoint.longitude.toFixed(5)}`)
-                        : "Tap the map, search an address, or pick a preset to set the pickup pin.";
-                    }
-                    const stop = dropoffStops.find((s) => s.id === activeMapField);
-                    return stop?.point
-                      ? (stop.point.address ?? `Drop-off pin: ${stop.point.latitude.toFixed(5)}, ${stop.point.longitude.toFixed(5)}`)
-                      : "Tap the map, search an address, or pick a preset to set this drop-off pin.";
-                  })()}
-                </Text>
-                {(() => {
-                  const hasPin =
-                    activeMapField === "pickup"
-                      ? !!pickupPoint
-                      : !!dropoffStops.find((s) => s.id === activeMapField)?.point;
-                  if (!hasPin) return null;
-                  return (
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (activeMapField === "pickup") {
-                          setPickupPoint(null);
-                        } else {
-                          updateStop(activeMapField, { point: null });
-                        }
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: "Outfit-medium",
-                          fontSize: 11,
-                          color: theme.subtext,
-                          textDecorationLine: "underline",
-                        }}
-                      >
-                        Clear pin
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })()}
-              </View>
-            </Field>
-
-            {/* Mobile-only action bar for the route page — the desktop
+                      {/* Mobile-only action bar for the route page — the desktop
                 layout submits from the left column's button, which is
                 hidden here, so page 2 needs its own back/review pair. */}
-            {isMobile && (
-              <View style={{ marginTop: 12 }}>
-                {error ? (
-                  <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 8 }}>
-                    {error}
-                  </Text>
-                ) : null}
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setError("");
-                      setStep("form");
-                    }}
-                    activeOpacity={0.8}
+                      {isMobile && (
+                        <View style={{ marginTop: 12 }}>
+                          {error ? (
+                            <Text
+                              style={{
+                                fontFamily: "Outfit",
+                                fontSize: 12,
+                                color: "#EF4444",
+                                marginBottom: 8,
+                              }}
+                            >
+                              {error}
+                            </Text>
+                          ) : null}
+                          <View style={{ flexDirection: "row", gap: 10 }}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setError("");
+                                setStep("form");
+                              }}
+                              activeOpacity={0.8}
+                              style={{
+                                flex: 1,
+                                paddingVertical: 13,
+                                borderRadius: 8,
+                                borderWidth: 1.5,
+                                borderColor: theme.border,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 13,
+                                  color: theme.subtext,
+                                }}
+                              >
+                                Back
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={handleReview}
+                              activeOpacity={0.8}
+                              style={{
+                                flex: 2,
+                                backgroundColor: primary,
+                                borderRadius: 8,
+                                paddingVertical: 13,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "row",
+                                gap: 8,
+                              }}
+                            >
+                              <Car size={14} color="#fff" />
+                              <Text
+                                style={{
+                                  fontFamily: "Outfit-medium",
+                                  fontSize: 13,
+                                  color: "#fff",
+                                }}
+                              >
+                                {isEditMode
+                                  ? "Review Changes"
+                                  : "Review Booking Request"}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {step === "confirm" && (
+                <>
+                  <View
                     style={{
-                      flex: 1,
-                      paddingVertical: 13,
-                      borderRadius: 8,
+                      backgroundColor: theme.background,
                       borderWidth: 1.5,
                       borderColor: theme.border,
-                      alignItems: "center",
-                      justifyContent: "center",
+                      borderRadius: 12,
+                      padding: 15,
+                      marginBottom: 18,
                     }}
                   >
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>
-                      Back
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleReview}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 2,
-                      backgroundColor: primary,
-                      borderRadius: 8,
-                      paddingVertical: 13,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexDirection: "row",
-                      gap: 8,
-                    }}
-                  >
-                    <Car size={14} color="#fff" />
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                      {isEditMode ? "Review Changes" : "Review Booking Request"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            </View>
-            </View>
-            </>
-            )}
-
-            {step === "confirm" && (
-              <>
-                <View
-                  style={{
-                    backgroundColor: theme.background,
-                    borderWidth: 1.5,
-                    borderColor: theme.border,
-                    borderRadius: 12,
-                    padding: 15,
-                    marginBottom: 18,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Outfit-medium",
-                      fontSize: 10,
-                      color: theme.subtext,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.7,
-                      marginBottom: 10,
-                    }}
-                  >
-                    Trip Summary
-                  </Text>
-                  {[
-                    { label: "Requestor", value: `${user.displayName}${user.department ? ` — ${displayDepartment(user.department)}` : ""}` },
-                    { label: "Passengers", value: passengers.length > 0 ? `${passengers.length + 1} (${passengers.join(", ")})` : "1 (just you)" },
-                    {
-                      label: "Pickup",
-                      value:
-                        (pickupText.trim() || pickupPoint?.address || "—") +
-                        (pickupLabel.trim() ? ` (${pickupLabel.trim()})` : ""),
-                    },
-                    ...dropoffStops.map((stop, i) => ({
-                      label: dropoffStops.length > 1 ? `Drop-off ${i + 1}` : "Drop-off",
-                      value: formatStopText(stop) || "—",
-                    })),
-                    { label: "Departure", value: departureDate && departureTime ? `${departureDate} ${departureTime}` : "—" },
-                    { label: "Purpose", value: purpose.trim() || "—" },
-                  ].map((row, i, arr) => (
-                    <View
-                      key={row.label}
+                    <Text
                       style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        paddingVertical: 7,
-                        borderBottomWidth: i < arr.length - 1 ? 1 : 0,
-                        borderBottomColor: theme.border,
-                        gap: 12,
+                        fontFamily: "Outfit-medium",
+                        fontSize: 10,
+                        color: theme.subtext,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.7,
+                        marginBottom: 10,
                       }}
                     >
-                      <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.subtext }}>
-                        {row.label}
-                      </Text>
+                      Trip Summary
+                    </Text>
+                    {[
+                      {
+                        label: "Requestor",
+                        value: `${user.displayName}${user.department ? ` — ${displayDepartment(user.department)}` : ""}`,
+                      },
+                      {
+                        label: "Passengers",
+                        value:
+                          passengers.length > 0
+                            ? `${passengers.length + 1} (${passengers.join(", ")})`
+                            : "1 (just you)",
+                      },
+                      {
+                        label: "Pickup",
+                        value:
+                          (pickupText.trim() || pickupPoint?.address || "—") +
+                          (pickupLabel.trim()
+                            ? ` (${pickupLabel.trim()})`
+                            : ""),
+                      },
+                      ...dropoffStops.map((stop, i) => ({
+                        label:
+                          dropoffStops.length > 1
+                            ? `Drop-off ${i + 1}`
+                            : "Drop-off",
+                        value: formatStopText(stop) || "—",
+                      })),
+                      {
+                        label: "Departure",
+                        value:
+                          departureDate && departureTime
+                            ? `${departureDate} ${departureTime}`
+                            : "—",
+                      },
+                      { label: "Purpose", value: purpose.trim() || "—" },
+                    ].map((row, i, arr) => (
+                      <View
+                        key={row.label}
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          paddingVertical: 7,
+                          borderBottomWidth: i < arr.length - 1 ? 1 : 0,
+                          borderBottomColor: theme.border,
+                          gap: 12,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 13,
+                            color: theme.subtext,
+                          }}
+                        >
+                          {row.label}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: theme.textActive ?? theme.text,
+                            flexShrink: 1,
+                            textAlign: "right",
+                          }}
+                        >
+                          {row.value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {error ? (
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {error}
+                    </Text>
+                  ) : null}
+
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setStep(isMobile ? "route" : "form")}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 13,
+                        borderRadius: 8,
+                        borderWidth: 1.5,
+                        borderColor: theme.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <Text
                         style={{
                           fontFamily: "Outfit-medium",
                           fontSize: 13,
-                          color: theme.textActive ?? theme.text,
-                          flexShrink: 1,
-                          textAlign: "right",
+                          color: theme.subtext,
                         }}
                       >
-                        {row.value}
+                        Edit
                       </Text>
-                    </View>
-                  ))}
-                </View>
-
-                {error ? (
-                  <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>
-                    {error}
-                  </Text>
-                ) : null}
-
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => setStep(isMobile ? "route" : "form")}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 13,
-                      borderRadius: 8,
-                      borderWidth: 1.5,
-                      borderColor: theme.border,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleSubmit}
-                    disabled={submitting}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 2,
-                      backgroundColor: primary,
-                      borderRadius: 8,
-                      paddingVertical: 13,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexDirection: "row",
-                      gap: 8,
-                      opacity: submitting ? 0.7 : 1,
-                    }}
-                  >
-                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={14} color="#fff" />}
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                      {submitting ? "Saving…" : isEditMode ? "Confirm Changes" : "Confirm & Submit"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </ScrollView>
-        </TouchableOpacity>
-      </View>
-    </Modal>
-    {inlineDropdown}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleSubmit}
+                      disabled={submitting}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 2,
+                        backgroundColor: primary,
+                        borderRadius: 8,
+                        paddingVertical: 13,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexDirection: "row",
+                        gap: 8,
+                        opacity: submitting ? 0.7 : 1,
+                      }}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <CheckCircle size={14} color="#fff" />
+                      )}
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: "#fff",
+                        }}
+                      >
+                        {submitting
+                          ? "Saving…"
+                          : isEditMode
+                            ? "Confirm Changes"
+                            : "Confirm & Submit"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+      {inlineDropdown}
     </>
   );
 }
@@ -2011,8 +2765,12 @@ type NativeFormProps = {
   locations: FleetLocation[];
   pickupText: string;
   setPickupText: (v: string) => void;
+  pickupLabel: string;
+  setPickupLabel: (v: string) => void;
   pickupPoint: { latitude: number; longitude: number; address?: string } | null;
-  setPickupPoint: (v: { latitude: number; longitude: number; address?: string } | null) => void;
+  setPickupPoint: (
+    v: { latitude: number; longitude: number; address?: string } | null,
+  ) => void;
   setPickupLocationId: (v: string | null) => void;
   dropoffStops: {
     id: string;
@@ -2046,12 +2804,45 @@ type NativeFormProps = {
 
 function NativeTripBookingForm(props: NativeFormProps) {
   const {
-    visible, onClose, theme, primary, winW, winH, user, isEditMode,
-    passengers, passengerInput, setPassengerInput, addingPassenger, setAddingPassenger,
-    locations, pickupText, setPickupText, pickupPoint, setPickupPoint, setPickupLocationId,
-    dropoffStops, updateStop, handleAddStop, handleRemoveStop, activeMapField, setActiveMapField,
-    departureDate, setDepartureDate, departureTime, setDepartureTime, purpose, setPurpose,
-    step, setStep, error, setError, submitting, handleReview, handleSubmit, formatStopText,
+    visible,
+    onClose,
+    theme,
+    primary,
+    winW,
+    winH,
+    user,
+    isEditMode,
+    passengers,
+    passengerInput,
+    setPassengerInput,
+    addingPassenger,
+    setAddingPassenger,
+    locations,
+    pickupText,
+    setPickupText,
+    pickupPoint,
+    setPickupPoint,
+    setPickupLocationId,
+    dropoffStops,
+    updateStop,
+    handleAddStop,
+    handleRemoveStop,
+    activeMapField,
+    setActiveMapField,
+    departureDate,
+    setDepartureDate,
+    departureTime,
+    setDepartureTime,
+    purpose,
+    setPurpose,
+    step,
+    setStep,
+    error,
+    setError,
+    submitting,
+    handleReview,
+    handleSubmit,
+    formatStopText,
   } = props;
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -2059,16 +2850,25 @@ function NativeTripBookingForm(props: NativeFormProps) {
 
   // Lazy-required so this file doesn't fail to load on web (where this
   // package isn't installed/needed) — only ever reached when isNative.
-  const DateTimePicker = require("@react-native-community/datetimepicker").default;
+  const DateTimePicker =
+    require("@react-native-community/datetimepicker").default;
 
   // Inline address search for the Pickup / Drop-off fields — same
   // typeahead behavior as the web version's inline dropdown, but rendered
   // directly under the field (no portal needed on native).
-  const [nativeSearchResults, setNativeSearchResults] = useState<PlaceResult[]>([]);
+  const [nativeSearchResults, setNativeSearchResults] = useState<PlaceResult[]>(
+    [],
+  );
   const [nativeSearchLoading, setNativeSearchLoading] = useState(false);
-  const [nativeSearchOpenFor, setNativeSearchOpenFor] = useState<string | null>(null);
-  const nativeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [nativeFavoritePlaces, setNativeFavoritePlaces] = useState<PlaceResult[]>([]);
+  const [nativeSearchOpenFor, setNativeSearchOpenFor] = useState<string | null>(
+    null,
+  );
+  const nativeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [nativeFavoritePlaces, setNativeFavoritePlaces] = useState<
+    PlaceResult[]
+  >([]);
 
   useEffect(() => {
     setNativeFavoritePlaces(loadFavoritePlaces());
@@ -2078,7 +2878,9 @@ function NativeTripBookingForm(props: NativeFormProps) {
     setNativeFavoritePlaces((prev) => {
       const key = placeKey(place);
       const exists = prev.some((p) => placeKey(p) === key);
-      const next = exists ? prev.filter((p) => placeKey(p) !== key) : [...prev, place];
+      const next = exists
+        ? prev.filter((p) => placeKey(p) !== key)
+        : [...prev, place];
       saveFavoritePlaces(next);
       return next;
     });
@@ -2087,7 +2889,8 @@ function NativeTripBookingForm(props: NativeFormProps) {
   // Shows favorites the instant a field is focused with nothing typed yet —
   // mirrors showFavoritesForField() in the web layout above.
   function showNativeFavoritesForField(fieldKey: string, currentText: string) {
-    if (nativeSearchDebounceRef.current) clearTimeout(nativeSearchDebounceRef.current);
+    if (nativeSearchDebounceRef.current)
+      clearTimeout(nativeSearchDebounceRef.current);
     if (currentText.trim().length === 0) {
       setNativeSearchLoading(false);
       if (nativeFavoritePlaces.length > 0) {
@@ -2103,7 +2906,8 @@ function NativeTripBookingForm(props: NativeFormProps) {
   }
 
   function triggerNativeSearch(fieldKey: string, query: string) {
-    if (nativeSearchDebounceRef.current) clearTimeout(nativeSearchDebounceRef.current);
+    if (nativeSearchDebounceRef.current)
+      clearTimeout(nativeSearchDebounceRef.current);
     const trimmed = query.trim();
     if (trimmed.length === 0) {
       setNativeSearchLoading(false);
@@ -2137,7 +2941,11 @@ function NativeTripBookingForm(props: NativeFormProps) {
   }
 
   function handleNativeSelect(fieldKey: string, result: PlaceResult) {
-    const point = { latitude: result.lat, longitude: result.lon, address: result.displayName };
+    const point = {
+      latitude: result.lat,
+      longitude: result.lon,
+      address: result.displayName,
+    };
     if (fieldKey === "pickup") {
       setPickupPoint(point);
       setPickupLocationId(null);
@@ -2181,7 +2989,9 @@ function NativeTripBookingForm(props: NativeFormProps) {
     setShowDatePicker(false);
     if (event.type === "dismissed" || !selected) return;
     const pad = (n: number) => String(n).padStart(2, "0");
-    setDepartureDate(`${selected.getFullYear()}-${pad(selected.getMonth() + 1)}-${pad(selected.getDate())}`);
+    setDepartureDate(
+      `${selected.getFullYear()}-${pad(selected.getMonth() + 1)}-${pad(selected.getDate())}`,
+    );
   }
 
   function onTimeChange(event: any, selected?: Date) {
@@ -2196,454 +3006,933 @@ function NativeTripBookingForm(props: NativeFormProps) {
     setDepartureTime(`${pad(h)}:${pad(snappedM)}`);
   }
 
-  const dateObjForPicker = departureDate ? new Date(`${departureDate}T${departureTime || "00:00"}:00`) : new Date();
+  const dateObjForPicker = departureDate
+    ? new Date(`${departureDate}T${departureTime || "00:00"}:00`)
+    : new Date();
 
   const MODAL_W = winW - 24;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
         <View
           style={{
-            width: MODAL_W,
-            maxHeight: winH * 0.88,
-            backgroundColor: theme.surface,
-            borderRadius: 16,
-            overflow: "hidden",
-          }}
-        >
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            justifyContent: "center",
             alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: 16,
-            paddingTop: 18,
-            paddingBottom: 14,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            {step !== "form" && (
-              <TouchableOpacity
-                onPress={() => setStep(step === "confirm" ? "route" : "form")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <ArrowLeft size={17} color={theme.subtext} />
-              </TouchableOpacity>
-            )}
-            <Text style={{ fontFamily: "Outfit-medium", fontSize: 17, color: theme.textActive ?? theme.text }}>
-              {isEditMode ? "Modify Trip" : "Book a Trip"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.background, alignItems: "center", justifyContent: "center" }}
-          >
-            <X size={15} color={theme.subtext} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 3, backgroundColor: theme.border }}>
           <View
             style={{
-              height: 3,
-              width: step === "form" ? "33%" : step === "route" ? "66%" : "100%",
-              backgroundColor: primary,
+              width: MODAL_W,
+              maxHeight: winH * 0.88,
+              backgroundColor: theme.surface,
+              borderRadius: 16,
+              overflow: "hidden",
             }}
-          />
-        </View>
-
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-          {step === "form" && (
-            <>
-              <Field label="Requestor" theme={theme}>
-                <View style={[inputStyle, { opacity: 0.7 }]}>
-                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.textActive ?? theme.text }}>
-                    {user.displayName}
-                  </Text>
-                </View>
-              </Field>
-
-              <Field label="Passengers" theme={theme}>
-                {passengers.map((name, i) => (
-                  <View
-                    key={`${name}-${i}`}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6, padding: 8, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border }}
-                  >
-                    <Text style={{ flex: 1, fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text }}>{name}</Text>
-                    <TouchableOpacity onPress={() => props.setPassengers((prev) => prev.filter((_, idx) => idx !== i))}>
-                      <X size={13} color={theme.subtext} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                {addingPassenger ? (
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput
-                      style={[inputStyle, { flex: 1 }]}
-                      placeholder="Passenger name"
-                      placeholderTextColor={theme.subtext}
-                      value={passengerInput}
-                      onChangeText={setPassengerInput}
-                      onSubmitEditing={handleAddPassenger}
-                      autoFocus
-                    />
-                    <TouchableOpacity onPress={handleAddPassenger} style={{ backgroundColor: primary, borderRadius: 8, paddingHorizontal: 14, justifyContent: "center" }}>
-                      <Plus size={14} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
+          >
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 16,
+                paddingTop: 18,
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                {step !== "form" && (
                   <TouchableOpacity
-                    onPress={() => setAddingPassenger(true)}
-                    style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, borderStyle: "dashed" }}
+                    onPress={() =>
+                      setStep(step === "confirm" ? "route" : "form")
+                    }
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Plus size={13} color={theme.subtext} />
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>Add passenger</Text>
+                    <ArrowLeft size={17} color={theme.subtext} />
                   </TouchableOpacity>
                 )}
-              </Field>
-
-              <Field label="Departure date" required theme={theme}>
-                <TouchableOpacity style={inputStyle} onPress={() => setShowDatePicker(true)}>
-                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: departureDate ? theme.textActive ?? theme.text : theme.subtext }}>
-                    {departureDate || "Select date"}
-                  </Text>
-                </TouchableOpacity>
-              </Field>
-
-              <Field label="Departure time" required theme={theme}>
-                <TouchableOpacity style={inputStyle} onPress={() => setShowTimePicker(true)}>
-                  <Text style={{ fontFamily: "Outfit", fontSize: 13, color: departureTime ? theme.textActive ?? theme.text : theme.subtext }}>
-                    {departureTime || "Select time"}
-                  </Text>
-                </TouchableOpacity>
-              </Field>
-
-              {showDatePicker && (
-                <DateTimePicker value={dateObjForPicker} mode="date" display="default" minimumDate={new Date()} onChange={onDateChange} />
-              )}
-              {showTimePicker && (
-                <DateTimePicker value={dateObjForPicker} mode="time" display="default" minuteInterval={30} onChange={onTimeChange} />
-              )}
-
-              <Field label="Purpose / remarks" required theme={theme}>
-                <TextInput
-                  style={[inputStyle, { height: 70, textAlignVertical: "top" }]}
-                  placeholder="e.g. Client visit"
-                  placeholderTextColor={theme.subtext}
-                  multiline
-                  value={purpose}
-                  onChangeText={setPurpose}
-                />
-              </Field>
-
-              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>{error}</Text> : null}
-
+                <Text
+                  style={{
+                    fontFamily: "Outfit-medium",
+                    fontSize: 17,
+                    color: theme.textActive ?? theme.text,
+                  }}
+                >
+                  {isEditMode ? "Modify Trip" : "Book a Trip"}
+                </Text>
+              </View>
               <TouchableOpacity
-                onPress={() => {
-                  setError("");
-                  if (!departureDate.trim() || !departureTime.trim()) {
-                    setError("Departure date and time are required.");
-                    return;
-                  }
-                  if (!purpose.trim()) {
-                    setError("Purpose / remarks is required.");
-                    return;
-                  }
-                  setStep("route");
+                onPress={onClose}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: theme.background,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-                style={{ backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
               >
-                <ArrowRight size={14} color="#fff" />
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>Next: set route</Text>
+                <X size={15} color={theme.subtext} />
               </TouchableOpacity>
-            </>
-          )}
+            </View>
 
-          {step === "route" && (
-            <Pressable onPress={() => setNativeSearchOpenFor(null)}>
-              <Field label="Pickup" required theme={theme}>
-                <View style={{ position: "relative", zIndex: nativeSearchOpenFor === "pickup" ? 50 : 1 }}>
-                  <TextInput
-                    style={inputStyle}
-                    placeholder="Pickup address"
-                    placeholderTextColor={theme.subtext}
-                    value={pickupText}
-                    onChangeText={(t) => {
-                      setPickupText(t);
-                      setPickupLocationId(null);
-                      triggerNativeSearch("pickup", t);
-                    }}
-                    onFocus={() => {
-                      setActiveMapField("pickup");
-                      showNativeFavoritesForField("pickup", pickupText);
-                    }}
-                  />
-                  {nativeSearchOpenFor === "pickup" && (nativeSearchLoading || nativeSearchResults.length > 0) && (
-                    <View
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        marginTop: 4,
-                        backgroundColor: theme.surface,
-                        borderWidth: 1.5,
-                        borderColor: theme.border,
-                        borderRadius: 8,
-                        maxHeight: 180,
-                        elevation: 8,
-                        zIndex: 50,
-                      }}
-                    >
-                      {nativeSearchLoading ? (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10 }}>
-                          <ActivityIndicator size="small" color={theme.subtext} />
-                          <Text style={{ fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>Searching…</Text>
-                        </View>
-                      ) : (
-                        <FlatList
-                          data={nativeSearchResults}
-                          keyExtractor={(r, idx) => `${r.lat}-${r.lon}-${idx}`}
-                          keyboardShouldPersistTaps="handled"
-                          renderItem={({ item, index }) => {
-                            const isFavorite = nativeFavoritePlaces.some((p) => placeKey(p) === placeKey(item));
-                            return (
-                              <TouchableOpacity
-                                onPress={() => handleNativeSelect("pickup", item)}
-                                style={{
-                                  padding: 10,
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: 8,
-                                  borderBottomWidth: index !== nativeSearchResults.length - 1 ? 1 : 0,
-                                  borderBottomColor: theme.border,
-                                }}
-                              >
-                                <Text
-                                  style={{ flex: 1, fontFamily: "Outfit", fontSize: 12, color: theme.textActive ?? theme.text }}
-                                  numberOfLines={2}
-                                >
-                                  {item.displayName}
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() => toggleNativeFavoritePlace(item)}
-                                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                  style={{ padding: 2 }}
-                                >
-                                  <Star
-                                    size={15}
-                                    color={isFavorite ? "#FBBF24" : theme.subtext}
-                                    fill={isFavorite ? "#FBBF24" : "transparent"}
-                                  />
-                                </TouchableOpacity>
-                              </TouchableOpacity>
-                            );
-                          }}
-                        />
-                      )}
-                    </View>
-                  )}
-                </View>
-              </Field>
+            <View style={{ height: 3, backgroundColor: theme.border }}>
+              <View
+                style={{
+                  height: 3,
+                  width:
+                    step === "form" ? "33%" : step === "route" ? "66%" : "100%",
+                  backgroundColor: primary,
+                }}
+              />
+            </View>
 
-              {dropoffStops.map((stop, i) => (
-                <Field key={stop.id} label={`Drop-off ${i + 1}`} required={i === 0} theme={theme}>
-                  <View style={{ position: "relative", zIndex: nativeSearchOpenFor === stop.id ? 50 : 1 }}>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      <TextInput
-                        style={[inputStyle, { flex: 1 }]}
-                        placeholder={`Drop-off ${i + 1} address`}
-                        placeholderTextColor={theme.subtext}
-                        value={stop.text}
-                        onChangeText={(t) => {
-                          updateStop(stop.id, { text: t, labelEdited: true });
-                          triggerNativeSearch(stop.id, t);
-                        }}
-                        onFocus={() => {
-                          setActiveMapField(stop.id);
-                          showNativeFavoritesForField(stop.id, stop.text);
-                        }}
-                      />
-                      {dropoffStops.length > 1 && (
-                        <TouchableOpacity onPress={() => handleRemoveStop(stop.id)} style={{ justifyContent: "center" }}>
-                          <X size={14} color={theme.subtext} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    {nativeSearchOpenFor === stop.id && (nativeSearchLoading || nativeSearchResults.length > 0) && (
-                      <View
+            <ScrollView
+              contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {step === "form" && (
+                <>
+                  <Field label="Requestor" theme={theme}>
+                    <View style={[inputStyle, { opacity: 0.7 }]}>
+                      <Text
                         style={{
-                          position: "absolute",
-                          top: "100%",
-                          left: 0,
-                          right: 0,
-                          marginTop: 4,
-                          backgroundColor: theme.surface,
-                          borderWidth: 1.5,
-                          borderColor: theme.border,
-                          borderRadius: 8,
-                          maxHeight: 180,
-                          elevation: 8,
-                          zIndex: 50,
+                          fontFamily: "Outfit",
+                          fontSize: 13,
+                          color: theme.textActive ?? theme.text,
                         }}
                       >
-                        {nativeSearchLoading ? (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10 }}>
-                            <ActivityIndicator size="small" color={theme.subtext} />
-                            <Text style={{ fontFamily: "Outfit", fontSize: 12, color: theme.subtext }}>Searching…</Text>
-                          </View>
-                        ) : (
-                          <FlatList
-                            data={nativeSearchResults}
-                            keyExtractor={(r, idx) => `${r.lat}-${r.lon}-${idx}`}
-                            keyboardShouldPersistTaps="handled"
-                            renderItem={({ item, index }) => {
-                              const isFavorite = nativeFavoritePlaces.some((p) => placeKey(p) === placeKey(item));
-                              return (
-                                <TouchableOpacity
-                                  onPress={() => handleNativeSelect(stop.id, item)}
+                        {user.displayName}
+                      </Text>
+                    </View>
+                  </Field>
+
+                  <Field label="Passengers" theme={theme}>
+                    {passengers.map((name, i) => (
+                      <View
+                        key={`${name}-${i}`}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 6,
+                          padding: 8,
+                          borderRadius: 8,
+                          borderWidth: 1.5,
+                          borderColor: theme.border,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            flex: 1,
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: theme.textActive ?? theme.text,
+                          }}
+                        >
+                          {name}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            props.setPassengers((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
+                          }
+                        >
+                          <X size={13} color={theme.subtext} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {addingPassenger ? (
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                        <TextInput
+                          style={[inputStyle, { flex: 1 }]}
+                          placeholder="Passenger name"
+                          placeholderTextColor={theme.subtext}
+                          value={passengerInput}
+                          onChangeText={setPassengerInput}
+                          onSubmitEditing={handleAddPassenger}
+                          autoFocus
+                        />
+                        <TouchableOpacity
+                          onPress={handleAddPassenger}
+                          style={{
+                            backgroundColor: primary,
+                            borderRadius: 8,
+                            paddingHorizontal: 14,
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Plus size={14} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => setAddingPassenger(true)}
+                        style={{
+                          flexDirection: "row",
+                          gap: 6,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          paddingVertical: 9,
+                          borderRadius: 8,
+                          borderWidth: 1.5,
+                          borderColor: theme.border,
+                          borderStyle: "dashed",
+                        }}
+                      >
+                        <Plus size={13} color={theme.subtext} />
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 12,
+                            color: theme.subtext,
+                          }}
+                        >
+                          Add passenger
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </Field>
+
+                  <Field label="Departure date" required theme={theme}>
+                    <TouchableOpacity
+                      style={inputStyle}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit",
+                          fontSize: 13,
+                          color: departureDate
+                            ? (theme.textActive ?? theme.text)
+                            : theme.subtext,
+                        }}
+                      >
+                        {departureDate || "Select date"}
+                      </Text>
+                    </TouchableOpacity>
+                  </Field>
+
+                  <Field label="Departure time" required theme={theme}>
+                    <TouchableOpacity
+                      style={inputStyle}
+                      onPress={() => setShowTimePicker(true)}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit",
+                          fontSize: 13,
+                          color: departureTime
+                            ? (theme.textActive ?? theme.text)
+                            : theme.subtext,
+                        }}
+                      >
+                        {departureTime || "Select time"}
+                      </Text>
+                    </TouchableOpacity>
+                  </Field>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={dateObjForPicker}
+                      mode="date"
+                      display="default"
+                      minimumDate={new Date()}
+                      onChange={onDateChange}
+                    />
+                  )}
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={dateObjForPicker}
+                      mode="time"
+                      display="default"
+                      minuteInterval={30}
+                      onChange={onTimeChange}
+                    />
+                  )}
+
+                  <Field label="Purpose / remarks" required theme={theme}>
+                    <TextInput
+                      style={[
+                        inputStyle,
+                        { height: 70, textAlignVertical: "top" },
+                      ]}
+                      placeholder="e.g. Client visit"
+                      placeholderTextColor={theme.subtext}
+                      multiline
+                      value={purpose}
+                      onChangeText={setPurpose}
+                    />
+                  </Field>
+
+                  {error ? (
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {error}
+                    </Text>
+                  ) : null}
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setError("");
+                      if (!departureDate.trim() || !departureTime.trim()) {
+                        setError("Departure date and time are required.");
+                        return;
+                      }
+                      if (!purpose.trim()) {
+                        setError("Purpose / remarks is required.");
+                        return;
+                      }
+                      setStep("route");
+                    }}
+                    style={{
+                      backgroundColor: primary,
+                      borderRadius: 8,
+                      paddingVertical: 13,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <ArrowRight size={14} color="#fff" />
+                    <Text
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 13,
+                        color: "#fff",
+                      }}
+                    >
+                      Next: set route
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {step === "route" && (
+                <Pressable onPress={() => setNativeSearchOpenFor(null)}>
+                  <Field label="Pickup" required theme={theme}>
+                    <View
+                      style={{
+                        position: "relative",
+                        zIndex: nativeSearchOpenFor === "pickup" ? 50 : 1,
+                      }}
+                    >
+                      <TextInput
+                        style={inputStyle}
+                        placeholder="Pickup address"
+                        placeholderTextColor={theme.subtext}
+                        value={pickupText}
+                        onChangeText={(t) => {
+                          setPickupText(t);
+                          setPickupLocationId(null);
+                          triggerNativeSearch("pickup", t);
+                        }}
+                        onFocus={() => {
+                          setActiveMapField("pickup");
+                          showNativeFavoritesForField("pickup", pickupText);
+                        }}
+                      />
+                      {nativeSearchOpenFor === "pickup" &&
+                        (nativeSearchLoading ||
+                          nativeSearchResults.length > 0) && (
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: "100%",
+                              left: 0,
+                              right: 0,
+                              marginTop: 4,
+                              backgroundColor: theme.surface,
+                              borderWidth: 1.5,
+                              borderColor: theme.border,
+                              borderRadius: 8,
+                              maxHeight: 180,
+                              elevation: 8,
+                              zIndex: 50,
+                            }}
+                          >
+                            {nativeSearchLoading ? (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  padding: 10,
+                                }}
+                              >
+                                <ActivityIndicator
+                                  size="small"
+                                  color={theme.subtext}
+                                />
+                                <Text
                                   style={{
-                                    padding: 10,
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 8,
-                                    borderBottomWidth: index !== nativeSearchResults.length - 1 ? 1 : 0,
-                                    borderBottomColor: theme.border,
+                                    fontFamily: "Outfit",
+                                    fontSize: 12,
+                                    color: theme.subtext,
                                   }}
                                 >
-                                  <Text
-                                    style={{ flex: 1, fontFamily: "Outfit", fontSize: 12, color: theme.textActive ?? theme.text }}
-                                    numberOfLines={2}
-                                  >
-                                    {item.displayName}
-                                  </Text>
-                                  <TouchableOpacity
-                                    onPress={() => toggleNativeFavoritePlace(item)}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                    style={{ padding: 2 }}
-                                  >
-                                    <Star
-                                      size={15}
-                                      color={isFavorite ? "#FBBF24" : theme.subtext}
-                                      fill={isFavorite ? "#FBBF24" : "transparent"}
-                                    />
-                                  </TouchableOpacity>
-                                </TouchableOpacity>
-                              );
-                            }}
-                          />
+                                  Searching…
+                                </Text>
+                              </View>
+                            ) : (
+                              <FlatList
+                                data={nativeSearchResults}
+                                keyExtractor={(r, idx) =>
+                                  `${r.lat}-${r.lon}-${idx}`
+                                }
+                                keyboardShouldPersistTaps="handled"
+                                renderItem={({ item, index }) => {
+                                  const isFavorite = nativeFavoritePlaces.some(
+                                    (p) => placeKey(p) === placeKey(item),
+                                  );
+                                  return (
+                                    <TouchableOpacity
+                                      onPress={() =>
+                                        handleNativeSelect("pickup", item)
+                                      }
+                                      style={{
+                                        padding: 10,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                        borderBottomWidth:
+                                          index !==
+                                          nativeSearchResults.length - 1
+                                            ? 1
+                                            : 0,
+                                        borderBottomColor: theme.border,
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          flex: 1,
+                                          fontFamily: "Outfit",
+                                          fontSize: 12,
+                                          color: theme.textActive ?? theme.text,
+                                        }}
+                                        numberOfLines={2}
+                                      >
+                                        {item.displayName}
+                                      </Text>
+                                      <TouchableOpacity
+                                        onPress={() =>
+                                          toggleNativeFavoritePlace(item)
+                                        }
+                                        hitSlop={{
+                                          top: 8,
+                                          bottom: 8,
+                                          left: 8,
+                                          right: 8,
+                                        }}
+                                        style={{ padding: 2 }}
+                                      >
+                                        <Star
+                                          size={15}
+                                          color={
+                                            isFavorite
+                                              ? "#FBBF24"
+                                              : theme.subtext
+                                          }
+                                          fill={
+                                            isFavorite
+                                              ? "#FBBF24"
+                                              : "transparent"
+                                          }
+                                        />
+                                      </TouchableOpacity>
+                                    </TouchableOpacity>
+                                  );
+                                }}
+                              />
+                            )}
+                          </View>
                         )}
+                    </View>
+                  </Field>
+
+                  {pickupPoint && (
+                    <Field label="Pickup exact address" theme={theme}>
+                      <TextInput
+                        style={inputStyle}
+                        placeholder="Unit / floor / building / landmark"
+                        placeholderTextColor={theme.subtext}
+                        maxLength={100}
+                        value={props.pickupLabel}
+                        onChangeText={props.setPickupLabel}
+                      />
+                    </Field>
+                  )}
+
+                  {dropoffStops.map((stop, i) => (
+                    <React.Fragment key={stop.id}>
+                      <Field
+                        label={`Drop-off ${i + 1}`}
+                        required={i === 0}
+                        theme={theme}
+                      >
+                        <View
+                          style={{
+                            position: "relative",
+                            zIndex: nativeSearchOpenFor === stop.id ? 50 : 1,
+                          }}
+                        >
+                          <View style={{ flexDirection: "row", gap: 8 }}>
+                            <TextInput
+                              style={[inputStyle, { flex: 1 }]}
+                              placeholder={`Drop-off ${i + 1} address`}
+                              placeholderTextColor={theme.subtext}
+                              value={stop.text}
+                              onChangeText={(t) => {
+                                updateStop(stop.id, {
+                                  text: t,
+                                  labelEdited: true,
+                                });
+                                triggerNativeSearch(stop.id, t);
+                              }}
+                              onFocus={() => {
+                                setActiveMapField(stop.id);
+                                showNativeFavoritesForField(stop.id, stop.text);
+                              }}
+                            />
+                            {dropoffStops.length > 1 && (
+                              <TouchableOpacity
+                                onPress={() => handleRemoveStop(stop.id)}
+                                style={{ justifyContent: "center" }}
+                              >
+                                <X size={14} color={theme.subtext} />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                          {nativeSearchOpenFor === stop.id &&
+                            (nativeSearchLoading ||
+                              nativeSearchResults.length > 0) && (
+                              <View
+                                style={{
+                                  position: "absolute",
+                                  top: "100%",
+                                  left: 0,
+                                  right: 0,
+                                  marginTop: 4,
+                                  backgroundColor: theme.surface,
+                                  borderWidth: 1.5,
+                                  borderColor: theme.border,
+                                  borderRadius: 8,
+                                  maxHeight: 180,
+                                  elevation: 8,
+                                  zIndex: 50,
+                                }}
+                              >
+                                {nativeSearchLoading ? (
+                                  <View
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      gap: 6,
+                                      padding: 10,
+                                    }}
+                                  >
+                                    <ActivityIndicator
+                                      size="small"
+                                      color={theme.subtext}
+                                    />
+                                    <Text
+                                      style={{
+                                        fontFamily: "Outfit",
+                                        fontSize: 12,
+                                        color: theme.subtext,
+                                      }}
+                                    >
+                                      Searching…
+                                    </Text>
+                                  </View>
+                                ) : (
+                                  <FlatList
+                                    data={nativeSearchResults}
+                                    keyExtractor={(r, idx) =>
+                                      `${r.lat}-${r.lon}-${idx}`
+                                    }
+                                    keyboardShouldPersistTaps="handled"
+                                    renderItem={({ item, index }) => {
+                                      const isFavorite =
+                                        nativeFavoritePlaces.some(
+                                          (p) => placeKey(p) === placeKey(item),
+                                        );
+                                      return (
+                                        <TouchableOpacity
+                                          onPress={() =>
+                                            handleNativeSelect(stop.id, item)
+                                          }
+                                          style={{
+                                            padding: 10,
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            gap: 8,
+                                            borderBottomWidth:
+                                              index !==
+                                              nativeSearchResults.length - 1
+                                                ? 1
+                                                : 0,
+                                            borderBottomColor: theme.border,
+                                          }}
+                                        >
+                                          <Text
+                                            style={{
+                                              flex: 1,
+                                              fontFamily: "Outfit",
+                                              fontSize: 12,
+                                              color:
+                                                theme.textActive ?? theme.text,
+                                            }}
+                                            numberOfLines={2}
+                                          >
+                                            {item.displayName}
+                                          </Text>
+                                          <TouchableOpacity
+                                            onPress={() =>
+                                              toggleNativeFavoritePlace(item)
+                                            }
+                                            hitSlop={{
+                                              top: 8,
+                                              bottom: 8,
+                                              left: 8,
+                                              right: 8,
+                                            }}
+                                            style={{ padding: 2 }}
+                                          >
+                                            <Star
+                                              size={15}
+                                              color={
+                                                isFavorite
+                                                  ? "#FBBF24"
+                                                  : theme.subtext
+                                              }
+                                              fill={
+                                                isFavorite
+                                                  ? "#FBBF24"
+                                                  : "transparent"
+                                              }
+                                            />
+                                          </TouchableOpacity>
+                                        </TouchableOpacity>
+                                      );
+                                    }}
+                                  />
+                                )}
+                              </View>
+                            )}
+                        </View>
+                      </Field>
+                      {stop.point && (
+                        <Field
+                          label={`Drop-off ${i + 1} exact address`}
+                          theme={theme}
+                        >
+                          <TextInput
+                            style={inputStyle}
+                            placeholder="Unit / floor / building / landmark"
+                            placeholderTextColor={theme.subtext}
+                            maxLength={100}
+                            value={stop.label}
+                            onChangeText={(t) =>
+                              updateStop(stop.id, { label: t })
+                            }
+                          />
+                        </Field>
+                      )}
+                    </React.Fragment>
+                  ))}
+
+                  <TouchableOpacity
+                    onPress={handleAddStop}
+                    style={{
+                      flexDirection: "row",
+                      gap: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingVertical: 9,
+                      borderRadius: 8,
+                      borderWidth: 1.5,
+                      borderColor: theme.border,
+                      borderStyle: "dashed",
+                      marginBottom: 14,
+                    }}
+                  >
+                    <Plus size={13} color={theme.subtext} />
+                    <Text
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 12,
+                        color: theme.subtext,
+                      }}
+                    >
+                      Add another drop-off
+                    </Text>
+                  </TouchableOpacity>
+
+                  <FleetLocationPickerMap
+                    presets={locations}
+                    allStops={[
+                      {
+                        key: "pickup",
+                        label: pickupText || "Pickup",
+                        point: pickupPoint,
+                      },
+                      ...dropoffStops.map((s, i) => ({
+                        key: s.id,
+                        label: `Drop-off ${i + 1}: ${s.text || "—"}`,
+                        point: s.point,
+                      })),
+                    ]}
+                    activeKey={activeMapField}
+                    value={
+                      activeMapField === "pickup"
+                        ? pickupPoint
+                        : (dropoffStops.find((s) => s.id === activeMapField)
+                            ?.point ?? null)
+                    }
+                    onPick={(pt) => {
+                      if (activeMapField === "pickup") {
+                        setPickupPoint(pt);
+                        setPickupLocationId(null);
+                        if (pt.address) setPickupText(pt.address);
+                      } else {
+                        const stop = dropoffStops.find(
+                          (s) => s.id === activeMapField,
+                        );
+                        if (!stop) return;
+                        updateStop(stop.id, {
+                          point: pt,
+                          locationId: null,
+                          text:
+                            !stop.labelEdited && pt.address
+                              ? pt.address
+                              : stop.text,
+                        });
+                      }
+                    }}
+                    theme={theme}
+                    height={Math.max(280, Math.round(winH * 0.38))}
+                  />
+
+                  {error ? (
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginTop: 10,
+                      }}
+                    >
+                      {error}
+                    </Text>
+                  ) : null}
+
+                  <TouchableOpacity
+                    onPress={handleReview}
+                    style={{
+                      backgroundColor: primary,
+                      borderRadius: 8,
+                      paddingVertical: 13,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 8,
+                      marginTop: 14,
+                    }}
+                  >
+                    <Car size={14} color="#fff" />
+                    <Text
+                      style={{
+                        fontFamily: "Outfit-medium",
+                        fontSize: 13,
+                        color: "#fff",
+                      }}
+                    >
+                      {isEditMode ? "Review Changes" : "Review Booking Request"}
+                    </Text>
+                  </TouchableOpacity>
+                </Pressable>
+              )}
+
+              {step === "confirm" && (
+                <>
+                  <View
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderWidth: 1.5,
+                      borderColor: theme.border,
+                      borderRadius: 12,
+                      padding: 15,
+                      marginBottom: 18,
+                    }}
+                  >
+                    {[
+                      { label: "Requestor", value: user.displayName },
+                      {
+                        label: "Passengers",
+                        value:
+                          passengers.length > 0
+                            ? `${passengers.length + 1} (${passengers.join(", ")})`
+                            : "1 (just you)",
+                      },
+                      {
+                        label: "Pickup",
+                        value:
+                          (pickupText || "—") +
+                          (props.pickupLabel.trim()
+                            ? ` (${props.pickupLabel.trim()})`
+                            : ""),
+                      },
+                      ...dropoffStops.map((s, i) => ({
+                        label: `Drop-off ${i + 1}`,
+                        value: formatStopText(s) || "—",
+                      })),
+                      {
+                        label: "Departure",
+                        value:
+                          departureDate && departureTime
+                            ? `${departureDate} ${departureTime}`
+                            : "—",
+                      },
+                      { label: "Purpose", value: purpose.trim() || "—" },
+                    ].map((row, i, arr) => (
+                      <View
+                        key={row.label}
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          paddingVertical: 7,
+                          borderBottomWidth: i < arr.length - 1 ? 1 : 0,
+                          borderBottomColor: theme.border,
+                          gap: 12,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "Outfit",
+                            fontSize: 13,
+                            color: theme.subtext,
+                          }}
+                        >
+                          {row.label}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "Outfit-medium",
+                            fontSize: 13,
+                            color: theme.textActive ?? theme.text,
+                            flexShrink: 1,
+                            textAlign: "right",
+                          }}
+                        >
+                          {row.value}
+                        </Text>
                       </View>
-                    )}
+                    ))}
                   </View>
-                </Field>
-              ))}
 
-              <TouchableOpacity
-                onPress={handleAddStop}
-                style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingVertical: 9, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, borderStyle: "dashed", marginBottom: 14 }}
-              >
-                <Plus size={13} color={theme.subtext} />
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 12, color: theme.subtext }}>Add another drop-off</Text>
-              </TouchableOpacity>
+                  {error ? (
+                    <Text
+                      style={{
+                        fontFamily: "Outfit",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {error}
+                    </Text>
+                  ) : null}
 
-              <FleetLocationPickerMap
-                presets={locations}
-                allStops={[
-                  { key: "pickup", label: pickupText || "Pickup", point: pickupPoint },
-                  ...dropoffStops.map((s, i) => ({ key: s.id, label: `Drop-off ${i + 1}: ${s.text || "—"}`, point: s.point })),
-                ]}
-                activeKey={activeMapField}
-                value={activeMapField === "pickup" ? pickupPoint : dropoffStops.find((s) => s.id === activeMapField)?.point ?? null}
-                onPick={(pt) => {
-                  if (activeMapField === "pickup") {
-                    setPickupPoint(pt);
-                    setPickupLocationId(null);
-                    if (pt.address) setPickupText(pt.address);
-                  } else {
-                    const stop = dropoffStops.find((s) => s.id === activeMapField);
-                    if (!stop) return;
-                    updateStop(stop.id, { point: pt, locationId: null, text: !stop.labelEdited && pt.address ? pt.address : stop.text });
-                  }
-                }}
-                theme={theme}
-                height={Math.max(280, Math.round(winH * 0.38))}
-              />
-
-              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginTop: 10 }}>{error}</Text> : null}
-
-              <TouchableOpacity
-                onPress={handleReview}
-                style={{ backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 14 }}
-              >
-                <Car size={14} color="#fff" />
-                <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                  {isEditMode ? "Review Changes" : "Review Booking Request"}
-                </Text>
-              </TouchableOpacity>
-            </Pressable>
-          )}
-
-          {step === "confirm" && (
-            <>
-              <View style={{ backgroundColor: theme.surface, borderWidth: 1.5, borderColor: theme.border, borderRadius: 12, padding: 15, marginBottom: 18 }}>
-                {[
-                  { label: "Requestor", value: user.displayName },
-                  { label: "Passengers", value: passengers.length > 0 ? `${passengers.length + 1} (${passengers.join(", ")})` : "1 (just you)" },
-                  { label: "Pickup", value: pickupText || "—" },
-                  ...dropoffStops.map((s, i) => ({ label: `Drop-off ${i + 1}`, value: formatStopText(s) || "—" })),
-                  { label: "Departure", value: departureDate && departureTime ? `${departureDate} ${departureTime}` : "—" },
-                  { label: "Purpose", value: purpose.trim() || "—" },
-                ].map((row, i, arr) => (
-                  <View key={row.label} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 7, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.border, gap: 12 }}>
-                    <Text style={{ fontFamily: "Outfit", fontSize: 13, color: theme.subtext }}>{row.label}</Text>
-                    <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.textActive ?? theme.text, flexShrink: 1, textAlign: "right" }}>{row.value}</Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setStep("route")}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 13,
+                        borderRadius: 8,
+                        borderWidth: 1.5,
+                        borderColor: theme.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: theme.subtext,
+                        }}
+                      >
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleSubmit}
+                      disabled={submitting}
+                      style={{
+                        flex: 2,
+                        backgroundColor: primary,
+                        borderRadius: 8,
+                        paddingVertical: 13,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexDirection: "row",
+                        gap: 8,
+                        opacity: submitting ? 0.7 : 1,
+                      }}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <CheckCircle size={14} color="#fff" />
+                      )}
+                      <Text
+                        style={{
+                          fontFamily: "Outfit-medium",
+                          fontSize: 13,
+                          color: "#fff",
+                        }}
+                      >
+                        {submitting
+                          ? "Saving…"
+                          : isEditMode
+                            ? "Confirm Changes"
+                            : "Confirm & Submit"}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-
-              {error ? <Text style={{ fontFamily: "Outfit", fontSize: 12, color: "#EF4444", marginBottom: 10 }}>{error}</Text> : null}
-
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => setStep("route")}
-                  style={{ flex: 1, paddingVertical: 13, borderRadius: 8, borderWidth: 1.5, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}
-                >
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: theme.subtext }}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={submitting}
-                  style={{ flex: 2, backgroundColor: primary, borderRadius: 8, paddingVertical: 13, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: submitting ? 0.7 : 1 }}
-                >
-                  {submitting ? <ActivityIndicator size="small" color="#fff" /> : <CheckCircle size={14} color="#fff" />}
-                  <Text style={{ fontFamily: "Outfit-medium", fontSize: 13, color: "#fff" }}>
-                    {submitting ? "Saving…" : isEditMode ? "Confirm Changes" : "Confirm & Submit"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </ScrollView>
+                </>
+              )}
+            </ScrollView>
+          </View>
         </View>
-      </View>
       </KeyboardAvoidingView>
     </Modal>
   );

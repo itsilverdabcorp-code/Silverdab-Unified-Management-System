@@ -280,10 +280,12 @@ export type FleetTrip = {
   requestorName: string;
   pickupLocationId?: string | null;
   pickupLabel: string;
+  pickupExactAddress?: string | null;
   pickupLatitude?: number | null;
   pickupLongitude?: number | null;
   dropoffLocationId?: string | null;
   dropoffLabel: string;
+  dropoffExactAddress?: string | null;
   dropoffLatitude?: number | null;
   dropoffLongitude?: number | null;
   tripType: "oneway" | "roundtrip";
@@ -308,6 +310,7 @@ export type FleetTrip = {
   additionalDropoffs?: {
     locationId: string | null;
     locationText: string;
+    exactAddress?: string | null;
     latitude: number | null;
     longitude: number | null;
   }[];

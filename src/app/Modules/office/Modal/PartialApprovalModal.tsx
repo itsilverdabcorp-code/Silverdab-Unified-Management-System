@@ -234,6 +234,30 @@ const PartialApprovalModal: React.FC<Props> = ({
           style={{ overflowY: "auto", flex: 1 }}
           className="px-5 py-4 flex flex-col gap-3"
         >
+          {/* Requestor notes */}
+          {request.notes && request.notes.trim() && (
+            <div
+              style={{
+                backgroundColor: theme.background,
+                borderColor: theme.border,
+              }}
+              className="rounded-lg border px-3 py-2.5"
+            >
+              <p
+                style={{ color: theme.subtext }}
+                className="text-[11px] uppercase tracking-wide mb-1"
+              >
+                Note from {request.requestedByName}
+              </p>
+              <p
+                style={{ color: theme.text, maxHeight: 96, overflowY: "auto" }}
+                className="text-xs leading-relaxed whitespace-pre-wrap break-words"
+              >
+                {request.notes}
+              </p>
+            </div>
+          )}
+
           {/* Info callout */}
           <div
             style={{

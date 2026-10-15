@@ -108,6 +108,7 @@ function mapTripRow(row: any): FleetTrip {
     requestorName: row.requestorName ?? "Unknown",
     pickupLocationId: row.pickupLocationId ?? null,
     pickupLabel: row.pickupLabel ?? "—",
+    pickupExactAddress: row.pickupExactAddress ?? null,
     pickupLatitude:
       row.pickupLatitude != null
         ? Number(row.pickupLatitude)
@@ -122,6 +123,7 @@ function mapTripRow(row: any): FleetTrip {
           : null,
     dropoffLocationId: row.dropoffLocationId ?? null,
     dropoffLabel: row.dropoffLabel ?? "—",
+    dropoffExactAddress: row.dropoffExactAddress ?? null,
     dropoffLatitude:
       row.dropoffLatitude != null
         ? Number(row.dropoffLatitude)
@@ -542,6 +544,8 @@ export async function submitTripRequest(payload: {
   pickupLongitude?: number;
   dropoffLocationId?: string;
   dropoffLocationText?: string;
+  pickupExactAddress?: string;
+  dropoffExactAddress?: string;
   dropoffLatitude?: number;
   dropoffLongitude?: number;
   // Extra stops beyond the primary drop-off above, in visit order — for
@@ -550,6 +554,7 @@ export async function submitTripRequest(payload: {
   additionalDropoffs?: Array<{
     locationId?: string;
     locationText: string;
+    exactAddress?: string;
     latitude: number;
     longitude: number;
   }>;
@@ -792,11 +797,13 @@ export async function updateFleetTripDropoffs(
     // slot becomes the new primary and is sent here.
     dropoffLocationId?: string | null;
     dropoffLabel: string;
+    dropoffExactAddress?: string | null;
     dropoffLatitude?: number | null;
     dropoffLongitude?: number | null;
     additionalDropoffs: Array<{
       locationId?: string | null;
       locationText: string;
+      exactAddress?: string | null;
       latitude?: number | null;
       longitude?: number | null;
     }>;

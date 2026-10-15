@@ -205,6 +205,9 @@ export default function AppShell({ user, onLogout }: Props) {
 
   const [activeKey, setActiveKey] = useState<string>(defaultKeyForUser);
   const [restored, setRestored] = useState(false);
+  // Bumped when "Forms" (executive) is clicked while already open, so the
+  // page remounts and returns to its saved-statements list.
+  const [execFormsResetKey, setExecFormsResetKey] = useState(0);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const insets = useSafeAreaInsets();
@@ -293,6 +296,9 @@ export default function AppShell({ user, onLogout }: Props) {
   };
 
   const handleNavigate = (key: string) => {
+    if (key === "execforms" && key === activeKey) {
+      setExecFormsResetKey((k) => k + 1);
+    }
     setActiveKey(key);
     updateBrowserUrl(key);
     AsyncStorage.setItem(`${LAST_PAGE_KEY}_${user.username}`, key).catch(
@@ -370,7 +376,13 @@ const isDriverOnly =
         />
       )}
       <View style={{ flex: 1, paddingTop: isMobile ? 56 + insets.top : 0 }}>
-        <PageErrorBoundary key={activeKey}>
+        <PageErrorBoundary
+          key={
+            activeKey === "execforms"
+              ? `execforms-${execFormsResetKey}`
+              : activeKey
+          }
+        >
           {renderPage(activeKey, user, {
             inventoryFilter,
             deliverItem,

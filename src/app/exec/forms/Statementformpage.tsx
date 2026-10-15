@@ -253,6 +253,8 @@ export default function StatementFormPage({
   const [bankDraft, setBankDraft] = useState(emptyBankDraft());
 
   const [stmtNo, setStmtNo] = useState(""); // shown in the locked field + title bar
+  const [editingNo, setEditingNo] = useState(false); // field unlocked
+  const [manualNo, setManualNo] = useState(false); // user typed their own number
   const [loadedNo, setLoadedNo] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [rowH, setRowH] = useState<Record<string, number>>({});
@@ -384,7 +386,7 @@ export default function StatementFormPage({
     : String(new Date().getFullYear());
   useEffect(() => {
     // Viewing/editing a saved statement keeps its own number.
-    if (statementNo || loadedNo) return;
+    if (statementNo || loadedNo || manualNo) return;
 
     let cancelled = false;
     api(`/fpd/next-number?date=${date}`)
@@ -402,7 +404,7 @@ export default function StatementFormPage({
     return () => {
       cancelled = true;
     };
-  }, [year, loadedNo, statementNo]);
+  }, [year, loadedNo, statementNo, manualNo]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   // ── Live exchange rate (PHP → USD / JPY) ──
@@ -558,6 +560,8 @@ export default function StatementFormPage({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const validateForm = () => {
+    if (manualNo && !stmtNo.trim())
+      return showToast("Statement No. can't be empty."), false;
     if (!billName.trim()) return showToast("Bill to name is required."), false;
     if (filled.length === 0)
       return showToast("Add at least one statement line."), false;
@@ -602,6 +606,7 @@ export default function StatementFormPage({
       })),
       preparedBy,
       createdByName: user.displayName,
+      ...(manualNo ? { statementNo: stmtNo.trim() } : {}),
       ...(customBank ? { bank: customBank } : { bankTemplateId: bankId }),
     };
 
@@ -612,7 +617,11 @@ export default function StatementFormPage({
           body: JSON.stringify(payload),
         });
         setSaveOpen(false);
-        if (onView) onView(loadedNo); // back to viewing the saved statement
+        const finalNo = manualNo ? stmtNo.trim() : loadedNo;
+        setLoadedNo(finalNo);
+        setEditingNo(false);
+        setManualNo(false);
+        if (onView) onView(finalNo); // back to viewing the saved statement
         else showToast("Updated.");
       } else {
         const d = await api("/fpd/statements", {
@@ -621,6 +630,8 @@ export default function StatementFormPage({
         });
         setLoadedNo(d.statementNo);
         setStmtNo(d.statementNo);
+        setEditingNo(false);
+        setManualNo(false);
         showToast(`Saved ${d.statementNo}.`);
       }
     } catch (e: any) {
@@ -875,15 +886,72 @@ export default function StatementFormPage({
       <View style={S.card}>
         <SectionTitle n={1} title="Statement details" />
         <View style={{ flexDirection: "row", gap: 12 }}>
-          <Field label="Statement No." style={{ flex: 1 }}>
-            <TextInput
-              style={[
-                S.input,
-                { backgroundColor: theme.bgHover, color: theme.textInactive },
-              ]}
-              value={stmtNo}
-              editable={false}
-            />
+          <Field
+            label="Statement No."
+            hint={manualNo ? "(manual)" : undefined}
+            style={{ flex: 1 }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <TextInput
+                style={[
+                  S.input,
+                  { flex: 1, minWidth: 0 },
+                  !editingNo && {
+                    backgroundColor: theme.bgHover,
+                    color: theme.textInactive,
+                  },
+                ]}
+                value={stmtNo}
+                editable={editingNo}
+                onChangeText={(t) => {
+                  setStmtNo(t);
+                  setManualNo(true);
+                }}
+                placeholder="FPD.2026.01"
+                placeholderTextColor={theme.textInactive}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                onPress={() => setEditingNo((e) => !e)}
+                hitSlop={6}
+                style={{
+                  width: 36,
+                  height: 38,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: editingNo ? theme.iconActive : theme.navBorder,
+                  backgroundColor: editingNo ? theme.bgActive : theme.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Pencil
+                  size={15}
+                  color={editingNo ? theme.iconActive : theme.textActive}
+                />
+              </TouchableOpacity>
+              {manualNo && !loadedNo ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    setManualNo(false); // effect re-fetches the automatic number
+                    setEditingNo(false);
+                  }}
+                  hitSlop={6}
+                  style={{
+                    width: 36,
+                    height: 38,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: theme.navBorder,
+                    backgroundColor: theme.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <RotateCcw size={15} color={theme.textActive} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </Field>
           <Field label="Date" style={{ flex: 1 }}>
             <DateInput
