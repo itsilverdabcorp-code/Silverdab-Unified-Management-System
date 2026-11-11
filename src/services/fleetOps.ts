@@ -955,3 +955,25 @@ export async function setDriverShift(
     throw new Error(data?.message || "Failed to update shift.");
   }
 }
+
+// ─── Display helper: requestor-entered exact addresses ──────────────────────
+// Returns [label, value] rows for the exact address (unit / floor / building
+// / landmark) the requestor typed for the pickup and each drop-off in the
+// booking modal. Stops without one are skipped, so trips booked without
+// exact addresses render exactly as before.
+export function getTripExactAddressRows(trip: FleetTrip): [string, string][] {
+  const rows: [string, string][] = [];
+  const pickup = trip.pickupExactAddress?.trim();
+  if (pickup) rows.push(["Pickup address", pickup]);
+
+  const dropoffs = [
+    trip.dropoffExactAddress,
+    ...(trip.additionalDropoffs ?? []).map((s) => s.exactAddress),
+  ];
+  const multi = dropoffs.length > 1;
+  dropoffs.forEach((exact, i) => {
+    const value = exact?.trim();
+    if (value) rows.push([multi ? `Drop-off ${i + 1} address` : "Drop-off address", value]);
+  });
+  return rows;
+}

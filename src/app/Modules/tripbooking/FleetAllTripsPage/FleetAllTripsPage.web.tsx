@@ -4,6 +4,7 @@
 // All state/logic lives in useFleetAllTripsData.ts — this file is JSX
 // only, same split as FleetControlTowerPage.web.tsx / useFleetControlTowerData.ts.
 
+import TripExactAddressLine from "../TripExactAddressLine";
 import React, { useState, useMemo } from "react";
 import { Archive, RotateCcw } from "lucide-react";
 import { useTheme } from "../../../../theme/ThemeContext";
@@ -560,6 +561,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                   />
                   <Truncated text={viewingTrip.pickupLabel} theme={theme} style={{ color: theme.text }} className="text-[13.5px] font-bold leading-snug" />
                 </div>
+                <TripExactAddressLine text={viewingTrip.pickupExactAddress} indent={22} theme={theme} />
                 <div className="flex items-center gap-1.5 min-w-0 mt-1">
                   <span
                     style={{ backgroundColor: "#ef4444", color: "#fff" }}
@@ -569,10 +571,12 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                   </span>
                   <Truncated text={viewingTrip.dropoffLabel} theme={theme} style={{ color: theme.text }} className="text-[13.5px] font-bold leading-snug" />
                 </div>
+                <TripExactAddressLine text={viewingTrip.dropoffExactAddress} indent={22} theme={theme} />
                 {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
                   <div className="flex flex-col gap-1 mt-1">
                     {viewingTrip.additionalDropoffs.map((stop, idx) => (
-                      <div key={stop.locationId ?? idx} className="flex items-center gap-1.5 min-w-0">
+                      <div key={stop.locationId ?? idx} className="min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span
                           style={{ backgroundColor: "#ef4444", color: "#fff" }}
                           className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
@@ -585,6 +589,8 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                           style={{ color: theme.text }}
                           className="text-[13.5px] font-bold leading-snug"
                         />
+                      </div>
+                      <TripExactAddressLine text={stop.exactAddress} indent={22} theme={theme} />
                       </div>
                     ))}
                   </div>

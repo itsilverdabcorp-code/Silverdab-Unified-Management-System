@@ -11,6 +11,7 @@
 // native. Build a native map + calendar (or a shared cross-platform
 // primitive) before shipping this to mobile if those are needed there too.
 
+import { getTripExactAddressRows } from "../../../../services/fleetOps";
 import React, { useState } from "react";
 import {
   View,
@@ -660,6 +661,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
 
             {[
               ["Requestor", viewingTrip.requestorName],
+              ...getTripExactAddressRows(viewingTrip),
               ["Departure", formatDateTime(viewingTrip.departureDatetime)],
               ["Passengers", String(viewingTrip.passengerCount)],
               ["Purpose", viewingTrip.purpose || "—"],
@@ -672,9 +674,9 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     ["Approved at", viewingTrip.approvedAt ? formatDateTime(viewingTrip.approvedAt) : "—"],
                   ]),
             ].map(([label, value]) => (
-              <View key={label} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+              <View key={label} style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
                 <Text style={{ color: theme.subtext, fontSize: 11 }}>{label}</Text>
-                <Text style={{ color: theme.text, fontSize: 12.5, fontWeight: "700" }}>{value}</Text>
+                <Text style={{ color: theme.text, fontSize: 12.5, fontWeight: "700", flexShrink: 1, textAlign: "right" }}>{value}</Text>
               </View>
             ))}
 

@@ -1839,21 +1839,30 @@ function TripDetailContent({
         fields={[
           { label: "Trip Ref", value: trip.tripRef },
           { label: "Pickup", value: trip.pickupLabel || "—" },
+          // Exact address (unit / floor / building / landmark) typed by the
+          // requestor in the booking modal — only shown when filled in.
+          ...(trip.pickupExactAddress?.trim()
+            ? [{ label: "Pickup exact address", value: trip.pickupExactAddress.trim() }]
+            : []),
           // Extra stops (beyond the primary dropoffLabel) come from
           // fleet_trip_stops via GET /fleet/trips as additionalDropoffs —
           // render one "Drop-off N" row per stop when there's more than one.
           ...(() => {
             const extraStops = trip.additionalDropoffs ?? [];
-            const allLabels = [
-              trip.dropoffLabel || "—",
-              ...extraStops.map((s) => s.locationText || "—"),
+            const allStops = [
+              { label: trip.dropoffLabel || "—", exact: trip.dropoffExactAddress },
+              ...extraStops.map((s) => ({ label: s.locationText || "—", exact: s.exactAddress })),
             ];
-            return allLabels.length > 1
-              ? allLabels.map((label, i) => ({
-                  label: `Drop-off ${i + 1}`,
-                  value: label,
-                }))
-              : [{ label: "Drop-off", value: allLabels[0] }];
+            const multi = allStops.length > 1;
+            return allStops.flatMap((stop, i) => {
+              const name = multi ? `Drop-off ${i + 1}` : "Drop-off";
+              return [
+                { label: name, value: stop.label },
+                ...(stop.exact?.trim()
+                  ? [{ label: `${name} exact address`, value: stop.exact.trim() }]
+                  : []),
+              ];
+            });
           })(),
           { label: "Departure", value: formatDateAndTime(trip.departureDatetime) },
           {

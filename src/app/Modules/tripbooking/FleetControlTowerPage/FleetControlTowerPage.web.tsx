@@ -4,6 +4,7 @@
 // All state/logic lives in useFleetControlTowerData.ts — this file is JSX
 // only, same split as SupplyRequestsPage.web.tsx / useSupplyRequestsData.ts.
 
+import TripExactAddressLine from "../TripExactAddressLine";
 import React, { useEffect, useRef, useState } from "react";
 import { useTheme } from "../../../../theme/ThemeContext";
 import FleetLiveMap from "../FleetLiveMap";
@@ -1079,6 +1080,7 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     {viewingTrip.pickupLabel}
                   </p>
                 </div>
+                <TripExactAddressLine text={viewingTrip.pickupExactAddress} indent={15} theme={theme} />
                 <div className="flex items-center gap-2 min-w-0 mt-1">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
@@ -1088,10 +1090,12 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                     {viewingTrip.dropoffLabel}
                   </p>
                 </div>
+                <TripExactAddressLine text={viewingTrip.dropoffExactAddress} indent={18} theme={theme} />
                 {viewingTrip.additionalDropoffs && viewingTrip.additionalDropoffs.length > 0 && (
                   <div className="flex flex-col gap-1 mt-1 ml-[18px] min-w-0">
                     {viewingTrip.additionalDropoffs.map((stop, idx) => (
-                      <div key={stop.locationId ?? idx} className="flex items-center gap-2 min-w-0">
+                      <div key={stop.locationId ?? idx} className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span
                           style={{ backgroundColor: theme.background, color: theme.subtext, borderColor: theme.border }}
                           className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center text-[9px] font-bold"
@@ -1105,6 +1109,8 @@ export default function FleetControlTowerPage(props: FleetControlTowerProps) {
                         >
                           {stop.locationText}
                         </span>
+                      </div>
+                      <TripExactAddressLine text={stop.exactAddress} indent={24} theme={theme} />
                       </div>
                     ))}
                   </div>

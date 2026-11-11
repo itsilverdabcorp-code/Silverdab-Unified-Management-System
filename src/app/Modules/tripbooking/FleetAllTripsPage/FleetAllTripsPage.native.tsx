@@ -8,6 +8,7 @@
 // only — see that file's header for why). List/Calendar toggle mirrors
 // the web build's Table/Calendar toggle.
 
+import { getTripExactAddressRows } from "../../../../services/fleetOps";
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { useTheme } from "../../../../theme/ThemeContext";
@@ -406,6 +407,7 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
 
             {[
               ["Requestor", viewingTrip.requestorName],
+              ...getTripExactAddressRows(viewingTrip),
               ["Date Booked", formatDateTime(viewingTrip.createdAt)],
               ["Departure", formatDateTime(viewingTrip.departureDatetime)],
               [
@@ -424,9 +426,9 @@ export default function FleetAllTripsPage(props: FleetAllTripsProps) {
                     ["Approved at", viewingTrip.approvedAt ? formatDateTime(viewingTrip.approvedAt) : "—"],
                   ]),
             ].map(([label, value]) => (
-              <View key={label} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+              <View key={label} style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
                 <Text style={{ color: theme.subtext, fontSize: 11 }}>{label}</Text>
-                <Text style={{ color: theme.text, fontSize: 12.5, fontWeight: "700" }}>{value}</Text>
+                <Text style={{ color: theme.text, fontSize: 12.5, fontWeight: "700", flexShrink: 1, textAlign: "right" }}>{value}</Text>
               </View>
             ))}
 

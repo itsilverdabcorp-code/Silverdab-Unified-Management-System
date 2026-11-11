@@ -1715,7 +1715,28 @@ function TripDetailContent({
         fields={[
           { label: "Trip Ref", value: trip.tripRef },
           { label: "Pickup", value: trip.pickupLabel || "—" },
-          { label: "Drop-off", value: trip.dropoffLabel || "—" },
+          // Exact address (unit / floor / building / landmark) typed by the
+          // requestor in the booking modal — only shown when filled in.
+          ...(trip.pickupExactAddress?.trim()
+            ? [{ label: "Pickup exact address", value: trip.pickupExactAddress.trim() }]
+            : []),
+          ...(() => {
+            const extraStops = trip.additionalDropoffs ?? [];
+            const allStops = [
+              { label: trip.dropoffLabel || "—", exact: trip.dropoffExactAddress },
+              ...extraStops.map((s) => ({ label: s.locationText || "—", exact: s.exactAddress })),
+            ];
+            const multi = allStops.length > 1;
+            return allStops.flatMap((stop, i) => {
+              const name = multi ? `Drop-off ${i + 1}` : "Drop-off";
+              return [
+                { label: name, value: stop.label },
+                ...(stop.exact?.trim()
+                  ? [{ label: `${name} exact address`, value: stop.exact.trim() }]
+                  : []),
+              ];
+            });
+          })(),
           { label: "Departure", value: toReadableDate(trip.departureDatetime) },
           {
             label: "Return",
